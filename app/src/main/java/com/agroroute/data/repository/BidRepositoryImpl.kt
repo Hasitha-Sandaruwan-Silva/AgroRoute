@@ -21,8 +21,10 @@ import javax.inject.Singleton
  */
 @Singleton
 class BidRepositoryImpl @Inject constructor(
-    private val dao: BidDao,
-    private val firestoreService: FirestoreService
+    @PublishedApi
+    internal val dao: BidDao,
+    @PublishedApi
+    internal val firestoreService: FirestoreService
 ) : BidRepository {
 
     override fun getBidsForListing(listingId: String): Flow<Result<List<Bid>>> =
@@ -58,6 +60,6 @@ class BidRepositoryImpl @Inject constructor(
 
     override suspend fun syncBidsForListing(listingId: String): Result<Unit> = safeCall {
         val remote = firestoreService.queryFlow<Bid>(Constants.COLLECTION_BIDS, "listingId", listingId)
-        first(remote).let { bids -> dao.upsertBids(bids) }
+        remote.first().let { bids -> dao.upsertBids(bids) }
     }
 }

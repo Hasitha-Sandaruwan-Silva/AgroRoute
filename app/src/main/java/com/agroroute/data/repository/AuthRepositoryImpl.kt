@@ -12,7 +12,6 @@ import com.agroroute.util.safeCall
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 

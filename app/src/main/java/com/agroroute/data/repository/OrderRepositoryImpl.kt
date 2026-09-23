@@ -21,8 +21,10 @@ import javax.inject.Singleton
  */
 @Singleton
 class OrderRepositoryImpl @Inject constructor(
-    private val dao: OrderDao,
-    private val firestoreService: FirestoreService
+    @PublishedApi
+    internal val dao: OrderDao,
+    @PublishedApi
+    internal val firestoreService: FirestoreService
 ) : OrderRepository {
 
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
@@ -55,13 +57,9 @@ class OrderRepositoryImpl @Inject constructor(
 
     override suspend fun syncOrders(userId: String): Result<Unit> = safeCall {
         // Fetch orders where user is farmer
-        val farmerOrders = first(
-            firestoreService.queryFlow<Order>(Constants.COLLECTION_ORDERS, "farmerId", userId)
-        )
+        val farmerOrders = firestoreService.queryFlow<Order>(Constants.COLLECTION_ORDERS, "farmerId", userId).first()
         // Fetch orders where user is supplier
-        val supplierOrders = first(
-            firestoreService.queryFlow<Order>(Constants.COLLECTION_ORDERS, "supplierId", userId)
-        )
+        val supplierOrders = firestoreService.queryFlow<Order>(Constants.COLLECTION_ORDERS, "supplierId", userId).first()
         dao.upsertOrders((farmerOrders + supplierOrders).distinctBy { it.orderId })
     }
 }

@@ -15,17 +15,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Represents the UI state for auth screens. */
 data class AuthUiState(
     val isLoading: Boolean = false,
     val user: UserProfile? = null,
     val error: String? = null
 )
 
-/**
- * ViewModel shared by [LoginScreen] and [RegisterScreen] — handles auth logic
- * through use cases only, with no direct dependency on Firebase.
- */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
@@ -41,7 +36,7 @@ class AuthViewModel @Inject constructor(
             when (val result = loginUseCase(email, password)) {
                 is Result.Success -> _uiState.update { it.copy(isLoading = false, user = result.data) }
                 is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = result.message) }
-                is Result.Loading -> Unit // handled above
+                is Result.Loading -> Unit
             }
         }
     }

@@ -15,7 +15,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class FirestoreService @Inject constructor(
-    private val firestore: FirebaseFirestore
+    @PublishedApi
+    internal val firestore: FirebaseFirestore
 ) {
 
     /**

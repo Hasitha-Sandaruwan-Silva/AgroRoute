@@ -1,6 +1,7 @@
 package com.agroroute.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -99,17 +100,20 @@ fun NavGraph(
 // These will be replaced with real screen implementations as features are built.
 
 @Composable
-private fun RoleSelectionPlaceholder(navController: NavHostController) {
+@PublishedApi
+internal fun RoleSelectionPlaceholder(navController: NavHostController) {
     PlaceholderScreen(label = "Role Selection")
 }
 
 @Composable
-private fun FarmerHomePlaceholder(navController: NavHostController) {
+@PublishedApi
+internal fun FarmerHomePlaceholder(navController: NavHostController) {
     PlaceholderScreen(label = "Farmer Home")
 }
 
 @Composable
-private fun PlaceholderScreen(label: String) {
+@PublishedApi
+internal fun PlaceholderScreen(label: String) {
     androidx.compose.foundation.layout.Box(
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
         contentAlignment = androidx.compose.ui.Alignment.Center

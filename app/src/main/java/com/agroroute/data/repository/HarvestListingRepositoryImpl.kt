@@ -10,6 +10,7 @@ import com.agroroute.util.Result
 import com.agroroute.util.safeCall
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,8 +23,10 @@ import javax.inject.Singleton
  */
 @Singleton
 class HarvestListingRepositoryImpl @Inject constructor(
-    private val dao: HarvestListingDao,
-    private val firestoreService: FirestoreService
+    @PublishedApi
+    internal val dao: HarvestListingDao,
+    @PublishedApi
+    internal val firestoreService: FirestoreService
 ) : HarvestListingRepository {
 
     // ── Read operations (Room as source of truth) ──────────────────────────────
@@ -66,7 +69,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
         val remote = firestoreService.collectionFlow<HarvestListing>(Constants.COLLECTION_LISTINGS)
         // Collect one snapshot, write to Room, then done.
         // For a production app, consider a permanent listener instead.
-        kotlinx.coroutines.flow.first(remote).let { listings ->
+        remote.first().let { listings ->
             dao.upsertListings(listings)
         }
     }
