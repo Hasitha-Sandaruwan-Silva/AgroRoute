@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "829642015966",
+    "project_id": "agroroute",
+    "storage_bucket": "agroroute.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:829642015966:android:3c66597013b4c084922e4f",
+        "android_client_info": {
+          "package_name": "com.agroroute"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCHDz3odPoI4xXuvntlp1FzVTc84sipMY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
