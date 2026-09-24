@@ -4,8 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.agroroute.ui.navigation.NavGraph
-import com.agroroute.ui.theme.AgroRouteTheme
+import com.agroroute.common.navigation.NavGraph
+import com.agroroute.common.ui.AgroRouteTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
