@@ -36,6 +36,7 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant = OutlineGreen
 )
 
+// Kept in place but unused when forcing light theme
 private val DarkColorScheme = darkColorScheme(
     primary = MintAccent,
     onPrimary = DarkBg,
@@ -73,10 +74,10 @@ val AgroShapes = Shapes(
 
 @Composable
 fun AgroRouteTheme(
-    darkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = if (darkTheme) LightColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
