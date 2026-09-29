@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Storefront
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -78,13 +75,13 @@ fun SupplierHomeScreen(
                     StatCard(
                         label = "Market Listings",
                         value = marketState.listings.size.toString(),
-                        icon = Icons.Default.Storefront,
+                        icon = Lucide.ShoppingBag,
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
                         label = "My Orders",
                         value = orderState.orders.size.toString(),
-                        icon = Icons.Default.Receipt,
+                        icon = Lucide.Receipt,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -92,7 +89,7 @@ fun SupplierHomeScreen(
                 StatCard(
                     label = "Bidding Open",
                     value = biddingOpen.toString(),
-                    icon = Icons.Default.ShoppingCart,
+                    icon = Lucide.ShoppingCart,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

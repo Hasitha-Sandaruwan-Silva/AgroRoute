@@ -9,12 +9,16 @@ plugins {
 
 android {
     namespace = "com.agroroute"
-    compileSdk = 34
+    compileSdk = 35
+
+    ksp {
+        arg("kotlin.ksp.suppressKotlinVersionMismatch", "true")
+    }
 
     defaultConfig {
         applicationId = "com.agroroute"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -60,10 +64,11 @@ dependencies {
     debugImplementation(libs.compose.ui.test.manifest)
     androidTestImplementation(libs.compose.ui.test.junit4)
 
-    // ── Core AndroidX ──────────────────────────────────────────────────────────
+    // ── AndroidX ───────────────────────────────────────────────────────────────
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     // ── Navigation Compose ─────────────────────────────────────────────────────
     implementation(libs.navigation.compose)
@@ -94,6 +99,9 @@ dependencies {
 
     // ── Gson (Room TypeConverter for List<String>) ────────────────────────────
     implementation(libs.gson)
+
+    // ── Lucide Icons ───────────────────────────────────────────────────────────
+    implementation("com.github.thelacspace:lucide-compose:1.16.0")
 
     // ── Testing ───────────────────────────────────────────────────────────────
     testImplementation(libs.junit)

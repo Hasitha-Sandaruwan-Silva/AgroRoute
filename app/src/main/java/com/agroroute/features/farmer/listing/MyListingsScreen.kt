@@ -12,8 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +65,7 @@ fun MyListingsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 shape = MaterialTheme.shapes.large
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Create Listing")
+                Icon(Lucide.Plus, contentDescription = "Create Listing")
             }
         },
         snackbarHost = { AgroSnackbarHost(snackbarHostState) }
@@ -84,7 +83,7 @@ fun MyListingsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         EmptyState(
-                            icon = Icons.Default.Add,
+                            icon = Lucide.Plus,
                             title = "No Listings Yet",
                             subtitle = "Create your first harvest listing to start selling"
                         )

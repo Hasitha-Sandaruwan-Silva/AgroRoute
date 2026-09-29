@@ -21,10 +21,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Grass
-import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.MonetizationOn
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,17 +54,17 @@ private data class OnboardingPage(
 
 private val onboardingPages = listOf(
     OnboardingPage(
-        Icons.Default.Grass,
+        Lucide.Sprout,
         "List your harvest",
         "Showcase fresh produce from your farm to buyers across Sri Lanka."
     ),
     OnboardingPage(
-        Icons.Default.MonetizationOn,
+        Lucide.DollarSign,
         "Get the best bids",
         "Let suppliers compete fairly so you receive the price you deserve."
     ),
     OnboardingPage(
-        Icons.Default.LocalShipping,
+        Lucide.Truck,
         "Track your orders",
         "Follow every order from pickup to delivery in one place."
     )

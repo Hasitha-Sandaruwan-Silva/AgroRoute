@@ -10,8 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -100,14 +99,14 @@ fun PlaceBidScreen(
                         ListingSummaryCard(listing = result.data)
                     } else {
                         EmptyState(
-                            icon = Icons.Default.Search,
+                            icon = Lucide.Search,
                             title = "Listing not found",
                             subtitle = "This harvest listing is no longer available"
                         )
                     }
                 }
                 is Result.Error -> EmptyState(
-                    icon = Icons.Default.Search,
+                    icon = Lucide.Search,
                     title = "Unable to load listing",
                     subtitle = "Pull back and try again"
                 )

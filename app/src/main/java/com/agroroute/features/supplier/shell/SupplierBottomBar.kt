@@ -15,18 +15,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Receipt
-import androidx.compose.material.icons.outlined.Storefront
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,24 +29,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.navigation.Screen
-import com.agroroute.core.theme.GreenPrimary
 
 private data class SupplierTab(
     val route: String,
     val label: String,
-    val icon: ImageVector,
-    val selectedIcon: ImageVector
+    val icon: ImageVector
 )
 
 private val supplierTabs = listOf(
-    SupplierTab(Screen.SupplierHome.route, "Home", Icons.Outlined.Home, Icons.Filled.Home),
-    SupplierTab(Screen.SupplierMarketplace.route, "Marketplace", Icons.Outlined.Storefront, Icons.Filled.Storefront),
-    SupplierTab(Screen.SupplierOrders.route, "Orders", Icons.Outlined.Receipt, Icons.Filled.Receipt),
-    SupplierTab(Screen.SupplierProfile.route, "Profile", Icons.Outlined.Person, Icons.Filled.Person)
+    SupplierTab(Screen.SupplierHome.route, "Home", Lucide.Home),
+    SupplierTab(Screen.SupplierMarketplace.route, "Marketplace", Lucide.ShoppingBag),
+    SupplierTab(Screen.SupplierOrders.route, "Orders", Lucide.Receipt),
+    SupplierTab(Screen.SupplierProfile.route, "Profile", Lucide.User)
 )
 
 @Composable
@@ -69,8 +59,8 @@ fun SupplierBottomBar(
             .shadow(
                 elevation = 12.dp,
                 shape = RoundedCornerShape(28.dp),
-                ambientColor = GreenPrimary.copy(alpha = 0.22f),
-                spotColor = GreenPrimary.copy(alpha = 0.18f)
+                ambientColor = Color(0xFF16A34A).copy(alpha = 0.22f),
+                spotColor = Color(0xFF16A34A).copy(alpha = 0.18f)
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         shape = RoundedCornerShape(28.dp),
@@ -108,8 +98,8 @@ private fun SupplierTabItem(
         label = "supplierIconScale"
     )
     val iconTint by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary
-        else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (selected) Color(0xFF16A34A)  // Primary green for selected
+        else Color(0xFF9CA3AF),  // Light gray for unselected
         label = "supplierIconTint"
     )
     val interactionSource = remember { MutableInteractionSource() }
@@ -125,17 +115,15 @@ private fun SupplierTabItem(
             )
             .background(
                 if (selected) {
-                    Brush.horizontalGradient(
-                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
-                    )
+                    Color(0xFF16A34A).copy(alpha = 0.1f)  // Light green background for selected
                 } else {
-                    Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface))
+                    Color.Transparent
                 }
             )
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Icon(
-            imageVector = if (selected) tab.selectedIcon else tab.icon,
+            imageVector = tab.icon,
             contentDescription = tab.label,
             tint = iconTint,
             modifier = Modifier
@@ -147,7 +135,7 @@ private fun SupplierTabItem(
             Text(
                 text = tab.label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = Color(0xFF16A34A),  // Primary green for selected text
                 modifier = Modifier.padding(top = 2.dp)
             )
         }

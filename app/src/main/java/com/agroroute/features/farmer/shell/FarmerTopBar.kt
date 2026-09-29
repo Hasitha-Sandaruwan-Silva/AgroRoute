@@ -21,10 +21,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Agriculture
-import androidx.compose.material.icons.rounded.Notifications
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -93,7 +90,7 @@ fun FarmerTopBar(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                imageVector = Lucide.ArrowLeft,
                                 contentDescription = "Back",
                                 tint = onSurfaceColor,
                                 modifier = Modifier.size(20.dp)
@@ -117,7 +114,7 @@ fun FarmerTopBar(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Agriculture,
+                            imageVector = Lucide.Sprout,
                             contentDescription = "Farm Logo",
                             tint = Color.White,
                             modifier = Modifier.size(22.dp)
@@ -178,7 +175,7 @@ fun FarmerTopBar(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Rounded.Notifications,
+                                imageVector = Lucide.Bell,
                                 contentDescription = "Notifications",
                                 tint = onSurfaceColor.copy(alpha = 0.8f),
                                 modifier = Modifier.size(20.dp)

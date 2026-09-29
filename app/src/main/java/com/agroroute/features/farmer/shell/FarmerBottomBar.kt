@@ -26,15 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Receipt
-import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Receipt
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -58,15 +50,14 @@ import com.agroroute.core.navigation.Screen
 private data class FarmerTab(
     val route: String,
     val label: String,
-    val icon: ImageVector,
-    val selectedIcon: ImageVector
+    val icon: ImageVector
 )
 
 private val farmerTabs = listOf(
-    FarmerTab(Screen.FarmerHome.route, "Home", Icons.Outlined.Home, Icons.Rounded.Home),
-    FarmerTab(Screen.MyListings.route, "Listings", Icons.Outlined.Description, Icons.Rounded.Description),
-    FarmerTab(Screen.FarmerOrders.route, "Orders", Icons.Outlined.Receipt, Icons.Rounded.Receipt),
-    FarmerTab(Screen.FarmerProfile.route, "Profile", Icons.Outlined.Person, Icons.Rounded.Person)
+    FarmerTab(Screen.FarmerHome.route, "Home", Lucide.Home),
+    FarmerTab(Screen.MyListings.route, "Listings", Lucide.FileText),
+    FarmerTab(Screen.FarmerOrders.route, "Orders", Lucide.Receipt),
+    FarmerTab(Screen.FarmerProfile.route, "Profile", Lucide.User)
 )
 
 @Composable
@@ -133,7 +124,7 @@ private fun FarmerTabItem(
     )
     val bgColor by animateColorAsState(
         targetValue = if (selected)
-            MaterialTheme.colorScheme.primaryContainer
+            Color(0xFF16A34A).copy(alpha = 0.1f)  // Light green background for selected
         else
             Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -141,9 +132,9 @@ private fun FarmerTabItem(
     )
     val iconTint by animateColorAsState(
         targetValue = if (selected)
-            MaterialTheme.colorScheme.primary
+            Color(0xFF16A34A)  // Primary green for selected
         else
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+            Color(0xFF9CA3AF),  // Light gray for unselected
         label = "tabIconTint"
     )
     val interactionSource = remember { MutableInteractionSource() }
@@ -164,7 +155,7 @@ private fun FarmerTabItem(
         horizontalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = if (selected) tab.selectedIcon else tab.icon,
+            imageVector = tab.icon,
             contentDescription = tab.label,
             tint = iconTint,
             modifier = Modifier.size(22.dp)
@@ -185,7 +176,7 @@ private fun FarmerTabItem(
                         fontSize = 13.sp,
                         letterSpacing = 0.1.sp
                     ),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color(0xFF16A34A),  // Primary green for selected text
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

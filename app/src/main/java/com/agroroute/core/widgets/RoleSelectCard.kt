@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Agriculture
-import androidx.compose.material.icons.filled.Store
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,12 +32,12 @@ fun RoleSelectCard(
         UserRole.FARMER -> Triple(
             "Farmer",
             "Sell your harvest",
-            Icons.Default.Agriculture
+            Lucide.Sprout
         )
         UserRole.SUPPLIER -> Triple(
             "Supplier",
             "Buy from farms",
-            Icons.Default.Store
+            Lucide.Store
         )
     }
     val borderColor by animateColorAsState(

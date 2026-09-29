@@ -12,8 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Receipt
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -63,7 +62,7 @@ fun FarmerOrdersScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
-                        icon = Icons.Default.Receipt,
+                        icon = Lucide.Receipt,
                         title = "No Orders Yet",
                         subtitle = "Your order history will appear here"
                     )

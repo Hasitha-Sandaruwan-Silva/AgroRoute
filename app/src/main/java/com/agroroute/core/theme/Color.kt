@@ -7,13 +7,13 @@ import androidx.compose.ui.graphics.Color
  */
 
 // ── Primary ──────────────────────────────────────────────────────────────────
-val GreenDeep      = Color(0xFF1B5E20)
-val GreenEmerald   = Color(0xFF2E7D32)
-val GreenPrimary   = Color(0xFF2E7D32)
-val GreenLight     = Color(0xFF43A047)
+val GreenDeep      = Color(0xFF166534)  // Darker shade of #16A34A
+val GreenEmerald   = Color(0xFF16A34A)  // Primary green
+val GreenPrimary   = Color(0xFF16A34A)  // Primary green
+val GreenLight     = Color(0xFF4ADE80)  // Lighter shade of #16A34A
 
 // ── Secondary ────────────────────────────────────────────────────────────────
-val FreshGreen     = Color(0xFF43A047)
+val FreshGreen     = Color(0xFF22C55E)  // Secondary green variant
 
 // ── Tonal / Container ────────────────────────────────────────────────────────
 val MintContainer  = Color(0xFFE8F5E9)
@@ -48,9 +48,9 @@ val DarkOutline    = Color(0xFF2C4A36)
 
 // ── Status Colors ────────────────────────────────────────────────────────────
 val StatusPending   = Color(0xFFFFB300) // Amber
-val StatusAccepted  = Color(0xFF2E7D32) // Emerald / Green
-val StatusDelivered = Color(0xFF2E7D32) // Emerald / Green
-val StatusInTransit = Color(0xFF43A047) // Fresh green
+val StatusAccepted  = Color(0xFF16A34A) // Primary green
+val StatusDelivered = Color(0xFF16A34A) // Primary green
+val StatusInTransit = Color(0xFF22C55E) // Secondary green
 val StatusRejected  = Color(0xFFC62828) // Red
 val StatusCancelled = Color(0xFFC62828) // Red
 val StatusWithdrawn = Color(0xFF5F6B5F) // Grey-green

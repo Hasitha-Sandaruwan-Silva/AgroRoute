@@ -18,14 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.TrendingUp
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -139,7 +132,7 @@ fun FarmerHomeScreen(
                     HomeStatCard(
                         label = "My Listings",
                         value = totalListings.toString(),
-                        icon = Icons.Default.Description,
+                        icon = Lucide.FileText,
                         accent = primaryColor,
                         soft = primaryContainer,
                         onSurfaceColor = onSurfaceColor,
@@ -149,7 +142,7 @@ fun FarmerHomeScreen(
                     HomeStatCard(
                         label = "Orders",
                         value = totalOrders.toString(),
-                        icon = Icons.Default.Receipt,
+                        icon = Lucide.Receipt,
                         accent = secondaryColor,
                         soft = primaryContainer,
                         onSurfaceColor = onSurfaceColor,
@@ -163,7 +156,7 @@ fun FarmerHomeScreen(
                 HomeStatCard(
                     label = "Open for Bids",
                     value = openListings.toString(),
-                    icon = Icons.Default.Gavel,
+                    icon = Lucide.Gavel,
                     accent = primaryColor,
                     soft = primaryContainer,
                     onSurfaceColor = onSurfaceColor,
@@ -205,7 +198,7 @@ fun FarmerHomeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Add,
+                                    imageVector = Lucide.Plus,
                                     contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(26.dp)
@@ -260,7 +253,7 @@ fun FarmerHomeScreen(
                 ShortcutCard(
                     title = "My Listings",
                     subtitle = "View & manage",
-                    icon = Icons.Default.Description,
+                    icon = Lucide.FileText,
                     onClick = { navController.navigate(Screen.MyListings.route) },
                     primaryColor = primaryColor,
                     primaryContainer = primaryContainer,
@@ -272,7 +265,7 @@ fun FarmerHomeScreen(
                 ShortcutCard(
                     title = "Orders",
                     subtitle = "Track status",
-                    icon = Icons.Default.Receipt,
+                    icon = Lucide.Receipt,
                     onClick = { navController.navigate(Screen.FarmerOrders.route) },
                     primaryColor = primaryColor,
                     primaryContainer = primaryContainer,
@@ -288,7 +281,7 @@ fun FarmerHomeScreen(
             ShortcutCard(
                 title = "Marketplace",
                 subtitle = "Browse active harvest listings",
-                icon = Icons.Default.Storefront,
+                icon = Lucide.ShoppingBag,
                 onClick = { navController.navigate(Screen.SupplierMarketplace.route) },
                 primaryColor = primaryColor,
                 primaryContainer = primaryContainer,
@@ -320,7 +313,7 @@ fun FarmerHomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.TrendingUp,
+                            imageVector = Lucide.TrendingUp,
                             contentDescription = null,
                             tint = primaryColor,
                             modifier = Modifier.size(20.dp)
@@ -475,7 +468,7 @@ private fun ShortcutCard(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Lucide.ChevronRight,
                 contentDescription = null,
                 tint = primaryColor
             )

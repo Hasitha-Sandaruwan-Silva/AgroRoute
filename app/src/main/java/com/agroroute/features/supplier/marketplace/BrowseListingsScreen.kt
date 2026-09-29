@@ -13,8 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -78,7 +77,7 @@ fun BrowseListingsScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text("Search crops or location") },
-                leadingIcon = { androidx.compose.material3.Icon(Icons.Default.Search, contentDescription = null) },
+                leadingIcon = { androidx.compose.material3.Icon(Lucide.Search, contentDescription = null) },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
@@ -117,7 +116,7 @@ fun BrowseListingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
-                        icon = Icons.Default.Search,
+                        icon = Lucide.Search,
                         title = "No Listings Available",
                         subtitle = "Try adjusting search or filters"
                     )

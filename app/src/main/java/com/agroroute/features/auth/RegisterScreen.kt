@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -101,21 +98,21 @@ fun RegisterScreen(
                     value = displayName,
                     onValueChange = { displayName = it },
                     label = "Full Name",
-                    leadingIcon = Icons.Default.Person
+                    leadingIcon = Lucide.User
                 )
                 Spacer(Modifier.height(12.dp))
                 AgroTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = "Email",
-                    leadingIcon = Icons.Default.Email
+                    leadingIcon = Lucide.Mail
                 )
                 Spacer(Modifier.height(12.dp))
                 AgroTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = "Password",
-                    leadingIcon = Icons.Default.Lock,
+                    leadingIcon = Lucide.Lock,
                     visualTransformation = PasswordVisualTransformation()
                 )
                 Spacer(Modifier.height(12.dp))
@@ -123,7 +120,7 @@ fun RegisterScreen(
                     value = confirmPass,
                     onValueChange = { confirmPass = it },
                     label = "Confirm Password",
-                    leadingIcon = Icons.Default.Lock,
+                    leadingIcon = Lucide.Lock,
                     visualTransformation = PasswordVisualTransformation(),
                     isError = confirmPass.isNotEmpty() && password != confirmPass,
                     supportingText = if (confirmPass.isNotEmpty() && password != confirmPass) {

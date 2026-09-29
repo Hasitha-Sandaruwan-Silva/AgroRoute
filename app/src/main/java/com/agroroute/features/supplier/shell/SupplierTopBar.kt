@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +46,7 @@ fun SupplierTopBar(
         ) {
             if (!isTab) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Icon(Lucide.ArrowLeft, contentDescription = "Back")
                 }
                 Spacer(Modifier.width(4.dp))
             } else {
@@ -76,7 +74,7 @@ fun SupplierTopBar(
             )
             if (isTab) {
                 IconButton(onClick = { /* TODO: supplier top bar action */ }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    Icon(Lucide.MoreVertical, contentDescription = "More options")
                 }
             }
         }

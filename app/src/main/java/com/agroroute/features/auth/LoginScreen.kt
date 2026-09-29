@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -89,14 +87,14 @@ fun LoginScreen(
                     value = email,
                     onValueChange = { email = it },
                     label = "Email",
-                    leadingIcon = Icons.Default.Email
+                    leadingIcon = Lucide.Mail
                 )
                 Spacer(Modifier.height(12.dp))
                 AgroTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = "Password",
-                    leadingIcon = Icons.Default.Lock,
+                    leadingIcon = Lucide.Lock,
                     visualTransformation = PasswordVisualTransformation()
                 )
                 Spacer(Modifier.height(20.dp))

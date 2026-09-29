@@ -12,8 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -76,7 +75,7 @@ fun ViewBidsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 EmptyState(
-                    icon = Icons.Default.Person,
+                    icon = Lucide.User,
                     title = "No Bids Yet",
                     subtitle = "Suppliers haven't placed any bids on this listing yet"
                 )
