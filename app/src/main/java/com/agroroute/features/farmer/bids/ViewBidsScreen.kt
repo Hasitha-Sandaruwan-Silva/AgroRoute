@@ -324,7 +324,7 @@ private fun PremiumBidCard(
                 }
             }
 
-           
+
             if (bid.status == BidStatus.PENDING) {
                 Spacer(Modifier.height(20.dp))
                 LoadingButton(

@@ -31,6 +31,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.UserRole
+import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
@@ -49,6 +51,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -65,6 +69,7 @@ fun PlaceBidScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listingState by viewModel.listingState.collectAsStateWithLifecycle()
+    val canPlaceBids by viewModel.canPlaceBids.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Load listing details
@@ -114,41 +119,49 @@ fun PlaceBidScreen(
                 )
             }
 
-            AppCard {
-                SectionTitle(title = "Your offer")
-                PriceInputField(
-                    value = bidAmount,
-                    onValueChange = { bidAmount = it },
-                    label = "Your Bid Amount per Unit"
+            if (canPlaceBids) {
+                AppCard {
+                    SectionTitle(title = "Your offer")
+                    PriceInputField(
+                        value = bidAmount,
+                        onValueChange = { bidAmount = it },
+                        label = "Your Bid Amount per Unit"
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    AgroTextField(
+                        value = message,
+                        onValueChange = { message = it },
+                        label = "Message (optional)",
+                        singleLine = false,
+                        minLines = 3,
+                        maxLines = 5
+                    )
+                }
+
+                LoadingButton(
+                    text = "Place Bid",
+                    isLoading = uiState.isLoading,
+                    onClick = {
+                        val bid = Bid(
+                            bidId = UUID.randomUUID().toString(),
+                            listingId = listingId,
+                            supplierId = "current_supplier_id", // TODO: Get from auth context
+                            supplierName = "Current Supplier", // TODO: Get from auth context
+                            offerPrice = bidAmount.toDoubleOrNull() ?: 0.0,
+                            message = message
+                        )
+                        viewModel.placeBid(bid)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = bidAmount.isNotBlank()
                 )
-                Spacer(Modifier.height(12.dp))
-                AgroTextField(
-                    value = message,
-                    onValueChange = { message = it },
-                    label = "Message (optional)",
-                    singleLine = false,
-                    minLines = 3,
-                    maxLines = 5
+            } else {
+                Text(
+                    text = "Only Supplier accounts can place bids.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
-
-            LoadingButton(
-                text = "Place Bid",
-                isLoading = uiState.isLoading,
-                onClick = {
-                    val bid = Bid(
-                        bidId = UUID.randomUUID().toString(),
-                        listingId = listingId,
-                        supplierId = "current_supplier_id", // TODO: Get from auth context
-                        supplierName = "Current Supplier", // TODO: Get from auth context
-                        offerPrice = bidAmount.toDoubleOrNull() ?: 0.0,
-                        message = message
-                    )
-                    viewModel.placeBid(bid)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = bidAmount.isNotBlank()
-            )
         }
 
         AgroSnackbarHost(
@@ -216,7 +229,8 @@ data class BiddingUiState(
 @HiltViewModel
 class PlaceBidViewModel @Inject constructor(
     private val placeBidUseCase: PlaceBidUseCase,
-    private val listingRepository: HarvestListingRepository
+    private val listingRepository: HarvestListingRepository,
+    authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BiddingUiState())
@@ -224,6 +238,17 @@ class PlaceBidViewModel @Inject constructor(
 
     private val _listingState = MutableStateFlow<Result<HarvestListing?>>(Result.Loading)
     val listingState: StateFlow<Result<HarvestListing?>> = _listingState.asStateFlow()
+
+    private val _canPlaceBids = MutableStateFlow(false)
+    val canPlaceBids: StateFlow<Boolean> = _canPlaceBids.asStateFlow()
+
+    init {
+        authRepository.getCurrentUserProfile()
+            .onEach { result ->
+                _canPlaceBids.value = result.getOrNull()?.role == UserRole.SUPPLIER
+            }
+            .launchIn(viewModelScope)
+    }
 
     fun loadListing(listingId: String) {
         viewModelScope.launch {
