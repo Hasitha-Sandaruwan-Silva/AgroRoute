@@ -54,6 +54,8 @@ import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
 import com.agroroute.core.widgets.LoadingButton
+import com.agroroute.core.widgets.ChipTone
+import com.agroroute.core.widgets.StatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -140,6 +142,10 @@ fun ViewBidsScreen(
                                 ),
                                 color = DarkGreenText
                             )
+                            listing.category?.let { category ->
+                                Spacer(Modifier.height(8.dp))
+                                StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+                            }
                         }
                     }
                 }

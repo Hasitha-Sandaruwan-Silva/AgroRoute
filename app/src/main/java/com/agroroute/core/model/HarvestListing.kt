@@ -26,5 +26,6 @@ data class HarvestListing(
     val status: ListingStatus = ListingStatus.OPEN,
     val biddingEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
-    val expiresAt: Long? = null
+    val expiresAt: Long? = null,
+    val category: ListingCategory? = null
 )

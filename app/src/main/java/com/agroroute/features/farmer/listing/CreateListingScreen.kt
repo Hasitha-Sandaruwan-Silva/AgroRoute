@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -25,7 +27,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.QuantityUnit
 import com.agroroute.core.widgets.AgroSnackbarHost
@@ -78,6 +83,55 @@ fun CreateListingScreen(
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var isCategoryDialogVisible by remember { mutableStateOf(false) }
+
+    fun publishListing(category: ListingCategory) {
+        val listing = HarvestListing(
+            listingId = UUID.randomUUID().toString(),
+            farmerId = "current_farmer_id",
+            farmerName = "Current Farmer",
+            cropName = cropName,
+            description = description,
+            quantity = quantity.toDoubleOrNull() ?: 0.0,
+            quantityUnit = selectedUnit,
+            reservePrice = price.toDoubleOrNull() ?: 0.0,
+            imageUrls = if (selectedPhotoUri != null) listOf(selectedPhotoUri.toString()) else emptyList(),
+            location = location,
+            status = ListingStatus.OPEN,
+            biddingEnabled = true,
+            category = category
+        )
+        viewModel.createListing(listing)
+    }
+
+    if (isCategoryDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { isCategoryDialogVisible = false },
+            title = { Text("Is this harvest Organic or Inorganic?") },
+            text = { Text("Choose a category to continue publishing this listing.") },
+            confirmButton = {
+                androidx.compose.foundation.layout.Row {
+                    TextButton(onClick = {
+                        isCategoryDialogVisible = false
+                        publishListing(ListingCategory.ORGANIC)
+                    }) {
+                        Text(ListingCategory.ORGANIC.displayName)
+                    }
+                    TextButton(onClick = {
+                        isCategoryDialogVisible = false
+                        publishListing(ListingCategory.INORGANIC)
+                    }) {
+                        Text(ListingCategory.INORGANIC.displayName)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isCategoryDialogVisible = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -90,6 +144,20 @@ fun CreateListingScreen(
                 }
             )
         },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                LoadingButton(
+                    text = "Create Listing",
+                    isLoading = uiState.isLoading,
+                    onClick = { isCategoryDialogVisible = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .imePadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    enabled = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank()
+                )
+            }
+        },
         snackbarHost = { AgroSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
@@ -100,34 +168,40 @@ fun CreateListingScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            AppCard {
-                SectionTitle(title = "Photo")
-                ListingImage(
-                    imageUrl = selectedPhotoUri?.toString(),
-                    height = 220.dp
-                )
-                Spacer(Modifier.height(12.dp))
-                PhotoPicker(
-                    selectedUri = selectedPhotoUri,
-                    onImageSelected = { selectedPhotoUri = it },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Add a harvest listing",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = if (selectedPhotoUri == null) "Tap the picker to add a harvest photo" else "Tap to change photo",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 8.dp)
+                    text = "Share the details of your harvest with potential buyers.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
+            uiState.error?.let { error ->
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+
             AppCard {
-                SectionTitle(title = "Crop details")
+                SectionTitle(title = "Harvest details")
                 AgroTextField(
                     value = cropName,
                     onValueChange = { cropName = it },
-                    label = "Crop Name"
+                    label = "Crop or harvest name"
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(
@@ -187,11 +261,39 @@ fun CreateListingScreen(
             }
 
             AppCard {
-                SectionTitle(title = "Pricing & location")
+                SectionTitle(title = "Quality photo")
+                Text(
+                    text = "Add a photo of the harvest. Select it again to replace it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                ListingImage(
+                    imageUrl = selectedPhotoUri?.toString(),
+                    height = 220.dp
+                )
+                Spacer(Modifier.height(12.dp))
+                PhotoPicker(
+                    selectedUri = selectedPhotoUri,
+                    onImageSelected = { selectedPhotoUri = it },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                Text(
+                    text = if (selectedPhotoUri == null) "Choose a harvest photo" else "Photo selected. Tap to replace it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 8.dp)
+                )
+            }
+
+            AppCard {
+                SectionTitle(title = "Price and location")
                 PriceInputField(
                     value = price,
                     onValueChange = { price = it },
-                    label = "Reserve Price per Unit"
+                    label = "Reserve price per ${selectedUnit.name}"
                 )
                 Spacer(Modifier.height(12.dp))
                 AgroTextField(
@@ -213,29 +315,6 @@ fun CreateListingScreen(
                 )
             }
 
-            LoadingButton(
-                text = "Create Listing",
-                isLoading = uiState.isLoading,
-                onClick = {
-                    val listing = HarvestListing(
-                        listingId = UUID.randomUUID().toString(),
-                        farmerId = "current_farmer_id",
-                        farmerName = "Current Farmer",
-                        cropName = cropName,
-                        description = description,
-                        quantity = quantity.toDoubleOrNull() ?: 0.0,
-                        quantityUnit = selectedUnit,
-                        reservePrice = price.toDoubleOrNull() ?: 0.0,
-                        imageUrls = if (selectedPhotoUri != null) listOf(selectedPhotoUri.toString()) else emptyList(),
-                        location = location,
-                        status = ListingStatus.OPEN,
-                        biddingEnabled = true
-                    )
-                    viewModel.createListing(listing)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank()
-            )
         }
     }
 }

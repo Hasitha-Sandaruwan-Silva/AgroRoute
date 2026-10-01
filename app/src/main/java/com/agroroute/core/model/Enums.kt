@@ -20,6 +20,12 @@ enum class ListingStatus {
     FULFILLED
 }
 
+/** Category selected by a farmer for a harvest listing. */
+enum class ListingCategory(val displayName: String) {
+    ORGANIC("Organic"),
+    INORGANIC("Inorganic")
+}
+
 /** Lifecycle status of a [Bid] placed by a supplier. */
 enum class BidStatus {
     PENDING,

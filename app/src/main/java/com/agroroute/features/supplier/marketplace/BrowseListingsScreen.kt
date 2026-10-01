@@ -166,6 +166,10 @@ private fun MarketplaceListingCard(
             }
         }
         Spacer(Modifier.height(8.dp))
+        listing.category?.let { category ->
+            StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+            Spacer(Modifier.height(8.dp))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
                 text = "${listing.quantity} ${listing.quantityUnit.name}",

@@ -35,6 +35,7 @@ import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
 import com.agroroute.core.widgets.AppCard
+import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
@@ -42,6 +43,7 @@ import com.agroroute.core.widgets.ListingImage
 import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.PriceInputField
 import com.agroroute.core.widgets.SectionTitle
+import com.agroroute.core.widgets.StatusChip
 import com.agroroute.core.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -166,6 +168,10 @@ private fun ListingSummaryCard(listing: HarvestListing) {
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
+        listing.category?.let { category ->
+            Spacer(modifier = Modifier.height(8.dp))
+            StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+        }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "${listing.quantity} ${listing.quantityUnit.name}",

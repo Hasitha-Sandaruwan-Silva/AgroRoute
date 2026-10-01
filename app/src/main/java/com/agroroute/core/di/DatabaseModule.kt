@@ -2,6 +2,7 @@ package com.agroroute.core.di
 
 import android.content.Context
 import androidx.room.Room
+import com.agroroute.core.database.DatabaseMigrations
 import com.agroroute.core.database.UserProfileDao
 import com.agroroute.core.database.AppDatabase
 import com.agroroute.core.util.Constants
@@ -30,6 +31,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             Constants.DATABASE_NAME
         )
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2)
             .fallbackToDestructiveMigration() // Acceptable for coursework; use migrations in prod
             .build()
 

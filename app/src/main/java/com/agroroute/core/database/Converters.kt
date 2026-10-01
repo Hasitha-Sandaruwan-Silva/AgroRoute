@@ -3,6 +3,7 @@ package com.agroroute.core.database
 import androidx.room.TypeConverter
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.ListingStatus
+import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.model.QuantityUnit
 import com.agroroute.core.model.UserRole
@@ -23,6 +24,11 @@ class Converters {
     // ── Enum: ListingStatus ────────────────────────────────────────────────────
     @TypeConverter fun fromListingStatus(value: ListingStatus): String = value.name
     @TypeConverter fun toListingStatus(value: String): ListingStatus   = ListingStatus.valueOf(value)
+
+    // ── Enum: ListingCategory ─────────────────────────────────────────────────
+    @TypeConverter fun fromListingCategory(value: ListingCategory?): String? = value?.name
+    @TypeConverter fun toListingCategory(value: String?): ListingCategory? =
+        value?.let(ListingCategory::valueOf)
 
     // ── Enum: BidStatus ────────────────────────────────────────────────────────
     @TypeConverter fun fromBidStatus(value: BidStatus): String = value.name
