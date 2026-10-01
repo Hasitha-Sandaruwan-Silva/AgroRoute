@@ -3,7 +3,6 @@ package com.agroroute.features.welcome
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,203 +14,306 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import com.github.thelacspace.icons.Lucide
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ImageNotSupported
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.LoadingButton
-import kotlinx.coroutines.delay
 
 private data class OnboardingPage(
-    val icon: ImageVector,
+    val imageUrl: String,
     val title: String,
     val body: String
 )
 
+// Reliable Unsplash CDN links (direct images)
 private val onboardingPages = listOf(
     OnboardingPage(
-        Lucide.Sprout,
-        "List your harvest",
-        "Showcase fresh produce from your farm to buyers across Sri Lanka."
+        imageUrl = "https://images.unsplash.com/photo-1464226184884-fa280b87c399?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+        title = "List Your Harvest",
+        body = "Showcase fresh produce directly from your farm to verified buyers across Sri Lanka."
     ),
     OnboardingPage(
-        Lucide.DollarSign,
-        "Get the best bids",
-        "Let suppliers compete fairly so you receive the price you deserve."
+        imageUrl = "https://sambodhi.co.in/wp-content/uploads/2023/06/Untitled-design-100-1.png",
+        title = "Get The Best Bids",
+        body = "Let suppliers compete fairly in open bidding so you receive the true market value."
     ),
     OnboardingPage(
-        Lucide.Truck,
-        "Track your orders",
-        "Follow every order from pickup to delivery in one place."
+        imageUrl = "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+        title = "Track Your Orders",
+        body = "Follow every transaction seamlessly from farm pickup to final buyer delivery."
     )
 )
+
+private val PrimaryGreen = Color(0xFF2E7D32)
+private val SoftMint = Color(0xFFE8F5E9)
+private val PageBg = Color(0xFFF6FAF6)
+private val DarkText = Color(0xFF14532D)
+private val BodyText = Color(0xFF4B5563)
+private val LineGray = Color(0xFFE5E7EB)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WelcomeScreen(navController: NavController) {
-    val pagerState = rememberPagerState { onboardingPages.size }
-    var logoVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(100)
-        logoVisible = true
-    }
-
-    val logoScale by animateFloatAsState(
-        targetValue = if (logoVisible) 1f else 0.7f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "logoScale"
-    )
-    val logoAlpha by animateFloatAsState(
-        targetValue = if (logoVisible) 1f else 0f,
-        animationSpec = tween(600),
-        label = "logoAlpha"
-    )
+    val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f),
-                        MaterialTheme.colorScheme.background
-                    )
+                    listOf(Color.White, SoftMint.copy(alpha = 0.7f), PageBg)
                 )
             )
-            .statusBarsPadding()
-            .navigationBarsPadding()
     ) {
+        // decorative blobs (safe offsets)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 28.dp, y = 36.dp)
+                .size(150.dp)
+                .clip(CircleShape)
+                .background(SoftMint.copy(alpha = 0.85f))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .offset(x = (-24).dp, y = (-90).dp)
+                .size(170.dp)
+                .clip(CircleShape)
+                .background(PrimaryGreen.copy(alpha = 0.06f))
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(40.dp))
-            Text(
-                text = "🌾",
-                style = MaterialTheme.typography.displayLarge,
-                modifier = Modifier
-                    .scale(logoScale)
-                    .alpha(logoAlpha)
-            )
-            Text(
-                text = "AgroRoute",
-                style = MaterialTheme.typography.displaySmall,
-                color = Color.White,
-                modifier = Modifier
-                    .alpha(logoAlpha)
-                    .padding(top = 8.dp)
-            )
-            Text(
-                text = "From farm to market, fairly priced",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.9f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .alpha(logoAlpha)
-                    .padding(top = 8.dp, bottom = 24.dp)
+            Spacer(Modifier.height(18.dp))
+
+            AnimatedLogoHeader(
+                modifier = Modifier.padding(bottom = 14.dp)
             )
 
-            HorizontalPager(
-                state = pagerState,
+            Surface(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-            ) { page ->
-                OnboardingPageContent(onboardingPages[page])
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(26.dp),
+                        ambientColor = PrimaryGreen.copy(alpha = 0.10f),
+                        spotColor = PrimaryGreen.copy(alpha = 0.10f)
+                    ),
+                shape = RoundedCornerShape(26.dp),
+                color = Color.White,
+                border = androidx.compose.foundation.BorderStroke(1.dp, LineGray.copy(alpha = 0.65f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) { page ->
+                        OnboardingPageContent(onboardingPages[page])
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    PagerIndicator(
+                        pageCount = onboardingPages.size,
+                        currentPage = pagerState.currentPage
+                    )
+                }
             }
 
-            PagerIndicator(
-                pageCount = onboardingPages.size,
-                currentPage = pagerState.currentPage
-            )
-
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(18.dp))
 
             LoadingButton(
                 text = "Get Started",
                 isLoading = false,
-                onClick = { navController.navigate(Screen.Register.route) },
+                onClick = {
+                    navController.navigate(Screen.Register.route) {
+                        launchSingleTop = true
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(54.dp)
             )
+
+            Spacer(Modifier.height(2.dp))
+
             TextButton(
-                onClick = { navController.navigate(Screen.Login.route) },
-                modifier = Modifier.padding(vertical = 8.dp)
+                onClick = {
+                    navController.navigate(Screen.Login.route) {
+                        launchSingleTop = true
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = "I already have an account",
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = PrimaryGreen,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.3.sp
+                    )
                 )
             }
-            Spacer(Modifier.height(16.dp))
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
 private fun OnboardingPageContent(page: OnboardingPage) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
+        Surface(
             modifier = Modifier
-                .size(88.dp)
-                .background(Color.White.copy(alpha = 0.2f), CircleShape),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .height(190.dp)
+                .shadow(5.dp, RoundedCornerShape(22.dp)),
+            shape = RoundedCornerShape(22.dp),
+            color = SoftMint
         ) {
-            Icon(
-                imageVector = page.icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(44.dp)
+            SubcomposeAsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(page.imageUrl)
+                    .crossfade(true)
+                    .crossfade(400)
+                    .memoryCacheKey(page.imageUrl)
+                    .diskCacheKey(page.imageUrl)
+                    .build(),
+                contentDescription = page.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(SoftMint, Color.White, SoftMint)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = PrimaryGreen,
+                                strokeWidth = 2.5.dp,
+                                modifier = Modifier.size(30.dp)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = "Loading photo…",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = PrimaryGreen
+                            )
+                        }
+                    }
+                },
+                error = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(SoftMint, Color(0xFFC8E6C9))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Spa,
+                                contentDescription = null,
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(42.dp)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = page.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkText
+                            )
+                        }
+                    }
+                }
             )
         }
-        Spacer(Modifier.height(24.dp))
+
+        Spacer(Modifier.height(18.dp))
+
         Text(
             text = page.title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = Color.White,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.2.sp
+            ),
+            color = DarkText,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(12.dp))
+
+        Spacer(Modifier.height(6.dp))
+
         Text(
             text = page.body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.85f),
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+            color = BodyText,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 8.dp)
         )
     }
 }
@@ -220,12 +322,13 @@ private fun OnboardingPageContent(page: OnboardingPage) {
 private fun PagerIndicator(pageCount: Int, currentPage: Int) {
     Row(
         horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
         repeat(pageCount) { index ->
             val selected = index == currentPage
             val width by animateFloatAsState(
-                targetValue = if (selected) 24f else 8f,
+                targetValue = if (selected) 26f else 8f,
                 animationSpec = spring(stiffness = Spring.StiffnessMedium),
                 label = "dotWidth"
             )
@@ -233,11 +336,9 @@ private fun PagerIndicator(pageCount: Int, currentPage: Int) {
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
                     .height(8.dp)
-                    .size(width = width.dp, height = 8.dp)
-                    .background(
-                        if (selected) Color.White else Color.White.copy(alpha = 0.4f),
-                        CircleShape
-                    )
+                    .width(width.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) PrimaryGreen else Color(0xFFCBD5E1))
             )
         }
     }

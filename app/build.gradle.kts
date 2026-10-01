@@ -101,7 +101,7 @@ dependencies {
     implementation(libs.gson)
 
     // ── Lucide Icons ───────────────────────────────────────────────────────────
-    implementation("com.github.thelacspace:lucide-compose:1.16.0")
+    // Using local Compose Material Icons mapping in com.github.thelacspace.icons.Lucide
 
     // ── Testing ───────────────────────────────────────────────────────────────
     testImplementation(libs.junit)
