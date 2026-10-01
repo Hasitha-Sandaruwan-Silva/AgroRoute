@@ -2,7 +2,12 @@
 
 package com.agroroute.features.farmer.listing
 
+import android.Manifest
 import android.net.Uri
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +27,8 @@ import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +39,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.core.content.ContextCompat
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.ListingStatus
@@ -62,6 +72,9 @@ import com.agroroute.core.widgets.PhotoPicker
 import com.agroroute.core.widgets.PriceInputField
 import com.agroroute.core.widgets.SectionTitle
 import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun CreateListingScreen(
@@ -78,6 +91,16 @@ fun CreateListingScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.loadFarmerDrafts("current_farmer_id")
+    }
+    LaunchedEffect(uiState.draftSaved) {
+        if (uiState.draftSaved) {
+            snackbarHostState.showSnackbar("Draft saved on this device")
+            viewModel.clearDraftSaved()
+        }
+    }
+
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
     var cropName by remember { mutableStateOf("") }
@@ -87,8 +110,52 @@ fun CreateListingScreen(
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var listingId by remember { mutableStateOf(UUID.randomUUID().toString()) }
     var selectedCategory by remember { mutableStateOf<ListingCategory?>(null) }
     var categorySelectionError by remember { mutableStateOf(false) }
+    var expectedHarvestAt by remember { mutableStateOf<Long?>(null) }
+    var qualityGrade by remember { mutableStateOf("") }
+    var showHarvestDatePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { showHarvestDatePicker = true }
+
+    fun requestHarvestDatePicker() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            showHarvestDatePicker = true
+        }
+    }
+
+    fun buildListing(isDraft: Boolean): HarvestListing {
+        val parsedQuantity = quantity.toDoubleOrNull() ?: 0.0
+        return HarvestListing(
+            listingId = listingId,
+            farmerId = "current_farmer_id",
+            farmerName = "Current Farmer",
+            cropName = cropName,
+            description = description,
+            quantity = parsedQuantity,
+            quantityUnit = selectedUnit,
+            reservePrice = price.toDoubleOrNull() ?: 0.0,
+            imageUrls = if (selectedPhotoUri != null) listOf(selectedPhotoUri.toString()) else emptyList(),
+            location = location,
+            status = ListingStatus.OPEN,
+            biddingEnabled = true,
+            category = selectedCategory,
+            expectedHarvestAt = expectedHarvestAt,
+            qualityGrade = qualityGrade.trim().ifBlank { null },
+            availableQuantity = parsedQuantity,
+            isDraft = isDraft
+        )
+    }
 
     fun publishListing() {
         val category = selectedCategory
@@ -98,22 +165,45 @@ fun CreateListingScreen(
         }
         categorySelectionError = false
 
-        val listing = HarvestListing(
-            listingId = UUID.randomUUID().toString(),
-            farmerId = "current_farmer_id",
-            farmerName = "Current Farmer",
-            cropName = cropName,
-            description = description,
-            quantity = quantity.toDoubleOrNull() ?: 0.0,
-            quantityUnit = selectedUnit,
-            reservePrice = price.toDoubleOrNull() ?: 0.0,
-            imageUrls = if (selectedPhotoUri != null) listOf(selectedPhotoUri.toString()) else emptyList(),
-            location = location,
-            status = ListingStatus.OPEN,
-            biddingEnabled = true,
-            category = category
+        viewModel.createListing(buildListing(isDraft = false).copy(category = category))
+    }
+
+    fun resumeDraft(draft: HarvestListing) {
+        listingId = draft.listingId
+        cropName = draft.cropName
+        quantity = draft.quantity.takeIf { it > 0 }?.toString().orEmpty()
+        selectedUnit = draft.quantityUnit
+        price = draft.reservePrice.takeIf { it > 0 }?.toString().orEmpty()
+        description = draft.description
+        location = draft.location
+        selectedPhotoUri = draft.imageUrls.firstOrNull()?.let(Uri::parse)
+        selectedCategory = draft.category
+        expectedHarvestAt = draft.expectedHarvestAt
+        qualityGrade = draft.qualityGrade.orEmpty()
+    }
+
+    if (showHarvestDatePicker) {
+        val datePickerState = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = expectedHarvestAt ?: System.currentTimeMillis()
         )
-        viewModel.createListing(listing)
+        DatePickerDialog(
+            onDismissRequest = { showHarvestDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    expectedHarvestAt = datePickerState.selectedDateMillis
+                    showHarvestDatePicker = false
+                }) {
+                    Text("Save date")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHarvestDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 
     Scaffold(
@@ -179,6 +269,28 @@ fun CreateListingScreen(
                 }
             }
 
+            if (uiState.drafts.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionTitle(title = "Saved local drafts")
+                    uiState.drafts.forEach { draft ->
+                        AppCard(
+                            onClick = { resumeDraft(draft) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = draft.cropName.ifBlank { "Untitled listing" },
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                text = "Draft · not published · tap to resume",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             AppCard {
                 SectionTitle(title = "Harvest details")
                 AgroTextField(
@@ -241,12 +353,29 @@ fun CreateListingScreen(
                         }
                     }
                 }
+                TextButton(onClick = ::requestHarvestDatePicker) {
+                    Text(
+                        text = expectedHarvestAt?.let(::formatHarvestDate)
+                            ?: "Set expected harvest date (optional)"
+                    )
+                }
+                AgroTextField(
+                    value = qualityGrade,
+                    onValueChange = { qualityGrade = it },
+                    label = "Quality grade (optional)"
+                )
             }
 
             AppCard {
                 SectionTitle(title = "Harvest Category")
                 Text(
                     text = "Select how this harvest was produced.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "Farmer-provided category; Organic does not indicate certification.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -360,6 +489,17 @@ fun CreateListingScreen(
                 )
             }
 
+            TextButton(
+                onClick = { viewModel.saveDraft(buildListing(isDraft = true)) },
+                enabled = !uiState.isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save draft on this device")
+            }
+
         }
     }
 }
+
+private fun formatHarvestDate(timestamp: Long): String =
+    "Expected harvest: ${SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(timestamp))}"

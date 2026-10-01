@@ -31,6 +31,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
@@ -183,11 +184,19 @@ private fun ListingSummaryCard(listing: HarvestListing) {
         )
         listing.category?.let { category ->
             Spacer(modifier = Modifier.height(8.dp))
-            StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+            StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
+        }
+        listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Quality: $grade (farmer-provided)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "${listing.quantity} ${listing.quantityUnit.name}",
+            text = "Available: ${listing.availableStock()} ${listing.quantityUnit.name}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

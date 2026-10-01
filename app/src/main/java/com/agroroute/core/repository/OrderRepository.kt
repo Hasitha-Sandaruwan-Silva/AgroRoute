@@ -22,6 +22,9 @@ interface OrderRepository {
     /** Creates a new order in Firestore and mirrors to Room. */
     suspend fun createOrder(order: Order): Result<Unit>
 
+    /** Atomically accepts a bid, consumes listing stock, and creates its order. */
+    suspend fun acceptBidAndCreateOrder(order: Order): Result<Unit>
+
     /** Updates the [OrderStatus] for an existing order. */
     suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit>
 

@@ -10,16 +10,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Order
+import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
@@ -39,6 +45,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private enum class OrderRange(val label: String, val days: Int?) {
+    ALL_TIME("All time", null),
+    LAST_30_DAYS("30 days", 30),
+    LAST_90_DAYS("90 days", 90)
+}
+
 @Composable
 fun FarmerOrdersScreen(
     navController: NavController,
@@ -46,6 +58,29 @@ fun FarmerOrdersScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedStatus by remember { mutableStateOf<OrderStatus?>(null) }
+    var selectedRange by remember { mutableStateOf(OrderRange.ALL_TIME) }
+    val now = remember { System.currentTimeMillis() }
+
+    val rangedOrders = remember(uiState.orders, selectedRange, now) {
+        selectedRange.days?.let { days ->
+            val since = now - days * 24L * 60L * 60L * 1000L
+            uiState.orders.filter { it.createdAt >= since }
+        } ?: uiState.orders
+    }
+    val visibleOrders = remember(rangedOrders, searchQuery, selectedStatus, uiState.supplierNames) {
+        rangedOrders.filter { order ->
+            val matchesSearch = searchQuery.isBlank() ||
+                order.cropName.contains(searchQuery, ignoreCase = true) ||
+                order.pickupLocation.contains(searchQuery, ignoreCase = true) ||
+                uiState.supplierNames[order.orderId]?.contains(searchQuery, ignoreCase = true) == true
+            matchesSearch && (selectedStatus == null || order.status == selectedStatus)
+        }
+    }
+    val deliveredOrders = rangedOrders.filter { it.status == OrderStatus.DELIVERED }
+    val deliveredQuantity = deliveredOrders.sumOf { it.quantity }
+    val deliveredValue = deliveredOrders.sumOf { it.quantity * it.agreedPrice }
 
     LaunchedEffect(Unit) {
         viewModel.loadOrdersForFarmer("current_farmer_id")
@@ -54,7 +89,76 @@ fun FarmerOrdersScreen(
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Order history", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(OrderRange.entries.size) { index ->
+                    val range = OrderRange.entries[index]
+                    FilterChip(
+                        selected = selectedRange == range,
+                        onClick = { selectedRange = range },
+                        label = { Text(range.label) }
+                    )
+                }
+            }
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Delivered order value - ${selectedRange.label}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        SummaryValue("All orders", rangedOrders.size.toString())
+                        SummaryValue("Delivered", deliveredOrders.size.toString())
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        SummaryValue("Delivered quantity", deliveredQuantity.toString())
+                        SummaryValue("Order value", "Rs. $deliveredValue")
+                    }
+                }
+                Text(
+                    text = "Based on delivered orders; this does not indicate payment status.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Search crop, supplier, or pickup") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    FilterChip(
+                        selected = selectedStatus == null,
+                        onClick = { selectedStatus = null },
+                        label = { Text("All statuses") }
+                    )
+                }
+                items(OrderStatus.entries.size) { index ->
+                    val status = OrderStatus.entries[index]
+                    FilterChip(
+                        selected = selectedStatus == status,
+                        onClick = { selectedStatus = status },
+                        label = { Text(status.displayLabel()) }
+                    )
+                }
+            }
+        }
+        Box(modifier = Modifier.weight(1f)) {
             when {
                 uiState.isLoading && uiState.orders.isEmpty() -> ListSkeleton()
                 uiState.orders.isEmpty() -> Box(
@@ -67,13 +171,24 @@ fun FarmerOrdersScreen(
                         subtitle = "Your order history will appear here"
                     )
                 }
+                visibleOrders.isEmpty() -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        icon = Lucide.Search,
+                        title = "No matching orders",
+                        subtitle = "Try changing the search, date range, or status"
+                    )
+                }
                 else -> LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(uiState.orders) { order ->
+                    items(visibleOrders) { order ->
                         OrderCard(
                             order = order,
+                            supplierName = uiState.supplierNames[order.orderId],
                             onCardClick = {
                                 navController.navigate(Screen.FarmerOrderDetail.createRoute(order.orderId))
                             }
@@ -92,6 +207,7 @@ fun FarmerOrdersScreen(
 @Composable
 private fun OrderCard(
     order: Order,
+    supplierName: String?,
     onCardClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
@@ -108,6 +224,10 @@ private fun OrderCard(
             OrderStatusChip(order.status)
         }
         Spacer(Modifier.height(8.dp))
+        supplierName?.let {
+            Text("Supplier: $it", style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(4.dp))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
                 text = "${order.quantity} ${order.quantityUnit.name}",
@@ -137,6 +257,18 @@ private fun OrderCard(
         )
     }
 }
+
+@Composable
+private fun SummaryValue(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+private fun OrderStatus.displayLabel(): String = name.lowercase()
+    .replace('_', ' ')
+    .replaceFirstChar { it.uppercase() }
 
 private fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())

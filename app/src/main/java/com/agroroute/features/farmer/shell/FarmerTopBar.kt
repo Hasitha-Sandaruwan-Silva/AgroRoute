@@ -576,6 +576,7 @@ internal val farmerTabRoutes = setOf(
 
 internal val farmerRoutes = setOf(
     *farmerTabRoutes.toTypedArray(),
+    Screen.HarvestCalendar.route,
     Screen.CreateListing.route,
     Screen.ViewBids.route,
     Screen.FarmerOrderDetail.route
@@ -584,6 +585,7 @@ internal val farmerRoutes = setOf(
 internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerHome.route -> "Home"
     route == Screen.MyListings.route -> "My Listings"
+    route == Screen.HarvestCalendar.route -> "Harvest Calendar"
     route == Screen.FarmerOrders.route -> "Orders"
     route == Screen.FarmerProfile.route -> "Profile"
     route == Screen.CreateListing.route -> "Create Listing"
@@ -595,6 +597,7 @@ internal fun farmerTitle(route: String): String = when {
 private fun farmerSubtitle(route: String): String? = when {
     route == Screen.FarmerHome.route -> "Farm command center"
     route == Screen.MyListings.route -> "Harvest posts & bids"
+    route == Screen.HarvestCalendar.route -> "Upcoming harvest dates"
     route == Screen.FarmerOrders.route -> "Pickups & deliveries"
     route == Screen.FarmerProfile.route -> "Account settings"
     route == Screen.CreateListing.route -> "Publish produce"

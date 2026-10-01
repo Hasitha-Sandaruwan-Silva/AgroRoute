@@ -32,6 +32,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.acceptsNewBids
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
@@ -60,6 +62,7 @@ fun BrowseListingsScreen(
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { /* flows from VM */ }
 
     val filtered = uiState.listings.filter { listing ->
+        if (!listing.acceptsNewBids()) return@filter false
         val matchesSearch = searchQuery.isBlank() ||
             listing.cropName.contains(searchQuery, ignoreCase = true) ||
             listing.location.contains(searchQuery, ignoreCase = true)
@@ -167,12 +170,19 @@ private fun MarketplaceListingCard(
         }
         Spacer(Modifier.height(8.dp))
         listing.category?.let { category ->
-            StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+            StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
             Spacer(Modifier.height(8.dp))
+        }
+        listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
+            Text(
+                text = "Quality: $grade (farmer-provided)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
-                text = "${listing.quantity} ${listing.quantityUnit.name}",
+                text = "Available: ${listing.availableStock()} ${listing.quantityUnit.name}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

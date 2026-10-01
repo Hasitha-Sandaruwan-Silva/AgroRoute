@@ -28,7 +28,8 @@ data class BidsUiState(
 class BidsViewModel @Inject constructor(
     private val bidRepository: BidRepository,
     private val listingRepository: HarvestListingRepository,
-    private val acceptBidUseCase: AcceptBidUseCase
+    private val acceptBidUseCase: AcceptBidUseCase,
+    private val rejectBidUseCase: RejectBidUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BidsUiState())
@@ -61,6 +62,17 @@ class BidsViewModel @Inject constructor(
                 is Result.Success -> _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
                 is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = r.message) }
                 is Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun rejectBid(bid: Bid) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = rejectBidUseCase(bid)) {
+                is Result.Success -> _uiState.update { it.copy(isLoading = false) }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> Unit
             }
         }
     }

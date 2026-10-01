@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -41,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingStatus
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
@@ -73,9 +75,11 @@ fun MyListingsScreen(
     var selectedStatus by remember { mutableStateOf<ListingStatus?>(null) }
     var selectedSort by remember { mutableStateOf(ListingSort.NEWEST) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
+    var listingPendingClosure by remember { mutableStateOf<HarvestListing?>(null) }
 
-    val visibleListings = remember(uiState.listings, searchQuery, selectedStatus, selectedSort) {
-        uiState.listings
+    val publishedListings = remember(uiState.listings) { uiState.listings.filterNot { it.isDraft } }
+    val visibleListings = remember(publishedListings, searchQuery, selectedStatus, selectedSort) {
+        publishedListings
             .filter { listing ->
                 val matchesSearch = searchQuery.isBlank() ||
                     listing.cropName.contains(searchQuery, ignoreCase = true) ||
@@ -98,6 +102,27 @@ fun MyListingsScreen(
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
+    listingPendingClosure?.let { listing ->
+        AlertDialog(
+            onDismissRequest = { listingPendingClosure = null },
+            title = { Text("Close this listing?") },
+            text = { Text("Suppliers will no longer be able to bid. Existing bids and orders will be preserved.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    listingPendingClosure = null
+                    viewModel.closeListing(listing)
+                }) {
+                    Text("Close listing")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { listingPendingClosure = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
@@ -116,8 +141,8 @@ fun MyListingsScreen(
                 .padding(paddingValues)
         ) {
             when {
-                uiState.isLoading && uiState.listings.isEmpty() -> ListSkeleton()
-                uiState.listings.isEmpty() -> Box(
+                uiState.isLoading && publishedListings.isEmpty() -> ListSkeleton()
+                publishedListings.isEmpty() -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
@@ -135,7 +160,7 @@ fun MyListingsScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${uiState.listings.size} ${if (uiState.listings.size == 1) "listing" else "listings"}",
+                            text = "${publishedListings.size} ${if (publishedListings.size == 1) "listing" else "listings"}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
@@ -219,7 +244,8 @@ fun MyListingsScreen(
                                     },
                                     onToggleBidding = { enabled ->
                                         viewModel.toggleBidding(listing.listingId, enabled)
-                                    }
+                                    },
+                                    onCloseClick = { listingPendingClosure = listing }
                                 )
                             }
                         }
@@ -234,7 +260,8 @@ fun MyListingsScreen(
 private fun ListingCard(
     listing: HarvestListing,
     onCardClick: () -> Unit,
-    onToggleBidding: (Boolean) -> Unit
+    onToggleBidding: (Boolean) -> Unit,
+    onCloseClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
         ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 176.dp)
@@ -250,28 +277,56 @@ private fun ListingCard(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
-            ListingStatusChip(listing.status)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ListingStatusChip(listing.status)
+                if (listing.status == ListingStatus.OPEN && !listing.biddingEnabled) {
+                    StatusChip(label = "Paused", tone = ChipTone.Warning)
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
         listing.category?.let { category ->
-            StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+            StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
             Spacer(Modifier.height(8.dp))
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            StockValue("Original", listing.quantity, listing.quantityUnit.name)
+            StockValue("Available", listing.availableStock(), listing.quantityUnit.name)
+            StockValue("Sold / reserved", listing.soldQuantity, listing.quantityUnit.name)
+        }
+        Text(
+            text = "Reserve: Rs. ${listing.reservePrice} / ${listing.quantityUnit.name}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        listing.expectedHarvestAt?.let { harvestAt ->
             Text(
-                text = "${listing.quantity} ${listing.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Expected harvest ${formatDate(harvestAt)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp)
             )
+        }
+        listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
             Text(
-                text = "Rs. ${listing.reservePrice} / ${listing.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
+                text = "Quality: $grade",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        listing.description.takeIf(String::isNotBlank)?.let { notes ->
+            Text(
+                text = notes,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
         if (listing.location.isNotBlank()) {
@@ -306,16 +361,33 @@ private fun ListingCard(
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = if (listing.biddingEnabled) "Bidding on" else "Bidding off",
+                    text = if (listing.biddingEnabled) "Bidding on" else "Paused",
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Switch(
                     checked = listing.biddingEnabled,
-                    onCheckedChange = onToggleBidding
+                    onCheckedChange = onToggleBidding,
+                    enabled = listing.status == ListingStatus.OPEN
                 )
             }
         }
+        if (listing.status == ListingStatus.OPEN) {
+            TextButton(
+                onClick = onCloseClick,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Close listing")
+            }
+        }
+    }
+}
+
+@Composable
+private fun StockValue(label: String, quantity: Double, unit: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("$quantity $unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
     }
 }
 

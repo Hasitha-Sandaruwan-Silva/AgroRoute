@@ -50,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.ListingStatus
+import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.ErrorSnackbarEffect
@@ -85,8 +86,9 @@ fun FarmerHomeScreen(
     ErrorSnackbarEffect(listingState.error, snackbarHostState) { listingViewModel.clearError() }
     ErrorSnackbarEffect(orderState.error, snackbarHostState) { orderViewModel.clearError() }
 
-    val openListings = listingState.listings.count { it.status == ListingStatus.OPEN }
-    val totalListings = listingState.listings.size
+    val publishedListings = listingState.listings.filterNot { it.isDraft }
+    val openListings = publishedListings.count { it.acceptsNewBids() }
+    val totalListings = publishedListings.size
     val totalOrders = orderState.orders.size
     val isLoading = listingState.isLoading && listingState.listings.isEmpty()
 
@@ -274,6 +276,16 @@ fun FarmerHomeScreen(
             }
 
             Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
+
+            ShortcutCard(
+                title = "Harvest Calendar",
+                subtitle = "Upcoming dates and reminders",
+                icon = Icons.Default.TrendingUp,
+                onClick = { navController.navigate(Screen.HarvestCalendar.route) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
 
             ShortcutCard(
                 title = "Marketplace",

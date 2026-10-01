@@ -31,7 +31,10 @@ object DatabaseModule {
             AppDatabase::class.java,
             Constants.DATABASE_NAME
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2)
+            .addMigrations(
+                DatabaseMigrations.MIGRATION_1_2,
+                DatabaseMigrations.MIGRATION_2_3
+            )
             .fallbackToDestructiveMigration() // Acceptable for coursework; use migrations in prod
             .build()
 

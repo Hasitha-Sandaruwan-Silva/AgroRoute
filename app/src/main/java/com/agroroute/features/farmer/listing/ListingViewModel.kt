@@ -13,9 +13,11 @@ import javax.inject.Inject
 /** UI state for the farmer listing screens. */
 data class ListingUiState(
     val listings: List<HarvestListing> = emptyList(),
+    val drafts: List<HarvestListing> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val actionSuccess: Boolean = false
+    val actionSuccess: Boolean = false,
+    val draftSaved: Boolean = false
 )
 
 /**
@@ -25,8 +27,12 @@ data class ListingUiState(
 @HiltViewModel
 class ListingViewModel @Inject constructor(
     private val getListingsUseCase: GetListingsUseCase,
+    private val getListingDraftsUseCase: GetListingDraftsUseCase,
+    private val saveListingDraftUseCase: SaveListingDraftUseCase,
     private val createListingUseCase: CreateListingUseCase,
-    private val toggleBiddingModeUseCase: ToggleBiddingModeUseCase
+    private val toggleBiddingModeUseCase: ToggleBiddingModeUseCase,
+    private val scheduleHarvestReminderUseCase: ScheduleHarvestReminderUseCase,
+    private val closeListingUseCase: CloseListingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListingUiState())
@@ -45,21 +51,59 @@ class ListingViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    fun loadFarmerDrafts(farmerId: String) {
+        getListingDraftsUseCase(farmerId)
+            .onEach { result ->
+                when (result) {
+                    is Result.Success -> _uiState.update { it.copy(drafts = result.data) }
+                    is Result.Error -> _uiState.update { it.copy(error = result.message) }
+                    Result.Loading -> Unit
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun saveDraft(listing: HarvestListing) {
+        viewModelScope.launch {
+            when (val result = saveListingDraftUseCase(listing)) {
+                is Result.Success -> _uiState.update { it.copy(draftSaved = true, error = null) }
+                is Result.Error -> _uiState.update { it.copy(error = result.message) }
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun clearDraftSaved() = _uiState.update { it.copy(draftSaved = false) }
+
     fun createListing(listing: HarvestListing) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, actionSuccess = false) }
             when (val r = createListingUseCase(listing)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                is Result.Success -> {
+                    scheduleHarvestReminderUseCase(listing)
+                    _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                }
                 is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = r.message) }
                 is Result.Loading -> Unit
             }
         }
     }
 
+    fun scheduleHarvestReminder(listing: HarvestListing) = scheduleHarvestReminderUseCase(listing)
+
     fun toggleBidding(listingId: String, enabled: Boolean) {
         viewModelScope.launch {
             when (val r = toggleBiddingModeUseCase(listingId, enabled)) {
                 is Result.Error -> _uiState.update { it.copy(error = r.message) }
+                else -> Unit
+            }
+        }
+    }
+
+    fun closeListing(listing: HarvestListing) {
+        viewModelScope.launch {
+            when (val result = closeListingUseCase(listing)) {
+                is Result.Error -> _uiState.update { it.copy(error = result.message) }
                 else -> Unit
             }
         }

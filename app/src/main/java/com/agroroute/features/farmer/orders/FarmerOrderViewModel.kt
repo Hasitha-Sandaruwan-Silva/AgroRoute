@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
+import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.usecase.GetOrdersUseCase
 import com.agroroute.core.repository.OrderRepository
 import com.agroroute.core.util.Result
@@ -15,6 +16,7 @@ import javax.inject.Inject
 /** UI state for farmer order screens. */
 data class FarmerOrderUiState(
     val orders: List<Order> = emptyList(),
+    val supplierNames: Map<String, String> = emptyMap(),
     val selectedOrder: Order? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -27,7 +29,8 @@ data class FarmerOrderUiState(
 @HiltViewModel
 class FarmerOrderViewModel @Inject constructor(
     private val getOrdersUseCase: GetOrdersUseCase,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val bidRepository: BidRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FarmerOrderUiState())
@@ -50,7 +53,16 @@ class FarmerOrderViewModel @Inject constructor(
             .onEach { result ->
                 when (result) {
                     is Result.Loading -> _uiState.update { it.copy(isLoading = true) }
-                    is Result.Success -> _uiState.update { it.copy(isLoading = false, orders = result.data) }
+                    is Result.Success -> {
+                        _uiState.update { it.copy(isLoading = false, orders = result.data) }
+                        viewModelScope.launch {
+                            val supplierNames = result.data.mapNotNull { order ->
+                                val bid = bidRepository.getBidById(order.bidId).first().getOrNull()
+                                bid?.supplierName?.takeIf(String::isNotBlank)?.let { order.orderId to it }
+                            }.toMap()
+                            _uiState.update { it.copy(supplierNames = supplierNames) }
+                        }
+                    }
                     is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = result.message) }
                 }
             }

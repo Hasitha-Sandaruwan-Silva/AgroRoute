@@ -3,6 +3,7 @@ package com.agroroute.core.repository
 import com.agroroute.core.database.HarvestListingDao
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingStatus
+import com.agroroute.core.model.setBiddingEnabled
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
 import com.agroroute.core.util.Result
@@ -40,6 +41,11 @@ class HarvestListingRepositoryImpl @Inject constructor(
             .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
             .catch { e -> emit(Result.Error(e.message ?: "Failed to load farmer listings", e)) }
 
+    override fun getDraftsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> =
+        dao.getDraftsByFarmer(farmerId)
+            .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
+            .catch { e -> emit(Result.Error(e.message ?: "Failed to load listing drafts", e)) }
+
     override fun getListingsByStatus(status: ListingStatus): Flow<Result<List<HarvestListing>>> =
         dao.getListingsByStatus(status)
             .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
@@ -55,6 +61,10 @@ class HarvestListingRepositoryImpl @Inject constructor(
     override suspend fun saveListing(listing: HarvestListing): Result<Unit> = safeCall {
         firestoreService.set(Constants.COLLECTION_LISTINGS, listing.listingId, listing)
         dao.upsertListing(listing) // Mirror to Room on Firestore success
+    }
+
+    override suspend fun saveDraft(listing: HarvestListing): Result<Unit> = safeCall {
+        dao.upsertListing(listing.copy(isDraft = true))
     }
 
     override suspend fun deleteListing(listingId: String): Result<Unit> = safeCall {
@@ -76,7 +86,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
     override suspend fun toggleBiddingMode(listingId: String, enabled: Boolean): Result<Unit> = safeCall {
         val snapshot = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
             ?: error("Listing $listingId not found")
-        val updated = snapshot.copy(biddingEnabled = enabled)
+        val updated = snapshot.setBiddingEnabled(enabled)
         firestoreService.set(Constants.COLLECTION_LISTINGS, listingId, updated)
         dao.upsertListing(updated)
     }

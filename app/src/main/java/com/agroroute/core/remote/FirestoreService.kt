@@ -2,6 +2,7 @@ package com.agroroute.core.remote
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Transaction
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -82,6 +83,9 @@ class FirestoreService @Inject constructor(
             .set(data, SetOptions.merge())
             .await()
     }
+
+    suspend fun <T> runTransaction(block: (Transaction) -> T): T =
+        firestore.runTransaction { transaction -> block(transaction) }.await()
 
     /** Deletes the document at [collection]/[docId]. Suspends until acknowledged. */
     suspend fun delete(collection: String, docId: String) {

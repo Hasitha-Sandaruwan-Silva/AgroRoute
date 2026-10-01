@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -144,7 +145,15 @@ fun ViewBidsScreen(
                             )
                             listing.category?.let { category ->
                                 Spacer(Modifier.height(8.dp))
-                                StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+                                StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
+                            }
+                            listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Quality: $grade (farmer-provided)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary
+                                )
                             }
                         }
                     }
@@ -159,6 +168,7 @@ fun ViewBidsScreen(
                         bid = bid,
                         isBestOffer = isBest,
                         onAcceptClick = { viewModel.acceptBid(bid) },
+                        onRejectClick = { viewModel.rejectBid(bid) },
                         isAccepting = uiState.isLoading
                     )
                 }
@@ -177,6 +187,7 @@ private fun PremiumBidCard(
     bid: Bid,
     isBestOffer: Boolean,
     onAcceptClick: () -> Unit,
+    onRejectClick: () -> Unit,
     isAccepting: Boolean
 ) {
     Surface(
@@ -335,6 +346,13 @@ private fun PremiumBidCard(
                         .fillMaxWidth()
                         .height(52.dp)
                 )
+                TextButton(
+                    onClick = onRejectClick,
+                    enabled = !isAccepting,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Reject bid")
+                }
             }
         }
     }

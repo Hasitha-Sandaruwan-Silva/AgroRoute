@@ -2,6 +2,7 @@ package com.agroroute.features.supplier.bidding
 
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.util.Result
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
@@ -30,6 +31,16 @@ class PlaceBidUseCase @Inject constructor(
         }
         if (currentRole != UserRole.SUPPLIER) {
             return Result.Error("Only Suppliers can place bids")
+        }
+
+        val listingResult = listingRepository.getListingById(bid.listingId).first()
+        val listing = when (listingResult) {
+            is Result.Success -> listingResult.data
+            is Result.Error -> return listingResult
+            Result.Loading -> null
+        } ?: return Result.Error("Listing is no longer available")
+        if (!listing.acceptsNewBids()) {
+            return Result.Error("This listing is not accepting bids")
         }
 
         return bidRepository.placeBid(bid)

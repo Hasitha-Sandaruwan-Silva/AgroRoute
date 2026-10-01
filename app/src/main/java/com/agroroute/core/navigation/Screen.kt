@@ -23,6 +23,7 @@ sealed class Screen(val route: String) {
     // ── Farmer flow ────────────────────────────────────────────────────────────
     data object CreateListing: Screen("create_listing")
     data object MyListings   : Screen("my_listings")
+    data object HarvestCalendar : Screen("harvest_calendar")
 
     /** Requires [listingId] argument — navigate with [Screen.ViewBids.createRoute]. */
     data object ViewBids : Screen("view_bids/{${Constants.ARG_LISTING_ID}}") {

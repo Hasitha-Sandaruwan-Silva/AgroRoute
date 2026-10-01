@@ -3,6 +3,10 @@ package com.agroroute.core.repository
 import com.agroroute.core.database.BidDao
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.UserRole
+import com.agroroute.core.model.acceptsNewBids
+import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
 import com.agroroute.core.util.Result
@@ -23,7 +27,8 @@ class BidRepositoryImpl @Inject constructor(
     @PublishedApi
     internal val dao: BidDao,
     @PublishedApi
-    internal val firestoreService: FirestoreService
+    internal val firestoreService: FirestoreService,
+    private val authRepository: AuthRepository
 ) : BidRepository {
 
     override fun getBidsForListing(listingId: String): Flow<Result<List<Bid>>> =
@@ -42,7 +47,18 @@ class BidRepositoryImpl @Inject constructor(
             .catch { e -> emit(Result.Error(e.message ?: "Failed to load bid", e)) }
 
     override suspend fun placeBid(bid: Bid): Result<Unit> = safeCall {
-        firestoreService.set(Constants.COLLECTION_BIDS, bid.bidId, bid)
+        val role = authRepository.getCurrentUserProfile().first().getOrNull()?.role
+        check(role == UserRole.SUPPLIER) { "Only Suppliers can place bids" }
+
+        val firestore = firestoreService.firestore
+        val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(bid.listingId)
+        val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(bid.bidId)
+        firestoreService.runTransaction<Unit> { transaction ->
+            val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
+                ?: error("Listing ${bid.listingId} not found")
+            check(listing.acceptsNewBids()) { "This listing is not accepting bids" }
+            transaction.set(bidRef, bid)
+        }
         dao.upsertBid(bid)
     }
 

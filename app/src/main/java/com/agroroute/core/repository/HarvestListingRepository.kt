@@ -16,6 +16,9 @@ interface HarvestListingRepository {
     /** Emits listings belonging to the specified farmer. */
     fun getListingsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>>
 
+    /** Emits local-only draft listings for [farmerId]. */
+    fun getDraftsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>>
+
     /** Emits listings filtered by [status]. */
     fun getListingsByStatus(status: ListingStatus): Flow<Result<List<HarvestListing>>>
 
@@ -24,6 +27,9 @@ interface HarvestListingRepository {
 
     /** Creates or updates a listing in Firestore and mirrors to Room on success. */
     suspend fun saveListing(listing: HarvestListing): Result<Unit>
+
+    /** Saves an incomplete listing locally without publishing it to Firestore. */
+    suspend fun saveDraft(listing: HarvestListing): Result<Unit>
 
     /** Deletes a listing from both Firestore and Room. */
     suspend fun deleteListing(listingId: String): Result<Unit>

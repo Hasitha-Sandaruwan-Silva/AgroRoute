@@ -17,6 +17,9 @@ interface HarvestListingDao {
     @Query("SELECT * FROM harvest_listings WHERE farmerId = :farmerId ORDER BY createdAt DESC")
     fun getListingsByFarmer(farmerId: String): Flow<List<HarvestListing>>
 
+    @Query("SELECT * FROM harvest_listings WHERE farmerId = :farmerId AND isDraft = 1 ORDER BY createdAt DESC")
+    fun getDraftsByFarmer(farmerId: String): Flow<List<HarvestListing>>
+
     @Query("SELECT * FROM harvest_listings WHERE status = :status ORDER BY createdAt DESC")
     fun getListingsByStatus(status: ListingStatus): Flow<List<HarvestListing>>
 
