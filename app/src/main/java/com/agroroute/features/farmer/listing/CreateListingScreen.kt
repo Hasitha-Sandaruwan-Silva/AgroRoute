@@ -3,6 +3,8 @@
 package com.agroroute.features.farmer.listing
 
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,11 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -25,11 +27,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -83,9 +87,17 @@ fun CreateListingScreen(
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
-    var isCategoryDialogVisible by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<ListingCategory?>(null) }
+    var categorySelectionError by remember { mutableStateOf(false) }
 
-    fun publishListing(category: ListingCategory) {
+    fun publishListing() {
+        val category = selectedCategory
+        if (category == null) {
+            categorySelectionError = true
+            return
+        }
+        categorySelectionError = false
+
         val listing = HarvestListing(
             listingId = UUID.randomUUID().toString(),
             farmerId = "current_farmer_id",
@@ -104,35 +116,6 @@ fun CreateListingScreen(
         viewModel.createListing(listing)
     }
 
-    if (isCategoryDialogVisible) {
-        AlertDialog(
-            onDismissRequest = { isCategoryDialogVisible = false },
-            title = { Text("Is this harvest Organic or Inorganic?") },
-            text = { Text("Choose a category to continue publishing this listing.") },
-            confirmButton = {
-                androidx.compose.foundation.layout.Row {
-                    TextButton(onClick = {
-                        isCategoryDialogVisible = false
-                        publishListing(ListingCategory.ORGANIC)
-                    }) {
-                        Text(ListingCategory.ORGANIC.displayName)
-                    }
-                    TextButton(onClick = {
-                        isCategoryDialogVisible = false
-                        publishListing(ListingCategory.INORGANIC)
-                    }) {
-                        Text(ListingCategory.INORGANIC.displayName)
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { isCategoryDialogVisible = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -149,7 +132,7 @@ fun CreateListingScreen(
                 LoadingButton(
                     text = "Create Listing",
                     isLoading = uiState.isLoading,
-                    onClick = { isCategoryDialogVisible = true },
+                    onClick = { publishListing() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .imePadding()
@@ -256,6 +239,68 @@ fun CreateListingScreen(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            AppCard {
+                SectionTitle(title = "Harvest Category")
+                Text(
+                    text = "Select how this harvest was produced.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ListingCategory.entries.forEach { category ->
+                        val isSelected = selectedCategory == category
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.secondaryContainer
+                                    else MaterialTheme.colorScheme.surface
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outline,
+                                    shape = MaterialTheme.shapes.medium
+                                )
+                                .selectable(
+                                    selected = isSelected,
+                                    onClick = {
+                                        selectedCategory = category
+                                        categorySelectionError = false
+                                    },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = isSelected, onClick = null)
+                            Text(
+                                text = category.displayName,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+                if (categorySelectionError) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = "Select Organic or Inorganic before creating the listing.",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(10.dp)
+                        )
                     }
                 }
             }
