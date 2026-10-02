@@ -10,15 +10,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,8 +80,26 @@ fun BrowseListingsScreen(
         matchesSearch && matchesFilter
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    val hasActiveFilters = searchQuery.isNotBlank() || filter != MarketFilter.ALL
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(
+                text = "Find a harvest",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Compare available quantities, quality, and reserve prices.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+            )
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -86,7 +109,7 @@ fun BrowseListingsScreen(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
                     FilterChip(
@@ -110,20 +133,56 @@ fun BrowseListingsScreen(
                     )
                 }
             }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (filtered.size == 1) "1 listing" else "${filtered.size} listings",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (filter == MarketFilter.BIDDING_OPEN) {
+                    Text("Bidding open", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+            }
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
             when {
                 uiState.isLoading && uiState.listings.isEmpty() -> ListSkeleton()
-                filtered.isEmpty() -> Box(
+                uiState.error != null && uiState.listings.isEmpty() -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
                         icon = Lucide.Search,
-                        title = "No Listings Available",
-                        subtitle = "Try adjusting search or filters"
+                        title = "Marketplace unavailable",
+                        subtitle = "Check your connection and try again"
                     )
+                }
+                filtered.isEmpty() -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        EmptyState(
+                            icon = Lucide.Search,
+                            title = if (hasActiveFilters) "No matching listings" else "No active listings",
+                            subtitle = if (hasActiveFilters) "Try another search or filter" else "New harvest listings will appear here"
+                        )
+                        if (hasActiveFilters) {
+                            TextButton(onClick = {
+                                searchQuery = ""
+                                filter = MarketFilter.ALL
+                            }) {
+                                Text("Clear search and filters")
+                            }
+                        }
+                    }
                 }
                 else -> LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -153,8 +212,8 @@ private fun MarketplaceListingCard(
     onCardClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
-        ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 180.dp)
-        Spacer(Modifier.height(12.dp))
+        ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
+        Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -163,47 +222,75 @@ private fun MarketplaceListingCard(
             Text(
                 text = listing.cropName,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
+            Spacer(Modifier.padding(horizontal = 4.dp))
             if (listing.biddingEnabled) {
                 StatusChip(label = "Bidding open", tone = ChipTone.Success)
             }
         }
-        Spacer(Modifier.height(8.dp))
-        listing.category?.let { category ->
-            StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
-            Spacer(Modifier.height(8.dp))
-        }
-        listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
-            Text(
-                text = "Quality: $grade (farmer-provided)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Text(
+            text = "by ${listing.farmerName}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 3.dp)
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listing.category?.let { category ->
+                StatusChip(label = category.displayName, tone = ChipTone.Secondary)
+            }
+            listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
+                StatusChip(label = "Quality: $grade", tone = ChipTone.Tertiary)
+            }
         }
         listing.expectedHarvestAt?.let { harvestAt ->
             Text(
-                text = HarvestAvailabilityDate.label(harvestAt),
+                text = "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = "Available: ${listing.availableStock()} ${listing.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Reserve: Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            ) {
+                Column(modifier = Modifier.padding(11.dp)) {
+                    Text("Available", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${listing.availableStock()} ${listing.quantityUnit.name}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+            ) {
+                Column(modifier = Modifier.padding(11.dp)) {
+                    Text("Reserve price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 2
+                    )
+                }
+            }
         }
         if (listing.location.isNotBlank()) {
             Text(
-                text = listing.location,
+                text = "Location: ${listing.location}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -218,22 +305,17 @@ private fun MarketplaceListingCard(
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+        Text(
+            text = "Posted ${formatDate(listing.createdAt)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        TextButton(
+            onClick = onCardClick,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "by ${listing.farmerName}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Posted ${formatDate(listing.createdAt)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("View listing and place bid")
         }
     }
 }

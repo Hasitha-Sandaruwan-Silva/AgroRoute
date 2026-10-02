@@ -1,5 +1,6 @@
 package com.agroroute.features.farmer.shell
 
+import android.app.Activity
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -63,12 +65,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.agroroute.R
@@ -106,6 +110,15 @@ fun FarmerTopBar(
     val isTab = currentRoute in farmerTabRoutes
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
+
+    // ─── STATUS BAR ICONS කළු පැහැයට හැරවීම ───
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+        }
+    }
 
     var showNotificationSheet by remember { mutableStateOf(false) }
     var showAvatarMenu by remember { mutableStateOf(false) }

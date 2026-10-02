@@ -8,11 +8,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -98,7 +102,8 @@ fun PlaceBidScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp, vertical = 18.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -177,54 +182,88 @@ fun PlaceBidScreen(
 @Composable
 private fun ListingSummaryCard(listing: HarvestListing) {
     AppCard {
-        ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 180.dp)
-        Spacer(modifier = Modifier.height(12.dp))
+        ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
+        Spacer(modifier = Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = listing.cropName,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            if (listing.biddingEnabled) {
+                StatusChip(label = "Bidding open", tone = ChipTone.Success)
+            }
+        }
         Text(
-            text = listing.cropName,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            text = "by ${listing.farmerName}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 3.dp)
         )
         listing.category?.let { category ->
-            Spacer(modifier = Modifier.height(8.dp))
-            StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
+            Spacer(modifier = Modifier.height(12.dp))
+            StatusChip(label = category.displayName, tone = ChipTone.Secondary)
         }
         listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Quality: $grade (farmer-provided)",
+                text = "Quality: $grade",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Available: ${listing.availableStock()} ${listing.quantityUnit.name}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            ) {
+                Column(modifier = Modifier.padding(11.dp)) {
+                    Text("Available", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${listing.availableStock()} ${listing.quantityUnit.name}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+            ) {
+                Column(modifier = Modifier.padding(11.dp)) {
+                    Text("Reserve price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
         listing.expectedHarvestAt?.let { harvestAt ->
             Text(
-                text = HarvestAvailabilityDate.label(harvestAt),
+                text = "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Text(
-            text = "Reserve Price: Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium
-        )
         if (listing.location.isNotBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = listing.location,
+                text = "Location: ${listing.location}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         if (listing.description.isNotBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = listing.description,
                 style = MaterialTheme.typography.bodySmall,

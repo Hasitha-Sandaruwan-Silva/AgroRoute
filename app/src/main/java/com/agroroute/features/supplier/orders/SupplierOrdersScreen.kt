@@ -16,6 +16,7 @@ import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +75,21 @@ fun SupplierOrdersScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Your orders",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (uiState.orders.size == 1) "1 order" else "${uiState.orders.size} orders",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 3.dp)
+                            )
+                        }
+                    }
                     items(uiState.orders) { order ->
                         OrderCard(
                             order = order,
@@ -111,18 +127,24 @@ private fun OrderCard(
             OrderStatusChip(order.status)
         }
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = "${order.quantity} ${order.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Rs. ${order.agreedPrice}/${order.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Quantity", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "${order.quantity} ${order.quantityUnit.name}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Agreed price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Rs. ${order.agreedPrice}/${order.quantityUnit.name}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
         if (order.pickupLocation.isNotBlank()) {
             Text(
@@ -146,6 +168,12 @@ private fun OrderCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
         )
+        TextButton(
+            onClick = onCardClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("View order details")
+        }
     }
 }
 

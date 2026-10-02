@@ -1,27 +1,48 @@
 package com.agroroute.features.supplier.shell
 
+import android.app.Activity
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
+import com.agroroute.R
 import com.agroroute.core.navigation.Screen
+
+private val SupplierGreen = Color(0xFF2E7D32)
+private val SupplierDarkGreen = Color(0xFF14532D)
+private val SupplierMint = Color(0xFFE8F5E9)
+private val SupplierBorder = Color(0xFFE2E8F0)
 
 @Composable
 fun SupplierTopBar(
@@ -31,52 +52,94 @@ fun SupplierTopBar(
 ) {
     val isTab = currentRoute in supplierTabRoutes
 
+    // ─── STATUS BAR ICONS කළු පැහැයට හැරවීම ───
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+        }
+    }
+
     Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
-        shadowElevation = 3.dp
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White,
+        shadowElevation = 4.dp // Premium Look එකක් සඳහා shadow එක 4.dp ලෙස වැඩි කරන ලදී
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .background(Color.White)
+                .statusBarsPadding()
         ) {
-            if (!isTab) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Lucide.ArrowLeft, contentDescription = "Back")
-                }
-                Spacer(Modifier.width(4.dp))
-            } else {
-                Surface(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = "SP",
-                        modifier = Modifier.padding(top = 8.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (!isTab) {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(SupplierMint)
+                    ) {
+                        Icon(
+                            imageVector = Lucide.ArrowLeft,
+                            contentDescription = "Back",
+                            tint = SupplierGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "AgroRoute logo",
+                        modifier = Modifier.size(36.dp)
                     )
+                    Spacer(Modifier.width(10.dp))
                 }
-                Spacer(Modifier.width(10.dp))
-            }
-            Text(
-                text = supplierTitle(currentRoute),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            if (isTab) {
-                IconButton(onClick = { /* TODO: supplier top bar action */ }) {
-                    Icon(Lucide.MoreVertical, contentDescription = "More options")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isTab) "AgroRoute" else supplierTitle(currentRoute),
+                        style = if (isTab) {
+                            // Fresh Premium Gradient Text Style
+                            TextStyle(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        SupplierDarkGreen,
+                                        SupplierGreen
+                                    )
+                                ),
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp,
+                                letterSpacing = (-0.3).sp
+                            )
+                        } else {
+                            MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.2.sp
+                            )
+                        },
+                        color = if (isTab) Color.Unspecified else SupplierDarkGreen,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (isTab) {
+                        Text(
+                            text = supplierTitle(currentRoute),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF64748B), // පැහැදිලි TextSecondary වර්ණය
+                            maxLines = 1
+                        )
+                    }
                 }
             }
+            HorizontalDivider(color = SupplierBorder.copy(alpha = 0.5f), thickness = 0.8.dp)
         }
     }
 }

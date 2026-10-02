@@ -120,8 +120,9 @@ private fun OrderDetailCard(order: Order) {
         ) {
             Text(
                 text = order.cropName,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
             )
             OrderStatusChip(order.status)
         }

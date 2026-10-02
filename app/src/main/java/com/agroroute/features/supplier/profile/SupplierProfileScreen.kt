@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,7 +51,11 @@ fun SupplierProfileScreen(
         .joinToString("")
         .ifEmpty { "SP" }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -84,7 +90,18 @@ fun SupplierProfileScreen(
                 modifier = Modifier.padding(top = 4.dp)
             )
             uiState.error?.let { error ->
-                Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+                Surface(
+                    modifier = Modifier.padding(top = 12.dp),
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                    )
+                }
             }
             Spacer(Modifier.height(12.dp))
             RoleBadge(role = role)
@@ -115,9 +132,17 @@ fun SupplierProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
+                enabled = !uiState.isLoading,
                 shape = MaterialTheme.shapes.large
             ) {
-                Text("Log out")
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Log out")
+                }
             }
         }
     }
