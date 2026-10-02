@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.repository.ListingPhotoStorageException
 import com.agroroute.core.remote.NetworkConnectivityMonitor
 import com.agroroute.core.util.Result
 import com.agroroute.core.usecase.GetListingsUseCase
@@ -21,6 +22,7 @@ data class ListingUiState(
     val pendingBiddingListingIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    val photoUploadError: String? = null,
     val actionSuccess: Boolean = false,
     val draftSaved: Boolean = false
 )
@@ -108,17 +110,27 @@ class ListingViewModel @Inject constructor(
 
     fun createListing(listing: HarvestListing) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null, actionSuccess = false) }
+            _uiState.update {
+                it.copy(isLoading = true, error = null, photoUploadError = null, actionSuccess = false)
+            }
             when (val r = createListingUseCase(listing)) {
                 is Result.Success -> {
                     scheduleHarvestReminderUseCase(listing)
-                    _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                    _uiState.update { it.copy(isLoading = false, photoUploadError = null, actionSuccess = true) }
                 }
-                is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = r.message) }
+                is Result.Error   -> _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = r.message,
+                        photoUploadError = (r.cause as? ListingPhotoStorageException)?.message
+                    )
+                }
                 is Result.Loading -> Unit
             }
         }
     }
+
+    fun clearPhotoUploadError() = _uiState.update { it.copy(photoUploadError = null) }
 
     fun scheduleHarvestReminder(listing: HarvestListing) = scheduleHarvestReminderUseCase(listing)
 

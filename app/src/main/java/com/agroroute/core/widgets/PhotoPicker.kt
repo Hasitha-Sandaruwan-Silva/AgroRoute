@@ -6,18 +6,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import coil.compose.AsyncImage
 
 /**
@@ -28,7 +32,9 @@ import coil.compose.AsyncImage
 fun PhotoPicker(
     selectedUri: Uri?,
     onImageSelected: (Uri) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    height: Dp = 120.dp,
+    enabled: Boolean = true
 ) {
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
@@ -45,29 +51,36 @@ fun PhotoPicker(
         }
     }
 
+    var imageFailed by androidx.compose.runtime.remember(selectedUri) {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+
     Box(
         modifier = modifier
-            .size(120.dp)
+            .fillMaxWidth()
+            .height(height)
             .clip(RoundedCornerShape(12.dp))
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(12.dp)
             )
-            .clickable { launcher.launch(arrayOf("image/*")) },
+            .clickable(enabled = enabled) { launcher.launch(arrayOf("image/*")) },
         contentAlignment = Alignment.Center
     ) {
-        if (selectedUri != null) {
+        if (selectedUri != null && !imageFailed) {
             AsyncImage(
                 model            = selectedUri,
                 contentDescription = "Selected photo",
                 contentScale     = ContentScale.Crop,
-                modifier         = Modifier.matchParentSize()
+                modifier         = Modifier.matchParentSize(),
+                onError = { imageFailed = true }
             )
-        } else {
+        }
+        if (selectedUri == null || imageFailed) {
             Icon(
-                imageVector  = Lucide.ImagePlus,
-                contentDescription = "Pick a photo",
+                imageVector  = if (selectedUri == null) Lucide.ImagePlus else Lucide.Image,
+                contentDescription = if (selectedUri == null) "Pick a photo" else "Selected photo unavailable",
                 tint         = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

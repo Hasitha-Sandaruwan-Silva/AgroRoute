@@ -22,6 +22,7 @@ import com.agroroute.core.repository.GoogleSignInOutcome
 import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.repository.ListingPhotoStorage
+import com.agroroute.core.repository.ListingPhotoStorageException
 import com.agroroute.core.repository.OrderRepository
 import com.agroroute.core.repository.listingPhotoStoragePath
 import com.agroroute.core.util.Result
@@ -460,6 +461,27 @@ class HarvestListingRulesTest {
     }
 
     @Test
+    fun photoUploadRetryAppearsOnlyForSelectedPhotoAfterFailure() {
+        assertTrue(shouldShowPhotoUploadRetry(true, false, "Photo upload failed"))
+        assertFalse(shouldShowPhotoUploadRetry(true, true, "Photo upload failed"))
+        assertFalse(shouldShowPhotoUploadRetry(false, false, "Photo upload failed"))
+        assertFalse(shouldShowPhotoUploadRetry(true, false, null))
+    }
+
+    @Test
+    fun photoStorageFailureKeepsItsStageAndOriginalCause() {
+        val cause = IllegalStateException("Object does not exist at location")
+        val failure = ListingPhotoStorageException(
+            ListingPhotoStorageException.Stage.DOWNLOAD_URL,
+            cause
+        )
+
+        assertEquals(ListingPhotoStorageException.Stage.DOWNLOAD_URL, failure.stage)
+        assertEquals(cause, failure.cause)
+        assertTrue(failure.message.orEmpty().contains("Object does not exist at location"))
+    }
+
+    @Test
     fun categoryIsRequiredBeforeListingCanBePublished() = runBlocking {
         val repository = FakeListingRepository(HarvestListing())
         val incomplete = HarvestListing(
@@ -512,7 +534,12 @@ class HarvestListingRulesTest {
     @Test
     fun photoUploadFailurePreventsPublishingListing() = runBlocking {
         val repository = FakeListingRepository(HarvestListing())
-        val storage = FakeListingPhotoStorage(failure = IllegalStateException("offline"))
+        val storage = FakeListingPhotoStorage(
+            failure = ListingPhotoStorageException(
+                ListingPhotoStorageException.Stage.UPLOAD,
+                IllegalStateException("offline")
+            )
+        )
         val listing = HarvestListing(
             listingId = "listing-photo",
             farmerId = "farmer-uid",
@@ -530,6 +557,7 @@ class HarvestListingRulesTest {
         )(listing)
 
         assertTrue(result is Result.Error)
+        assertTrue((result as Result.Error).cause is ListingPhotoStorageException)
         assertEquals(null, repository.savedListing)
     }
 

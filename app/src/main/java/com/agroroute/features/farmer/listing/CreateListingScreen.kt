@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -28,6 +30,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -51,6 +54,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -63,11 +69,11 @@ import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.ListingImage
 import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.PhotoPicker
 import com.agroroute.core.widgets.PriceInputField
 import com.agroroute.core.widgets.SectionTitle
+import com.github.thelacspace.icons.Lucide
 import com.agroroute.core.util.HarvestAvailabilityDate
 import java.util.UUID
 
@@ -98,6 +104,12 @@ internal fun HarvestListing.toDraftFormValues() = ListingDraftFormValues(
     expectedHarvestAt = expectedHarvestAt,
     qualityGrade = qualityGrade.orEmpty()
 )
+
+internal fun shouldShowPhotoUploadRetry(
+    hasSelectedPhoto: Boolean,
+    isLoading: Boolean,
+    photoUploadError: String?
+): Boolean = hasSelectedPhoto && !isLoading && photoUploadError != null
 
 @Composable
 fun CreateListingScreen(
@@ -235,7 +247,11 @@ fun CreateListingScreen(
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surface) {
                 LoadingButton(
-                    text = "Create Listing",
+                    text = when {
+                        uiState.isLoading && selectedPhotoUri != null -> "Uploading photo..."
+                        uiState.isLoading -> "Creating listing..."
+                        else -> "Create Listing"
+                    },
                     isLoading = uiState.isLoading,
                     onClick = { publishListing() },
                     modifier = Modifier
@@ -253,20 +269,62 @@ fun CreateListingScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Add a harvest listing",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Share the details of your harvest with potential buyers.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = Color.Transparent
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                            )
+                        )
+                        .padding(horizontal = 20.dp, vertical = 22.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            color = Color.White.copy(alpha = 0.18f)
+                        ) {
+                            Icon(
+                                imageVector = Lucide.Sprout,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.padding(10.dp).size(24.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "NEW HARVEST",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.82f),
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Create a listing",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Share your harvest details with potential buyers.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.92f),
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
             }
 
             uiState.error?.let { error ->
@@ -311,7 +369,8 @@ fun CreateListingScreen(
                 AgroTextField(
                     value = cropName,
                     onValueChange = { cropName = it },
-                    label = "Crop or harvest name"
+                    label = "Crop or harvest name",
+                    supportingText = { Text("Use the name buyers will recognize.") }
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(
@@ -322,6 +381,7 @@ fun CreateListingScreen(
                         value = quantity,
                         onValueChange = { if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantity = it },
                         label = { Text("Quantity") },
+                        supportingText = { Text("How much is available?") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         shape = MaterialTheme.shapes.medium,
@@ -383,7 +443,8 @@ fun CreateListingScreen(
                 AgroTextField(
                     value = qualityGrade,
                     onValueChange = { qualityGrade = it },
-                    label = "Quality grade (optional)"
+                    label = "Quality grade (optional)",
+                    supportingText = { Text("Add a grade only if it is known.") }
                 )
             }
 
@@ -456,31 +517,67 @@ fun CreateListingScreen(
             }
 
             AppCard {
-                SectionTitle(title = "Quality photo")
+                SectionTitle(title = "Harvest photo")
                 Text(
-                    text = "Add a photo of the harvest. Select it again to replace it.",
+                    text = "Add a clear photo of this harvest. Your selected image stays attached if publishing needs a retry.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
-                ListingImage(
-                    imageUrl = selectedPhotoUri?.toString(),
-                    height = 220.dp
-                )
-                Spacer(Modifier.height(12.dp))
                 PhotoPicker(
                     selectedUri = selectedPhotoUri,
-                    onImageSelected = { selectedPhotoUri = it },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    onImageSelected = {
+                        selectedPhotoUri = it
+                        viewModel.clearPhotoUploadError()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 208.dp,
+                    enabled = !uiState.isLoading
                 )
                 Text(
-                    text = if (selectedPhotoUri == null) "Choose a harvest photo" else "Photo selected. Tap to replace it.",
+                    text = if (selectedPhotoUri == null) "Tap the photo area to choose an image" else "Photo selected. Tap the preview to replace it.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 9.dp)
                 )
+                if (uiState.isLoading && selectedPhotoUri != null) {
+                    Row(
+                        modifier = Modifier.padding(top = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Uploading photo and publishing listing...", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                uiState.photoUploadError?.let { photoError ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.errorContainer
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = photoError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            if (shouldShowPhotoUploadRetry(
+                                    hasSelectedPhoto = selectedPhotoUri != null,
+                                    isLoading = uiState.isLoading,
+                                    photoUploadError = photoError
+                                )
+                            ) {
+                                TextButton(
+                                    onClick = { publishListing() },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Text("Retry photo upload")
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             AppCard {
@@ -488,13 +585,15 @@ fun CreateListingScreen(
                 PriceInputField(
                     value = price,
                     onValueChange = { price = it },
-                    label = "Reserve price per ${selectedUnit.name}"
+                    label = "Reserve price per ${selectedUnit.name}",
+                    supportingText = "Enter your minimum price for one ${selectedUnit.name}."
                 )
                 Spacer(Modifier.height(12.dp))
                 AgroTextField(
                     value = location,
                     onValueChange = { location = it },
-                    label = "Location"
+                    label = "Location",
+                    supportingText = { Text("Add a pickup area or nearby town.") }
                 )
             }
 
@@ -506,7 +605,8 @@ fun CreateListingScreen(
                     label = "Description",
                     singleLine = false,
                     minLines = 3,
-                    maxLines = 5
+                    maxLines = 5,
+                    supportingText = { Text("Mention details that help buyers assess the harvest.") }
                 )
             }
 

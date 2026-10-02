@@ -6,6 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.agroroute.core.repository.ListingPhotoStorage
+import com.agroroute.core.repository.ListingPhotoStorageException
 import com.agroroute.core.repository.listingPhotoStoragePath
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -39,8 +40,16 @@ class StorageService @Inject constructor(
             ?.takeIf { it.startsWith("image/") }
             ?: error("Unable to determine the selected image type")
         val metadata = StorageMetadata.Builder().setContentType(contentType).build()
-        ref.putFile(localUri, metadata).await()
-        return ref.downloadUrl.await().toString()
+        try {
+            ref.putFile(localUri, metadata).await()
+        } catch (error: Exception) {
+            throw ListingPhotoStorageException(ListingPhotoStorageException.Stage.UPLOAD, error)
+        }
+        return try {
+            ref.downloadUrl.await().toString()
+        } catch (error: Exception) {
+            throw ListingPhotoStorageException(ListingPhotoStorageException.Stage.DOWNLOAD_URL, error)
+        }
     }
 
     /**
