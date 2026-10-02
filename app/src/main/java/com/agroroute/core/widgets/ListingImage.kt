@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,6 +26,9 @@ import coil.compose.AsyncImage
 internal fun shouldUseListingImageFallback(imageUrl: String?, imageFailed: Boolean): Boolean =
     imageUrl.isNullOrBlank() || imageFailed
 
+internal fun shouldShowListingImageLoading(imageUrl: String?, isLoading: Boolean): Boolean =
+    !imageUrl.isNullOrBlank() && isLoading
+
 @Composable
 fun ListingImage(
     imageUrl: String?,
@@ -31,6 +36,7 @@ fun ListingImage(
     height: Dp = 160.dp
 ) {
     var imageFailed by remember(imageUrl) { mutableStateOf(false) }
+    var imageLoading by remember(imageUrl) { mutableStateOf(!imageUrl.isNullOrBlank()) }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -46,13 +52,25 @@ fun ListingImage(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
+        if (shouldShowListingImageLoading(imageUrl, imageLoading) && !imageFailed) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
         if (!imageUrl.isNullOrBlank() && !imageFailed) {
             AsyncImage(
                 model = imageUrl,
                 contentDescription = "Listing photo",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                onError = { imageFailed = true }
+                onLoading = { imageLoading = true },
+                onSuccess = { imageLoading = false },
+                onError = {
+                    imageLoading = false
+                    imageFailed = true
+                }
             )
         }
     }

@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import com.agroroute.core.widgets.shouldUseListingImageFallback
+import com.agroroute.core.widgets.shouldShowListingImageLoading
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -448,6 +449,14 @@ class HarvestListingRulesTest {
         assertTrue(shouldUseListingImageFallback(null, false))
         assertTrue(shouldUseListingImageFallback("https://storage.example/photo", true))
         assertFalse(shouldUseListingImageFallback("https://storage.example/photo", false))
+    }
+
+    @Test
+    fun listingImageShowsLoadingOnlyWhileAnImageUrlIsBeingFetched() {
+        assertTrue(shouldShowListingImageLoading("https://storage.example/photo", true))
+        assertFalse(shouldShowListingImageLoading("https://storage.example/photo", false))
+        assertFalse(shouldShowListingImageLoading(null, true))
+        assertFalse(shouldShowListingImageLoading("", true))
     }
 
     @Test
