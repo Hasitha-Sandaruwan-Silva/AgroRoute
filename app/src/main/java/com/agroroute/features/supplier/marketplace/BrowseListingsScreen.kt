@@ -35,6 +35,7 @@ import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.ChipTone
@@ -176,6 +177,13 @@ private fun MarketplaceListingCard(
         listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
             Text(
                 text = "Quality: $grade (farmer-provided)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        listing.expectedHarvestAt?.let { harvestAt ->
+            Text(
+                text = HarvestAvailabilityDate.label(harvestAt),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

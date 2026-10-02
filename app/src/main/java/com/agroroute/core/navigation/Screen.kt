@@ -8,7 +8,8 @@ import com.agroroute.core.util.Constants
  */
 sealed class Screen(val route: String) {
 
-    // ── Auth flow ──────────────────────────────────────────────────────────────
+    // ── Launch & Auth flow ───────────────────────────────────────────────────────
+
     data object Welcome      : Screen("welcome")
     data object Login        : Screen("login")
     data object Register     : Screen("register")

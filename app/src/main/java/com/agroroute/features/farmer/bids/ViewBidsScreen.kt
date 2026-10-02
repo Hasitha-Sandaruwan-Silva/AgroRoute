@@ -57,6 +57,7 @@ import com.agroroute.core.widgets.ListSkeleton
 import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.StatusChip
+import com.agroroute.core.util.HarvestAvailabilityDate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -152,7 +153,7 @@ fun ViewBidsScreen(
                             )
                             listing.expectedHarvestAt?.let { harvestAt ->
                                 Text(
-                                    text = "Expected harvest: ${formatDate(harvestAt)}",
+                                    text = HarvestAvailabilityDate.label(harvestAt),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = TextSecondary,
                                     modifier = Modifier.padding(top = 4.dp)

@@ -68,10 +68,36 @@ import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.PhotoPicker
 import com.agroroute.core.widgets.PriceInputField
 import com.agroroute.core.widgets.SectionTitle
+import com.agroroute.core.util.HarvestAvailabilityDate
 import java.util.UUID
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
+internal data class ListingDraftFormValues(
+    val listingId: String,
+    val cropName: String,
+    val quantity: String,
+    val unit: QuantityUnit,
+    val price: String,
+    val description: String,
+    val location: String,
+    val photoUri: String?,
+    val category: ListingCategory?,
+    val expectedHarvestAt: Long?,
+    val qualityGrade: String
+)
+
+internal fun HarvestListing.toDraftFormValues() = ListingDraftFormValues(
+    listingId = listingId,
+    cropName = cropName,
+    quantity = quantity.takeIf { it > 0 }?.toString().orEmpty(),
+    unit = quantityUnit,
+    price = reservePrice.takeIf { it > 0 }?.toString().orEmpty(),
+    description = description,
+    location = location,
+    photoUri = imageUrls.firstOrNull(),
+    category = category,
+    expectedHarvestAt = expectedHarvestAt,
+    qualityGrade = qualityGrade.orEmpty()
+)
 
 @Composable
 fun CreateListingScreen(
@@ -89,7 +115,7 @@ fun CreateListingScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loadFarmerDrafts("current_farmer_id")
+        viewModel.loadFarmerDrafts(viewModel.currentFarmerId)
     }
     LaunchedEffect(uiState.draftSaved) {
         if (uiState.draftSaved) {
@@ -135,7 +161,7 @@ fun CreateListingScreen(
         val parsedQuantity = quantity.toDoubleOrNull() ?: 0.0
         return HarvestListing(
             listingId = listingId,
-            farmerId = "current_farmer_id",
+            farmerId = viewModel.currentFarmerId,
             farmerName = "Current Farmer",
             cropName = cropName,
             description = description,
@@ -166,17 +192,18 @@ fun CreateListingScreen(
     }
 
     fun resumeDraft(draft: HarvestListing) {
-        listingId = draft.listingId
-        cropName = draft.cropName
-        quantity = draft.quantity.takeIf { it > 0 }?.toString().orEmpty()
-        selectedUnit = draft.quantityUnit
-        price = draft.reservePrice.takeIf { it > 0 }?.toString().orEmpty()
-        description = draft.description
-        location = draft.location
-        selectedPhotoUri = draft.imageUrls.firstOrNull()?.let(Uri::parse)
-        selectedCategory = draft.category
-        expectedHarvestAt = draft.expectedHarvestAt
-        qualityGrade = draft.qualityGrade.orEmpty()
+        val values = draft.toDraftFormValues()
+        listingId = values.listingId
+        cropName = values.cropName
+        quantity = values.quantity
+        selectedUnit = values.unit
+        price = values.price
+        description = values.description
+        location = values.location
+        selectedPhotoUri = values.photoUri?.let(Uri::parse)
+        selectedCategory = values.category
+        expectedHarvestAt = values.expectedHarvestAt
+        qualityGrade = values.qualityGrade
     }
 
     if (showHarvestDatePicker) {
@@ -342,10 +369,16 @@ fun CreateListingScreen(
                 }
                 TextButton(onClick = ::requestHarvestDatePicker) {
                     Text(
-                        text = expectedHarvestAt?.let(::formatHarvestDate)
-                            ?: "Set expected harvest date (optional)"
+                        text = expectedHarvestAt?.let {
+                            "Expected availability: ${HarvestAvailabilityDate.format(it)}"
+                        } ?: "Set expected availability date (optional)"
                     )
                 }
+                Text(
+                    text = "Note down the date the harvest is expected.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 AgroTextField(
                     value = qualityGrade,
                     onValueChange = { qualityGrade = it },
@@ -487,6 +520,3 @@ fun CreateListingScreen(
         }
     }
 }
-
-private fun formatHarvestDate(timestamp: Long): String =
-    "Expected harvest: ${SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(timestamp))}"

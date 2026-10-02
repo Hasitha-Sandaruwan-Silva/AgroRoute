@@ -3,6 +3,7 @@ package com.agroroute.features.farmer.listing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.util.Result
 import com.agroroute.core.usecase.GetListingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import javax.inject.Inject
 data class ListingUiState(
     val listings: List<HarvestListing> = emptyList(),
     val drafts: List<HarvestListing> = emptyList(),
+    val pendingBiddingListingIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val actionSuccess: Boolean = false,
@@ -32,11 +34,13 @@ class ListingViewModel @Inject constructor(
     private val createListingUseCase: CreateListingUseCase,
     private val toggleBiddingModeUseCase: ToggleBiddingModeUseCase,
     private val scheduleHarvestReminderUseCase: ScheduleHarvestReminderUseCase,
-    private val closeListingUseCase: CloseListingUseCase
+    private val closeListingUseCase: CloseListingUseCase,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListingUiState())
     val uiState: StateFlow<ListingUiState> = _uiState.asStateFlow()
+    val currentFarmerId: String get() = authRepository.currentUserId.orEmpty()
 
     /** Loads listings for [farmerId] and observes future changes. */
     fun loadFarmerListings(farmerId: String) {
@@ -93,9 +97,22 @@ class ListingViewModel @Inject constructor(
 
     fun toggleBidding(listingId: String, enabled: Boolean) {
         viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    pendingBiddingListingIds = it.pendingBiddingListingIds + listingId,
+                    error = null
+                )
+            }
             when (val r = toggleBiddingModeUseCase(listingId, enabled)) {
-                is Result.Error -> _uiState.update { it.copy(error = r.message) }
-                else -> Unit
+                is Result.Error -> _uiState.update {
+                    it.copy(
+                        pendingBiddingListingIds = it.pendingBiddingListingIds - listingId,
+                        error = r.message
+                    )
+                }
+                else -> _uiState.update {
+                    it.copy(pendingBiddingListingIds = it.pendingBiddingListingIds - listingId)
+                }
             }
         }
     }

@@ -35,6 +35,7 @@ import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
+import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
 import com.agroroute.core.widgets.AppCard
@@ -200,6 +201,13 @@ private fun ListingSummaryCard(listing: HarvestListing) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        listing.expectedHarvestAt?.let { harvestAt ->
+            Text(
+                text = HarvestAvailabilityDate.label(harvestAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Text(
             text = "Reserve Price: Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
             style = MaterialTheme.typography.bodyMedium,

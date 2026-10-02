@@ -15,13 +15,17 @@ import com.agroroute.core.model.closeForNewBids
 import com.agroroute.core.model.recordSale
 import com.agroroute.core.model.releaseSale
 import com.agroroute.core.model.setBiddingEnabled
+import com.agroroute.core.navigation.Screen
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.util.Result
+import com.agroroute.features.farmer.home.FarmerHomeDestination
+import com.agroroute.features.farmer.shell.farmerRoutes
 import com.agroroute.features.supplier.bidding.PlaceBidUseCase
 import com.agroroute.features.farmer.bids.RejectBidUseCase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -145,6 +149,182 @@ class HarvestListingRulesTest {
     }
 
     @Test
+    fun futureHarvestDateSurvivesSaveLoadAndDraftResume() = runBlocking {
+        val expectedHarvestAt = 1_800_000_000_000L
+        val repository = FakeListingRepository(HarvestListing())
+        val listing = HarvestListing(
+            listingId = "listing-date",
+            farmerId = "FARMER",
+            cropName = "Rice",
+            quantity = 12.0,
+            reservePrice = 3.0,
+            category = ListingCategory.ORGANIC,
+            expectedHarvestAt = expectedHarvestAt
+        )
+
+        assertTrue(CreateListingUseCase(repository)(listing) is Result.Success)
+        val loadedListing = repository.getListingById(listing.listingId).first().getOrNull()
+        assertEquals(expectedHarvestAt, loadedListing?.expectedHarvestAt)
+
+        val draft = listing.copy(listingId = "draft-date", isDraft = true)
+        assertTrue(SaveListingDraftUseCase(repository)(draft) is Result.Success)
+        val loadedDraft = repository.getDraftsByFarmer("FARMER").first().getOrNull()?.single()
+        assertEquals(expectedHarvestAt, loadedDraft?.expectedHarvestAt)
+        assertEquals(expectedHarvestAt, loadedDraft?.toDraftFormValues()?.expectedHarvestAt)
+    }
+
+    @Test
+    fun turningBiddingOnPersistsAndAllowsSupplierBid() = runBlocking {
+        val farmerId = "farmer-owner"
+        val listing = HarvestListing(
+            listingId = "listing-1",
+            farmerId = farmerId,
+            status = ListingStatus.OPEN,
+            biddingEnabled = false,
+            quantity = 10.0,
+            availableQuantity = 10.0
+        )
+        val listingRepository = FakeListingRepository(listing)
+
+        val toggleResult = ToggleBiddingModeUseCase(
+            listingRepository,
+            FakeAuthRepository(UserRole.FARMER, farmerId)
+        )(listing.listingId, true)
+
+        assertTrue(toggleResult is Result.Success)
+        assertTrue(listingRepository.listing.biddingEnabled)
+        assertTrue(listingRepository.listing.acceptsNewBids())
+
+        val bidRepository = FakeBidRepository()
+        val bidResult = PlaceBidUseCase(
+            bidRepository,
+            listingRepository,
+            FakeAuthRepository(UserRole.SUPPLIER, "supplier-1")
+        )(validBid())
+
+        assertTrue(bidResult is Result.Success)
+        assertEquals(1, bidRepository.placeCount)
+    }
+
+    @Test
+    fun turningBiddingOffPersistsRejectsNewBidsAndKeepsExistingBids() = runBlocking {
+        val farmerId = "farmer-owner"
+        val existingBid = validBid().copy(bidId = "existing-bid", status = BidStatus.PENDING)
+        val listingRepository = FakeListingRepository(
+            HarvestListing(
+                listingId = "listing-1",
+                farmerId = farmerId,
+                status = ListingStatus.OPEN,
+                biddingEnabled = true,
+                quantity = 10.0,
+                availableQuantity = 10.0
+            )
+        )
+        val bidRepository = FakeBidRepository(mutableListOf(existingBid))
+
+        val toggleResult = ToggleBiddingModeUseCase(
+            listingRepository,
+            FakeAuthRepository(UserRole.FARMER, farmerId)
+        )("listing-1", false)
+
+        assertTrue(toggleResult is Result.Success)
+        assertFalse(listingRepository.listing.biddingEnabled)
+        val bidResult = PlaceBidUseCase(
+            bidRepository,
+            listingRepository,
+            FakeAuthRepository(UserRole.SUPPLIER, "supplier-1")
+        )(validBid())
+
+        assertTrue(bidResult is Result.Error)
+        assertEquals(0, bidRepository.placeCount)
+        assertEquals(listOf(existingBid), bidRepository.getBidsForListing("listing-1").first().getOrNull())
+    }
+
+    @Test
+    fun farmerCannotChangeAnotherFarmersListingBiddingState() = runBlocking {
+        val listingRepository = FakeListingRepository(
+            HarvestListing(
+                listingId = "listing-1",
+                farmerId = "listing-owner",
+                status = ListingStatus.OPEN,
+                biddingEnabled = true,
+                quantity = 10.0,
+                availableQuantity = 10.0
+            )
+        )
+
+        val result = ToggleBiddingModeUseCase(
+            listingRepository,
+            FakeAuthRepository(UserRole.FARMER, "different-farmer")
+        )("listing-1", false)
+
+        assertTrue(result is Result.Error)
+        assertTrue(listingRepository.listing.biddingEnabled)
+        assertEquals(0, listingRepository.toggleCount)
+    }
+
+    @Test
+    fun biddingCannotBeReopenedForDraftClosedOrSoldOutListings() = runBlocking {
+        val farmerId = "farmer-owner"
+        val ineligibleListings = listOf(
+            HarvestListing(
+                listingId = "draft-listing",
+                farmerId = farmerId,
+                biddingEnabled = false,
+                isDraft = true,
+                quantity = 10.0,
+                availableQuantity = 10.0
+            ),
+            HarvestListing(
+                listingId = "closed-listing",
+                farmerId = farmerId,
+                status = ListingStatus.CLOSED,
+                biddingEnabled = false,
+                quantity = 10.0,
+                availableQuantity = 10.0
+            ),
+            HarvestListing(
+                listingId = "sold-out-listing",
+                farmerId = farmerId,
+                biddingEnabled = false,
+                quantity = 10.0,
+                availableQuantity = 0.0
+            )
+        )
+
+        ineligibleListings.forEach { listing ->
+            val repository = FakeListingRepository(listing)
+            val result = ToggleBiddingModeUseCase(
+                repository,
+                FakeAuthRepository(UserRole.FARMER, farmerId)
+            )(listing.listingId, true)
+
+            assertTrue(result is Result.Error)
+            assertFalse(repository.listing.biddingEnabled)
+            assertEquals(0, repository.toggleCount)
+        }
+    }
+
+    @Test
+    fun farmerListingActionOpensIncomingBidsNotSupplierPlaceBid() {
+        val listingId = "listing-1"
+        val route = farmerListingDetailsRoute(listingId)
+
+        assertEquals(Screen.ViewBids.createRoute(listingId), route)
+        assertTrue(Screen.ViewBids.route in farmerRoutes)
+        assertFalse(route == Screen.PlaceBid.createRoute(listingId))
+    }
+
+    @Test
+    fun farmerHomeActionsStayWithinFarmerDestinations() {
+        val homeRoutes = FarmerHomeDestination.values().map { it.route }.toSet()
+
+        assertTrue(homeRoutes.all { it in farmerRoutes })
+        assertFalse(Screen.SupplierMarketplace.route in homeRoutes)
+        assertFalse(Screen.PlaceBid.route in homeRoutes)
+    }
+
+    @Test
     fun categoryIsRequiredBeforeListingCanBePublished() = runBlocking {
         val repository = FakeListingRepository(HarvestListing())
         val incomplete = HarvestListing(
@@ -190,12 +370,14 @@ class HarvestListingRulesTest {
         offerPrice = 4.0
     )
 
-    private class FakeAuthRepository(private val role: UserRole?) : AuthRepository {
-        override val isLoggedIn = role != null
-        override val currentUserId = role?.name
+    private class FakeAuthRepository(
+        private val role: UserRole?,
+        override val currentUserId: String? = role?.name
+    ) : AuthRepository {
+        override val isLoggedIn = currentUserId != null
 
         override fun getCurrentUserProfile(): Flow<Result<UserProfile?>> = flowOf(
-            Result.Success(role?.let { UserProfile(userId = it.name, role = it) })
+            Result.Success(role?.let { UserProfile(userId = currentUserId.orEmpty(), role = it) })
         )
 
         override suspend fun login(email: String, password: String) =
@@ -212,12 +394,14 @@ class HarvestListingRulesTest {
         override suspend fun updateProfile(profile: UserProfile) = Result.Success(Unit)
     }
 
-    private class FakeBidRepository : BidRepository {
+    private class FakeBidRepository(
+        private val storedBids: MutableList<Bid> = mutableListOf()
+    ) : BidRepository {
         var placeCount = 0
         var statusUpdateCount = 0
 
         override fun getBidsForListing(listingId: String): Flow<Result<List<Bid>>> =
-            flowOf(Result.Success(emptyList()))
+            flowOf(Result.Success(storedBids.filter { it.listingId == listingId }))
 
         override fun getBidsBySupplier(supplierId: String): Flow<Result<List<Bid>>> =
             flowOf(Result.Success(emptyList()))
@@ -227,39 +411,52 @@ class HarvestListingRulesTest {
 
         override suspend fun placeBid(bid: Bid): Result<Unit> {
             placeCount++
+            storedBids += bid
             return Result.Success(Unit)
         }
 
         override suspend fun updateBidStatus(bidId: String, status: BidStatus): Result<Unit> {
             statusUpdateCount++
+            val index = storedBids.indexOfFirst { it.bidId == bidId }
+            if (index >= 0) storedBids[index] = storedBids[index].copy(status = status)
             return Result.Success(Unit)
         }
         override suspend fun withdrawBid(bidId: String) = Result.Success(Unit)
         override suspend fun syncBidsForListing(listingId: String) = Result.Success(Unit)
     }
 
-    private class FakeListingRepository(private val listing: HarvestListing) : HarvestListingRepository {
+    private class FakeListingRepository(var listing: HarvestListing) : HarvestListingRepository {
         var savedDraft: HarvestListing? = null
         var savedListing: HarvestListing? = null
+        var toggleCount = 0
         override fun getAllListings(): Flow<Result<List<HarvestListing>>> = flowOf(Result.Success(emptyList()))
         override fun getListingsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> =
-            flowOf(Result.Success(emptyList()))
+            flowOf(Result.Success(listOf(listing).filter { it.farmerId == farmerId && !it.isDraft }))
         override fun getDraftsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> =
-            flowOf(Result.Success(emptyList()))
+            flowOf(Result.Success(listOfNotNull(listing.takeIf { it.farmerId == farmerId && it.isDraft })))
         override fun getListingsByStatus(status: ListingStatus): Flow<Result<List<HarvestListing>>> =
             flowOf(Result.Success(emptyList()))
         override fun getListingById(listingId: String): Flow<Result<HarvestListing?>> =
             flowOf(Result.Success(listing.takeIf { it.listingId == listingId }))
         override suspend fun saveListing(listing: HarvestListing): Result<Unit> {
             savedListing = listing
+            this.listing = listing
             return Result.Success(Unit)
         }
         override suspend fun saveDraft(listing: HarvestListing): Result<Unit> {
             savedDraft = listing.copy(isDraft = true)
+            this.listing = savedDraft!!
             return Result.Success(Unit)
         }
         override suspend fun deleteListing(listingId: String) = Result.Success(Unit)
         override suspend fun syncListings() = Result.Success(Unit)
-        override suspend fun toggleBiddingMode(listingId: String, enabled: Boolean) = Result.Success(Unit)
+        override suspend fun toggleBiddingMode(listingId: String, enabled: Boolean): Result<Unit> = try {
+            check(listing.listingId == listingId) { "Listing not found" }
+            listing = listing.setBiddingEnabled(enabled)
+            toggleCount++
+            Result.Success(Unit)
+        } catch (error: IllegalArgumentException) {
+            Result.Error(error.message ?: "Unable to toggle bidding", error)
+        }
     }
 }

@@ -53,7 +53,7 @@ fun HarvestCalendarScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loadFarmerListings("current_farmer_id")
+        viewModel.loadFarmerListings(viewModel.currentFarmerId)
     }
     LaunchedEffect(upcoming) {
         upcoming.forEach(viewModel::scheduleHarvestReminder)

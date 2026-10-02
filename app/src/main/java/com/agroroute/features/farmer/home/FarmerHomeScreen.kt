@@ -85,7 +85,7 @@ fun FarmerHomeScreen(
 
     // ✅ LOGIC EXACTLY UNCHANGED
     LaunchedEffect(Unit) {
-        listingViewModel.loadFarmerListings("current_farmer_id")
+        listingViewModel.loadFarmerListings(listingViewModel.currentFarmerId)
         orderViewModel.loadOrdersForFarmer("current_farmer_id")
     }
 

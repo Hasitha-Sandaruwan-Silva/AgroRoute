@@ -3,6 +3,8 @@ package com.agroroute.core.repository
 import com.agroroute.core.database.HarvestListingDao
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingStatus
+import com.agroroute.core.model.UserRole
+import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.model.setBiddingEnabled
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -26,7 +28,8 @@ class HarvestListingRepositoryImpl @Inject constructor(
     @PublishedApi
     internal val dao: HarvestListingDao,
     @PublishedApi
-    internal val firestoreService: FirestoreService
+    internal val firestoreService: FirestoreService,
+    private val authRepository: AuthRepository
 ) : HarvestListingRepository {
 
     // ── Read operations (Room as source of truth) ──────────────────────────────
@@ -84,8 +87,14 @@ class HarvestListingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun toggleBiddingMode(listingId: String, enabled: Boolean): Result<Unit> = safeCall {
+        val farmerId = authRepository.currentUserId ?: error("Sign in to manage this listing")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == farmerId) {
+            "Only Farmers can change bidding"
+        }
         val snapshot = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
             ?: error("Listing $listingId not found")
+        check(snapshot.farmerId == farmerId) { "Only the listing's Farmer can change bidding" }
         val updated = snapshot.setBiddingEnabled(enabled)
         firestoreService.set(Constants.COLLECTION_LISTINGS, listingId, updated)
         dao.upsertListing(updated)

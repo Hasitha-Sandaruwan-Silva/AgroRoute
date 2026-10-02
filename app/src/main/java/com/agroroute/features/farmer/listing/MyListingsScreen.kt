@@ -18,6 +18,7 @@ import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -45,6 +46,7 @@ import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.ChipTone
@@ -57,6 +59,9 @@ import com.agroroute.core.widgets.StatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+internal fun farmerListingDetailsRoute(listingId: String): String =
+    Screen.ViewBids.createRoute(listingId)
 
 private enum class ListingSort(val label: String) {
     NEWEST("Newest"),
@@ -98,8 +103,8 @@ fun MyListingsScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loadFarmerListings("current_farmer_id")
-        viewModel.loadFarmerDrafts("current_farmer_id")
+        viewModel.loadFarmerListings(viewModel.currentFarmerId)
+        viewModel.loadFarmerDrafts(viewModel.currentFarmerId)
     }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
@@ -271,11 +276,12 @@ fun MyListingsScreen(
                                 ListingCard(
                                     listing = listing,
                                     onCardClick = {
-                                        navController.navigate(Screen.ViewBids.createRoute(listing.listingId))
+                                        navController.navigate(farmerListingDetailsRoute(listing.listingId))
                                     },
                                     onToggleBidding = { enabled ->
                                         viewModel.toggleBidding(listing.listingId, enabled)
                                     },
+                                    isBiddingUpdating = listing.listingId in uiState.pendingBiddingListingIds,
                                     onCloseClick = { listingPendingClosure = listing }
                                 )
                             }
@@ -292,6 +298,7 @@ private fun ListingCard(
     listing: HarvestListing,
     onCardClick: () -> Unit,
     onToggleBidding: (Boolean) -> Unit,
+    isBiddingUpdating: Boolean,
     onCloseClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
@@ -337,7 +344,7 @@ private fun ListingCard(
         )
         listing.expectedHarvestAt?.let { harvestAt ->
             Text(
-                text = "Expected harvest ${formatDate(harvestAt)}",
+                text = HarvestAvailabilityDate.label(harvestAt),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp)
@@ -404,11 +411,19 @@ private fun ListingCard(
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.padding(end = 8.dp)
                 )
-                Switch(
-                    checked = listing.biddingEnabled,
-                    onCheckedChange = onToggleBidding,
-                    enabled = listing.status == ListingStatus.OPEN
-                )
+                if (isBiddingUpdating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.width(24.dp).height(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Switch(
+                        checked = listing.biddingEnabled,
+                        onCheckedChange = onToggleBidding,
+                        enabled = listing.status == ListingStatus.OPEN &&
+                            (listing.biddingEnabled || listing.availableStock() > 0.0)
+                    )
+                }
             }
         }
         if (listing.status == ListingStatus.OPEN) {

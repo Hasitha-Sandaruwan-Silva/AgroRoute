@@ -64,9 +64,10 @@ fun NavGraph(
         ) {
             NavHost(
                 navController = navController,
-                startDestination = Screen.Welcome.route,
+                startDestination = Screen.Welcome.route, // 👈 නිවැරදිව Welcome එකට යොමු කර ඇත (කොමාව සහිතව)
                 modifier = Modifier.padding(paddingValues)
             ) {
+
                 composable(Screen.Welcome.route) {
                     WelcomeScreen(navController = navController)
                 }
