@@ -12,7 +12,20 @@
           "package_name": "com.agroroute"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "829642015966-n7vdtcqu9pv9qisuqe25u3k1dbdjl1oa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.agroroute",
+            "certificate_hash": "82ea4ba182afa8da7fdf92439e83106d5c9acb50"
+          }
+        },
+        {
+          "client_id": "829642015966-7t43u3qpeoptarmi7et88arefm52ggjs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCCHDz3odPoI4xXuvntlp1FzVTc84sipMY"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "829642015966-7t43u3qpeoptarmi7et88arefm52ggjs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

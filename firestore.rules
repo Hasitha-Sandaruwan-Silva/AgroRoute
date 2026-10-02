@@ -75,7 +75,8 @@ service cloud.firestore {
         && request.resource.data.farmerId == request.auth.uid
         && request.resource.data.status == 'OPEN'
         && request.resource.data.get('isDraft', false) == false
-        && request.resource.data.biddingEnabled == true
+        && request.resource.data.biddingEnabled is bool
+
         && availableStock(request.resource.data) > 0;
 
       allow update: if farmer()
