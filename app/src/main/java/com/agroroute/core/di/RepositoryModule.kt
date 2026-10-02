@@ -9,7 +9,7 @@ import com.agroroute.core.repository.BidRepositoryImpl
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.AuthRepositoryImpl
 import com.agroroute.core.repository.ListingPhotoStorage
-import com.agroroute.core.remote.StorageService
+import com.agroroute.core.remote.CloudinaryPhotoStorage
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -24,9 +24,18 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
 
+    /**
+     * Binds [CloudinaryPhotoStorage] as the [ListingPhotoStorage] implementation.
+     * New listing photos are uploaded to Cloudinary using an unsigned preset —
+     * no API secret is embedded in the app.
+     *
+     * Firebase Storage ([com.agroroute.core.remote.StorageService]) is kept as a
+     * dependency so that existing Firebase Storage URLs in old listings continue to
+     * load via Coil/URL. Only *new* uploads go through Cloudinary.
+     */
     @Binds
     @Singleton
-    abstract fun bindListingPhotoStorage(impl: StorageService): ListingPhotoStorage
+    abstract fun bindListingPhotoStorage(impl: CloudinaryPhotoStorage): ListingPhotoStorage
 
     @Binds
     @Singleton
@@ -46,3 +55,4 @@ abstract class RepositoryModule {
         impl: OrderRepositoryImpl
     ): OrderRepository
 }
+

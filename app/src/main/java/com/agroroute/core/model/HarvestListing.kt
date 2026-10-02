@@ -41,6 +41,9 @@ data class HarvestListing(
 fun HarvestListing.availableStock(): Double =
     (availableQuantity ?: (quantity - soldQuantity)).coerceAtLeast(0.0)
 
+fun HarvestListing.isEligibleForMarketplace(): Boolean =
+    status == ListingStatus.OPEN && !isDraft && availableStock() > 0.0
+
 fun HarvestListing.acceptsNewBids(): Boolean =
     status == ListingStatus.OPEN && biddingEnabled && !isDraft && availableStock() > 0.0
 

@@ -3,39 +3,51 @@
 package com.agroroute.features.farmer.listing
 
 import android.Manifest
-import android.net.Uri
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -47,34 +59,37 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.core.content.ContextCompat
+import coil.compose.AsyncImage
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.QuantityUnit
+import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.LoadingButton
-import com.agroroute.core.widgets.PhotoPicker
 import com.agroroute.core.widgets.PriceInputField
 import com.agroroute.core.widgets.SectionTitle
 import com.github.thelacspace.icons.Lucide
-import com.agroroute.core.util.HarvestAvailabilityDate
 import java.util.UUID
 
 internal data class ListingDraftFormValues(
@@ -111,6 +126,8 @@ internal fun shouldShowPhotoUploadRetry(
     photoUploadError: String?
 ): Boolean = hasSelectedPhoto && !isLoading && photoUploadError != null
 
+// ── Screen ────────────────────────────────────────────────────────────────────
+
 @Composable
 fun CreateListingScreen(
     navController: NavController,
@@ -139,6 +156,7 @@ fun CreateListingScreen(
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
+    // ── Form state ────────────────────────────────────────────────────────────
     var cropName by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var selectedUnit by remember { mutableStateOf(QuantityUnit.KG) }
@@ -153,6 +171,7 @@ fun CreateListingScreen(
     var qualityGrade by remember { mutableStateOf("") }
     var showHarvestDatePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { showHarvestDatePicker = true }
@@ -200,7 +219,6 @@ fun CreateListingScreen(
             return
         }
         categorySelectionError = false
-
         viewModel.createListing(buildListing(isDraft = false).copy(category = category))
     }
 
@@ -219,6 +237,7 @@ fun CreateListingScreen(
         qualityGrade = values.qualityGrade
     }
 
+    // ── Date picker dialog ────────────────────────────────────────────────────
     if (showHarvestDatePicker) {
         val datePickerState = androidx.compose.material3.rememberDatePickerState(
             initialSelectedDateMillis = expectedHarvestAt ?: System.currentTimeMillis()
@@ -229,38 +248,26 @@ fun CreateListingScreen(
                 TextButton(onClick = {
                     expectedHarvestAt = datePickerState.selectedDateMillis
                     showHarvestDatePicker = false
-                }) {
-                    Text("Save date")
-                }
+                }) { Text("Save date") }
             },
             dismissButton = {
-                TextButton(onClick = { showHarvestDatePicker = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showHarvestDatePicker = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
 
+    // ── Scaffold ──────────────────────────────────────────────────────────────
     Scaffold(
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surface) {
-                LoadingButton(
-                    text = when {
-                        uiState.isLoading && selectedPhotoUri != null -> "Uploading photo..."
-                        uiState.isLoading -> "Creating listing..."
-                        else -> "Create Listing"
-                    },
-                    isLoading = uiState.isLoading,
-                    onClick = { publishListing() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .imePadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    enabled = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank()
-                )
-            }
+            CreateListingBottomBar(
+                isLoading = uiState.isLoading,
+                hasPhoto = selectedPhotoUri != null,
+                canSubmit = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank(),
+                onPublish = ::publishListing,
+                onSaveDraft = { viewModel.saveDraft(buildListing(isDraft = true)) }
+            )
         },
         snackbarHost = { AgroSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -270,102 +277,64 @@ fun CreateListingScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = Color.Transparent
-            ) {
-                Column(
-                    modifier = Modifier
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary
-                                )
-                            )
-                        )
-                        .padding(horizontal = 20.dp, vertical = 22.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = MaterialTheme.shapes.medium,
-                            color = Color.White.copy(alpha = 0.18f)
-                        ) {
-                            Icon(
-                                imageVector = Lucide.Sprout,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.padding(10.dp).size(24.dp)
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "NEW HARVEST",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.White.copy(alpha = 0.82f),
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Create a listing",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    Text(
-                        text = "Share your harvest details with potential buyers.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.92f),
-                        modifier = Modifier.padding(top = 12.dp)
-                    )
-                }
-            }
+            // ── Hero header ───────────────────────────────────────────────────
+            CreateListingHeroHeader()
 
+            // ── Error banner ──────────────────────────────────────────────────
             uiState.error?.let { error ->
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
+                ErrorBanner(
+                    message = error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
 
+            // ── Saved local drafts ────────────────────────────────────────────
             if (uiState.drafts.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     SectionTitle(title = "Saved local drafts")
                     uiState.drafts.forEach { draft ->
                         AppCard(
                             onClick = { resumeDraft(draft) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = draft.cropName.ifBlank { "Untitled listing" },
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Text(
-                                text = "Draft · not published · tap to resume",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Lucide.FileText,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = draft.cropName.ifBlank { "Untitled listing" },
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "Draft · not published · tap to resume",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            AppCard {
-                SectionTitle(title = "Harvest details")
+            // ── Section: Harvest details ──────────────────────────────────────
+            FormSection(
+                title = "Harvest details",
+                icon = Lucide.Wheat,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
                 AgroTextField(
                     value = cropName,
                     onValueChange = { cropName = it },
@@ -375,11 +344,13 @@ fun CreateListingScreen(
                 Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedTextField(
                         value = quantity,
-                        onValueChange = { if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantity = it },
+                        onValueChange = {
+                            if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantity = it
+                        },
                         label = { Text("Quantity") },
                         supportingText = { Text("How much is available?") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -428,18 +399,27 @@ fun CreateListingScreen(
                         }
                     }
                 }
-                TextButton(onClick = ::requestHarvestDatePicker) {
-                    Text(
-                        text = expectedHarvestAt?.let {
-                            "Expected availability: ${HarvestAvailabilityDate.format(it)}"
-                        } ?: "Set expected availability date (optional)"
+                Spacer(Modifier.height(4.dp))
+                // Harvest date row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Lucide.CalendarDays,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
                     )
+                    Spacer(Modifier.width(6.dp))
+                    TextButton(onClick = ::requestHarvestDatePicker, contentPadding = PaddingValues(0.dp)) {
+                        Text(
+                            text = expectedHarvestAt?.let {
+                                "Availability: ${HarvestAvailabilityDate.format(it)}"
+                            } ?: "Set expected availability date (optional)"
+                        )
+                    }
                 }
-                Text(
-                    text = "Note down the date the harvest is expected.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 AgroTextField(
                     value = qualityGrade,
                     onValueChange = { qualityGrade = it },
@@ -448,37 +428,42 @@ fun CreateListingScreen(
                 )
             }
 
-            AppCard {
-                SectionTitle(title = "Harvest Category")
+            FormDivider()
+
+            // ── Section: Category ─────────────────────────────────────────────
+            FormSection(
+                title = "Harvest category",
+                icon = Lucide.Tag,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
                 Text(
-                    text = "Select how this harvest was produced.",
+                    text = "Select how this harvest was produced. Organic does not indicate third-party certification.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
-                Text(
-                    text = "Farmer-provided category; Organic does not indicate certification.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     ListingCategory.entries.forEach { category ->
                         val isSelected = selectedCategory == category
+                        val borderColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outline,
+                            label = "categoryBorder"
+                        )
+                        val bgColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            label = "categoryBg"
+                        )
                         Row(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(MaterialTheme.shapes.medium)
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.secondaryContainer
-                                    else MaterialTheme.colorScheme.surface
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.outline,
-                                    shape = MaterialTheme.shapes.medium
-                                )
+                                .background(bgColor)
+                                .border(1.5.dp, borderColor, MaterialTheme.shapes.medium)
                                 .selectable(
                                     selected = isSelected,
                                     onClick = {
@@ -487,92 +472,132 @@ fun CreateListingScreen(
                                     },
                                     role = Role.RadioButton
                                 )
-                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(selected = isSelected, onClick = null)
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null,
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Spacer(Modifier.width(4.dp))
                             Text(
                                 text = category.displayName,
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
                 }
-                if (categorySelectionError) {
+                AnimatedVisibility(visible = categorySelectionError) {
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .padding(top = 10.dp)
                     ) {
-                        Text(
-                            text = "Select Organic or Inorganic before creating the listing.",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(10.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Lucide.AlertCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Select Organic or Inorganic before publishing.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }
 
-            AppCard {
-                SectionTitle(title = "Harvest photo")
-                Text(
-                    text = "Add a clear photo of this harvest. Your selected image stays attached if publishing needs a retry.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                PhotoPicker(
+            FormDivider()
+
+            // ── Section: Photo ────────────────────────────────────────────────
+            FormSection(
+                title = "Harvest photo",
+                icon = Lucide.Camera,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                // Photo preview / picker — always visible
+                PhotoPickerCard(
                     selectedUri = selectedPhotoUri,
+                    isLoading = uiState.isLoading,
+                    enabled = !uiState.isLoading,
                     onImageSelected = {
                         selectedPhotoUri = it
                         viewModel.clearPhotoUploadError()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 208.dp,
-                    enabled = !uiState.isLoading
+                    }
                 )
-                Text(
-                    text = if (selectedPhotoUri == null) "Tap the photo area to choose an image" else "Photo selected. Tap the preview to replace it.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 9.dp)
-                )
-                if (uiState.isLoading && selectedPhotoUri != null) {
+                // Upload progress indicator
+                AnimatedVisibility(
+                    visible = uiState.isLoading && selectedPhotoUri != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
                     Row(
-                        modifier = Modifier.padding(top = 12.dp),
+                        modifier = Modifier.padding(top = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                         Spacer(Modifier.width(10.dp))
-                        Text("Uploading photo and publishing listing...", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Uploading to Cloudinary…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
+                // Photo upload error
                 uiState.photoUploadError?.let { photoError ->
                     Surface(
-                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
                         shape = MaterialTheme.shapes.small,
                         color = MaterialTheme.colorScheme.errorContainer
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = photoError,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                            Row(verticalAlignment = Alignment.Top) {
+                                Icon(
+                                    Lucide.AlertCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = photoError,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
                             if (shouldShowPhotoUploadRetry(
                                     hasSelectedPhoto = selectedPhotoUri != null,
                                     isLoading = uiState.isLoading,
                                     photoUploadError = photoError
                                 )
                             ) {
-                                TextButton(
-                                    onClick = { publishListing() },
-                                    modifier = Modifier.align(Alignment.End)
+                                FilledTonalButton(
+                                    onClick = ::publishListing,
+                                    modifier = Modifier
+                                        .align(Alignment.End)
+                                        .padding(top = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                                 ) {
-                                    Text("Retry photo upload")
+                                    Icon(Lucide.RefreshCw, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Retry upload", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }
@@ -580,44 +605,330 @@ fun CreateListingScreen(
                 }
             }
 
-            AppCard {
-                SectionTitle(title = "Price and location")
+            FormDivider()
+
+            // ── Section: Price & location ─────────────────────────────────────
+            FormSection(
+                title = "Price & location",
+                icon = Lucide.MapPin,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
                 PriceInputField(
                     value = price,
                     onValueChange = { price = it },
                     label = "Reserve price per ${selectedUnit.name}",
-                    supportingText = "Enter your minimum price for one ${selectedUnit.name}."
+                    supportingText = "Your minimum acceptable price for 1 ${selectedUnit.name} (LKR)."
                 )
                 Spacer(Modifier.height(12.dp))
                 AgroTextField(
                     value = location,
                     onValueChange = { location = it },
-                    label = "Location",
-                    supportingText = { Text("Add a pickup area or nearby town.") }
+                    label = "Pickup location",
+                    leadingIcon = Lucide.MapPin,
+                    supportingText = { Text("Nearest town or farm area.") }
                 )
             }
 
-            AppCard {
-                SectionTitle(title = "Description")
+            FormDivider()
+
+            // ── Section: Description ──────────────────────────────────────────
+            FormSection(
+                title = "Description",
+                icon = Lucide.FileText,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
                 AgroTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = "Description",
+                    label = "Tell buyers about this harvest",
                     singleLine = false,
                     minLines = 3,
                     maxLines = 5,
-                    supportingText = { Text("Mention details that help buyers assess the harvest.") }
+                    supportingText = { Text("Mention storage conditions, colour, freshness, or any special details.") }
                 )
             }
 
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+// ── Private composables ───────────────────────────────────────────────────────
+
+@Composable
+private fun CreateListingHeroHeader() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.tertiary
+                    )
+                )
+            )
+            .padding(horizontal = 20.dp, vertical = 24.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Icon badge
+            Surface(
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.18f),
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Lucide.Sprout,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = "NEW HARVEST",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.80f),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp
+                )
+                Text(
+                    text = "Create a listing",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Share your harvest with potential buyers.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.88f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FormSection(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 4.dp)
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        content()
+    }
+}
+
+@Composable
+private fun FormDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    )
+}
+
+@Composable
+private fun ErrorBanner(message: String, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Lucide.AlertCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(text = message, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+/**
+ * Full-width photo picker card with an integrated image preview overlay, a
+ * camera/change-photo icon button, and a state label.
+ */
+@Composable
+private fun PhotoPickerCard(
+    selectedUri: Uri?,
+    isLoading: Boolean,
+    enabled: Boolean,
+    onImageSelected: (Uri) -> Unit
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            onImageSelected(it)
+        }
+    }
+
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (selectedUri != null) {
+                var imageFailed by remember(selectedUri) { mutableStateOf(false) }
+                AsyncImage(
+                    model = selectedUri,
+                    contentDescription = "Selected listing photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize().clip(MaterialTheme.shapes.large),
+                    onError = { imageFailed = true }
+                )
+                // Darken overlay so the action button is readable
+                if (!imageFailed) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.28f))
+                            .clip(MaterialTheme.shapes.large)
+                    )
+                }
+            }
+            // Empty-state or change-photo prompt
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    onClick = { if (enabled) launcher.launch(arrayOf("image/*")) },
+                    enabled = enabled,
+                    shape = MaterialTheme.shapes.large,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedUri != null) Color.White.copy(alpha = 0.22f)
+                        else MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = if (selectedUri != null) Color.White
+                        else MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            imageVector = if (selectedUri == null) Lucide.ImagePlus else Lucide.ImagePlus,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (selectedUri == null) "Choose photo" else "Change photo",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                if (selectedUri == null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "JPEG · PNG · WebP · up to 10 MB",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+    // Caption below the photo card
+    val captionText = if (selectedUri == null) {
+        "A clear photo helps buyers assess quality and builds trust."
+    } else {
+        "Photo selected. Upload happens when you tap \"Publish listing\"."
+    }
+    Text(
+        text = captionText,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 6.dp)
+    )
+}
+
+/**
+ * Sticky bottom bar — publish button (primary) + save-draft link.
+ */
+@Composable
+private fun CreateListingBottomBar(
+    isLoading: Boolean,
+    hasPhoto: Boolean,
+    canSubmit: Boolean,
+    onPublish: () -> Unit,
+    onSaveDraft: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            LoadingButton(
+                text = when {
+                    isLoading && hasPhoto -> "Uploading photo…"
+                    isLoading -> "Publishing listing…"
+                    else -> "Publish listing"
+                },
+                isLoading = isLoading,
+                onClick = onPublish,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = canSubmit
+            )
             TextButton(
-                onClick = { viewModel.saveDraft(buildListing(isDraft = true)) },
-                enabled = !uiState.isLoading,
+                onClick = onSaveDraft,
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                Icon(Lucide.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
                 Text("Save draft on this device")
             }
-
         }
     }
 }

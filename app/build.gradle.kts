@@ -106,8 +106,12 @@ dependencies {
     // ── Lucide Icons ───────────────────────────────────────────────────────────
     // Using local Compose Material Icons mapping in com.github.thelacspace.icons.Lucide
 
+    // ── OkHttp (Cloudinary unsigned multipart upload — no API secret) ─────────
+    implementation(libs.okhttp)
+
     // ── Testing ───────────────────────────────────────────────────────────────
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
