@@ -56,6 +56,7 @@ private data class FarmerTab(
 private val farmerTabs = listOf(
     FarmerTab(Screen.FarmerHome.route, "Home", Lucide.Home),
     FarmerTab(Screen.MyListings.route, "Listings", Lucide.FileText),
+    FarmerTab(Screen.FarmerBids.route, "Bids", Lucide.Gavel),
     FarmerTab(Screen.FarmerOrders.route, "Orders", Lucide.Receipt),
     FarmerTab(Screen.FarmerProfile.route, "Profile", Lucide.User)
 )

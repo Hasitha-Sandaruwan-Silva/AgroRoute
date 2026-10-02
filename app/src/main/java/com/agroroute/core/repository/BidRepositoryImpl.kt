@@ -49,17 +49,18 @@ class BidRepositoryImpl @Inject constructor(
     override suspend fun placeBid(bid: Bid): Result<Unit> = safeCall {
         val role = authRepository.getCurrentUserProfile().first().getOrNull()?.role
         check(role == UserRole.SUPPLIER) { "Only Suppliers can place bids" }
+        val pendingBid = bid.copy(status = BidStatus.PENDING)
 
         val firestore = firestoreService.firestore
-        val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(bid.listingId)
-        val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(bid.bidId)
+        val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(pendingBid.listingId)
+        val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(pendingBid.bidId)
         firestoreService.runTransaction<Unit> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
-                ?: error("Listing ${bid.listingId} not found")
+                ?: error("Listing ${pendingBid.listingId} not found")
             check(listing.acceptsNewBids()) { "This listing is not accepting bids" }
-            transaction.set(bidRef, bid)
+            transaction.set(bidRef, pendingBid)
         }
-        dao.upsertBid(bid)
+        dao.upsertBid(pendingBid)
     }
 
     override suspend fun updateBidStatus(bidId: String, status: BidStatus): Result<Unit> = safeCall {

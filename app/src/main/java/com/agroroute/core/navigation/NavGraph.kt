@@ -24,6 +24,7 @@ import com.agroroute.features.welcome.WelcomeScreen
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.util.Constants
 import com.agroroute.features.farmer.bids.ViewBidsScreen
+import com.agroroute.features.farmer.bids.FarmerBidsScreen
 import com.agroroute.features.farmer.home.FarmerHomeScreen
 import com.agroroute.features.farmer.calendar.HarvestCalendarScreen
 import com.agroroute.features.farmer.listing.CreateListingScreen
@@ -114,6 +115,10 @@ fun NavGraph(
 
                 composable(Screen.MyListings.route) {
                     MyListingsScreen(navController = navController)
+                }
+
+                composable(Screen.FarmerBids.route) {
+                    FarmerBidsScreen(navController = navController)
                 }
 
                 composable(Screen.HarvestCalendar.route) {

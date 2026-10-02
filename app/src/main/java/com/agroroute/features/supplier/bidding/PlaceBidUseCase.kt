@@ -1,6 +1,7 @@
 package com.agroroute.features.supplier.bidding
 
 import com.agroroute.core.model.Bid
+import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.util.Result
@@ -43,6 +44,6 @@ class PlaceBidUseCase @Inject constructor(
             return Result.Error("This listing is not accepting bids")
         }
 
-        return bidRepository.placeBid(bid)
+        return bidRepository.placeBid(bid.copy(status = BidStatus.PENDING))
     }
 }

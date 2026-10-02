@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.rounded.FormatQuote
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -31,7 +32,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.BidStatusChip
 import com.agroroute.core.widgets.EmptyState
@@ -73,6 +77,9 @@ private val BorderGray = Color(0xFFE2E8F0)
 private val GoldAccent = Color(0xFFF59E0B)
 private val GoldSoft = Color(0xFFFEF3C7)
 
+internal fun highestPendingOffer(bids: List<Bid>): Bid? =
+    bids.filter { it.status == BidStatus.PENDING }.maxByOrNull { it.offerPrice }
+
 @Composable
 fun ViewBidsScreen(
     listingId: String,
@@ -81,6 +88,7 @@ fun ViewBidsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var bidToAccept by remember { mutableStateOf<Bid?>(null) }
 
     // ✅ LOGIC UNCHANGED
     LaunchedEffect(listingId) {
@@ -95,9 +103,7 @@ fun ViewBidsScreen(
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
-    val bestPendingPrice = uiState.bids
-        .filter { it.status == BidStatus.PENDING }
-        .maxOfOrNull { it.offerPrice }
+    val bestPendingBid = highestPendingOffer(uiState.bids)
 
     Box(
         modifier = Modifier
@@ -190,18 +196,31 @@ fun ViewBidsScreen(
                 } else {
                     items(uiState.bids) { bid ->
                         val isBest = bid.status == BidStatus.PENDING &&
-                                bestPendingPrice != null &&
-                                bid.offerPrice >= bestPendingPrice
+                            bid.bidId == bestPendingBid?.bidId
 
                         PremiumBidCard(
                             bid = bid,
                             isBestOffer = isBest,
-                            onAcceptClick = { viewModel.acceptBid(bid) },
+                            onAcceptClick = { bidToAccept = bid },
                             onRejectClick = { viewModel.rejectBid(bid) },
                             isAccepting = uiState.isLoading
                         )
                     }
                 }
+            }
+        }
+
+        bidToAccept?.let { bid ->
+            uiState.listing?.let { listing ->
+                AcceptBidConfirmationDialog(
+                    bid = bid,
+                    listing = listing,
+                    onDismiss = { bidToAccept = null },
+                    onConfirm = {
+                        bidToAccept = null
+                        viewModel.acceptBid(bid, listing)
+                    }
+                )
             }
         }
 
@@ -211,6 +230,7 @@ fun ViewBidsScreen(
         )
     }
 }
+
 
 @Composable
 private fun PremiumBidCard(
@@ -391,4 +411,36 @@ private fun PremiumBidCard(
 private fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+@Composable
+internal fun AcceptBidConfirmationDialog(
+    bid: Bid,
+    listing: com.agroroute.core.model.HarvestListing,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Accept this offer?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Supplier: ${bid.supplierName.ifBlank { "Name unavailable" }}")
+                Text("Listing: ${listing.cropName}")
+                Text("Offer: Rs. ${bid.offerPrice} per ${listing.quantityUnit.name}")
+                Text("Order quantity: ${listing.availableStock()} ${listing.quantityUnit.name}")
+                if (bid.message.isNotBlank()) Text("Supplier message: ${bid.message}")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Accept and create order")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
