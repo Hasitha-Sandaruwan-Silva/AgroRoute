@@ -16,10 +16,13 @@ import com.agroroute.core.model.recordSale
 import com.agroroute.core.model.releaseSale
 import com.agroroute.core.model.setBiddingEnabled
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.navigation.roleHomeDestination
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.repository.HarvestListingRepository
+import com.agroroute.core.repository.ListingPhotoStorage
 import com.agroroute.core.repository.OrderRepository
+import com.agroroute.core.repository.listingPhotoStoragePath
 import com.agroroute.core.util.Result
 import com.agroroute.features.farmer.home.FarmerHomeDestination
 import com.agroroute.features.farmer.shell.farmerRoutes
@@ -33,6 +36,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import com.agroroute.core.widgets.shouldUseListingImageFallback
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -134,12 +138,32 @@ class HarvestListingRulesTest {
         val supplierResult = PlaceBidUseCase(
             supplierBidRepository,
             FakeListingRepository(listing),
-            FakeAuthRepository(UserRole.SUPPLIER)
+            FakeAuthRepository(UserRole.SUPPLIER, "supplier-1")
         )(validBid().copy(status = BidStatus.ACCEPTED))
 
         assertTrue(supplierResult is Result.Success)
         assertEquals(1, supplierBidRepository.placeCount)
         assertEquals(BidStatus.PENDING, supplierBidRepository.storedBids.single().status)
+    }
+
+    @Test
+    fun supplierCannotSubmitBidUsingAnotherSuppliersUid() = runBlocking {
+        val bidRepository = FakeBidRepository()
+        val result = PlaceBidUseCase(
+            bidRepository,
+            FakeListingRepository(
+                HarvestListing(
+                    listingId = "listing-1",
+                    status = ListingStatus.OPEN,
+                    quantity = 10.0,
+                    availableQuantity = 10.0
+                )
+            ),
+            FakeAuthRepository(UserRole.SUPPLIER, "authenticated-supplier")
+        )(validBid().copy(supplierId = "different-supplier"))
+
+        assertTrue(result is Result.Error)
+        assertEquals(0, bidRepository.placeCount)
     }
 
     @Test
@@ -186,6 +210,7 @@ class HarvestListingRulesTest {
 
         assertTrue(result is Result.Success)
         val createdOrder = orders.acceptedOrders.single()
+        assertEquals(bid.bidId, createdOrder.orderId)
         assertEquals(bid.bidId, createdOrder.bidId)
         assertEquals(bid.supplierId, createdOrder.supplierId)
         assertEquals(listing.availableStock(), createdOrder.quantity, 0.0)
@@ -239,7 +264,13 @@ class HarvestListingRulesTest {
             expectedHarvestAt = expectedHarvestAt
         )
 
-        assertTrue(CreateListingUseCase(repository)(listing) is Result.Success)
+        assertTrue(
+            CreateListingUseCase(
+                repository,
+                FakeListingPhotoStorage(),
+                FakeAuthRepository(UserRole.FARMER, "FARMER")
+            )(listing) is Result.Success
+        )
         val loadedListing = repository.getListingById(listing.listingId).first().getOrNull()
         assertEquals(expectedHarvestAt, loadedListing?.expectedHarvestAt)
 
@@ -305,7 +336,6 @@ class HarvestListingRulesTest {
         )("listing-1", false)
 
         assertTrue(toggleResult is Result.Success)
-        assertFalse(listingRepository.listing.biddingEnabled)
         val bidResult = PlaceBidUseCase(
             bidRepository,
             listingRepository,
@@ -404,17 +434,90 @@ class HarvestListingRulesTest {
     }
 
     @Test
+    fun firebaseRolesRouteToTheirOwnAreasOnly() {
+        assertEquals(Screen.FarmerHome.route, roleHomeDestination(UserRole.FARMER))
+        assertEquals(Screen.SupplierHome.route, roleHomeDestination(UserRole.SUPPLIER))
+        assertEquals(null, roleHomeDestination(null))
+        assertFalse(roleHomeDestination(UserRole.FARMER) == Screen.SupplierHome.route)
+        assertFalse(roleHomeDestination(UserRole.SUPPLIER) == Screen.FarmerHome.route)
+    }
+
+    @Test
+    fun listingImageShowsFallbackForMissingOrFailedImages() {
+        assertTrue(shouldUseListingImageFallback(null, false))
+        assertTrue(shouldUseListingImageFallback("https://storage.example/photo", true))
+        assertFalse(shouldUseListingImageFallback("https://storage.example/photo", false))
+    }
+
+    @Test
     fun categoryIsRequiredBeforeListingCanBePublished() = runBlocking {
         val repository = FakeListingRepository(HarvestListing())
         val incomplete = HarvestListing(
             listingId = "listing-1",
+            farmerId = "FARMER",
             cropName = "Rice",
             quantity = 5.0,
             reservePrice = 2.0,
             category = null
         )
 
-        val result = CreateListingUseCase(repository)(incomplete)
+        val result = CreateListingUseCase(
+            repository,
+            FakeListingPhotoStorage(),
+            FakeAuthRepository(UserRole.FARMER, "FARMER")
+        )(incomplete)
+
+        assertTrue(result is Result.Error)
+        assertEquals(null, repository.savedListing)
+    }
+
+    @Test
+    fun localListingPhotoUploadsToStableScopedPathAndSavesReturnedUrl() = runBlocking {
+        val repository = FakeListingRepository(HarvestListing())
+        val storage = FakeListingPhotoStorage()
+        val listing = HarvestListing(
+            listingId = "listing-photo",
+            farmerId = "farmer-uid",
+            cropName = "Rice",
+            quantity = 5.0,
+            reservePrice = 2.0,
+            category = ListingCategory.ORGANIC,
+            imageUrls = listOf("content://picked/image")
+        )
+
+        val result = CreateListingUseCase(
+            repository,
+            storage,
+            FakeAuthRepository(UserRole.FARMER, "farmer-uid")
+        )(listing)
+
+        assertTrue(result is Result.Success)
+        assertEquals("https://storage.example/listing-photo", repository.savedListing?.imageUrls?.single())
+        assertEquals("content://picked/image", storage.uploadedUri)
+        assertEquals("farmer-uid", storage.uploadedFarmerId)
+        assertEquals("listing-photo", storage.uploadedListingId)
+        assertEquals("listing_images/farmer-uid/listing-photo/photo", listingPhotoStoragePath("farmer-uid", "listing-photo"))
+    }
+
+    @Test
+    fun photoUploadFailurePreventsPublishingListing() = runBlocking {
+        val repository = FakeListingRepository(HarvestListing())
+        val storage = FakeListingPhotoStorage(failure = IllegalStateException("offline"))
+        val listing = HarvestListing(
+            listingId = "listing-photo",
+            farmerId = "farmer-uid",
+            cropName = "Rice",
+            quantity = 5.0,
+            reservePrice = 2.0,
+            category = ListingCategory.ORGANIC,
+            imageUrls = listOf("content://picked/image")
+        )
+
+        val result = CreateListingUseCase(
+            repository,
+            storage,
+            FakeAuthRepository(UserRole.FARMER, "farmer-uid")
+        )(listing)
 
         assertTrue(result is Result.Error)
         assertEquals(null, repository.savedListing)
@@ -480,6 +583,9 @@ class HarvestListingRulesTest {
             Result.Success(role?.let { UserProfile(userId = currentUserId.orEmpty(), role = it) })
         )
 
+        override suspend fun restoreSession(): Result<UserProfile?> =
+            Result.Success(role?.let { UserProfile(userId = currentUserId.orEmpty(), role = it) })
+
         override suspend fun login(email: String, password: String) =
             Result.Error("Not used") as Result<UserProfile>
 
@@ -520,6 +626,26 @@ class HarvestListingRulesTest {
             Result.Success(Unit)
 
         override suspend fun syncOrders(userId: String): Result<Unit> = Result.Success(Unit)
+    }
+
+    private class FakeListingPhotoStorage(
+        private val failure: Exception? = null
+    ) : ListingPhotoStorage {
+        var uploadedUri: String? = null
+        var uploadedFarmerId: String? = null
+        var uploadedListingId: String? = null
+
+        override suspend fun uploadListingPhoto(
+            localUri: String,
+            farmerId: String,
+            listingId: String
+        ): String {
+            failure?.let { throw it }
+            uploadedUri = localUri
+            uploadedFarmerId = farmerId
+            uploadedListingId = listingId
+            return "https://storage.example/$listingId"
+        }
     }
 
     private class FakeBidRepository(

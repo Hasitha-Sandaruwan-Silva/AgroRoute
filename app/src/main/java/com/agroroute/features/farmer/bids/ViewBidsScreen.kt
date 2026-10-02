@@ -58,6 +58,7 @@ import com.agroroute.core.widgets.BidStatusChip
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
+import com.agroroute.core.widgets.ListingImage
 import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.StatusChip
@@ -126,6 +127,11 @@ fun ViewBidsScreen(
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
                         ) {
+                            ListingImage(
+                                imageUrl = listing.imageUrls.firstOrNull(),
+                                height = 200.dp
+                            )
+                            Spacer(Modifier.height(12.dp))
                             Text(
                                 text = "Bids for",
                                 style = MaterialTheme.typography.labelMedium,

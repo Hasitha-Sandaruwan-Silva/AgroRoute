@@ -13,6 +13,8 @@ import javax.inject.Inject
 class GetListingsUseCase @Inject constructor(
     private val repository: HarvestListingRepository
 ) {
+    suspend fun syncListings(): Result<Unit> = repository.syncListings()
+
     /** Returns all available (OPEN) listings for the supplier marketplace. */
     fun getOpenListings(): Flow<Result<List<HarvestListing>>> =
         repository.getListingsByStatus(ListingStatus.OPEN)

@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.remote.NetworkConnectivityMonitor
 import com.agroroute.core.util.Result
 import com.agroroute.core.usecase.GetListingsUseCase
+import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -15,6 +17,7 @@ import javax.inject.Inject
 data class ListingUiState(
     val listings: List<HarvestListing> = emptyList(),
     val drafts: List<HarvestListing> = emptyList(),
+    val farmerName: String = "",
     val pendingBiddingListingIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -35,12 +38,30 @@ class ListingViewModel @Inject constructor(
     private val toggleBiddingModeUseCase: ToggleBiddingModeUseCase,
     private val scheduleHarvestReminderUseCase: ScheduleHarvestReminderUseCase,
     private val closeListingUseCase: CloseListingUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    networkConnectivityMonitor: NetworkConnectivityMonitor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListingUiState())
     val uiState: StateFlow<ListingUiState> = _uiState.asStateFlow()
     val currentFarmerId: String get() = authRepository.currentUserId.orEmpty()
+
+    init {
+        networkConnectivityMonitor.isOnline
+            .drop(1)
+            .filter { it }
+            .onEach {
+                if (currentFarmerId.isNotBlank()) getListingsUseCase.syncListings()
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun loadCurrentFarmerName() {
+        viewModelScope.launch {
+            val name = authRepository.getCurrentUserProfile().first().getOrNull()?.displayName.orEmpty()
+            _uiState.update { it.copy(farmerName = name) }
+        }
+    }
 
     /** Loads listings for [farmerId] and observes future changes. */
     fun loadFarmerListings(farmerId: String) {
@@ -53,6 +74,12 @@ class ListingViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+        viewModelScope.launch {
+            when (val result = getListingsUseCase.syncListings()) {
+                is Result.Error -> _uiState.update { it.copy(error = result.message) }
+                else -> Unit
+            }
+        }
     }
 
     fun loadFarmerDrafts(farmerId: String) {

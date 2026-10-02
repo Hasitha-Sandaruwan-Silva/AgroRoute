@@ -45,7 +45,7 @@ fun SupplierHomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        orderViewModel.loadOrdersForSupplier("current_supplier_id")
+        orderViewModel.loadOrdersForSupplier(orderViewModel.currentSupplierId)
     }
 
     ErrorSnackbarEffect(marketState.error, snackbarHostState) { /* auto-clears on next emission */ }

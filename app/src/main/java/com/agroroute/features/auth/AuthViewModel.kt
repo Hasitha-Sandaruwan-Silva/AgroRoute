@@ -4,33 +4,83 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AuthUiState(
     val isLoading: Boolean = false,
     val user: UserProfile? = null,
+    val sessionResolved: Boolean = false,
     val error: String? = null
 )
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
-    private val registerUseCase: RegisterUseCase
+    private val registerUseCase: RegisterUseCase,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun login(email: String, password: String) {
+    init {
+        authRepository.getCurrentUserProfile()
+            .onEach { result ->
+                when (result) {
+                    is Result.Success -> _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            sessionResolved = authRepository.currentUserId == null || result.data != null,
+                            user = result.data
+                        )
+                    }
+                    is Result.Error -> _uiState.update { it.copy(error = result.message) }
+                    Result.Loading -> Unit
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun restoreSession() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = authRepository.restoreSession()) {
+                is Result.Success -> _uiState.update { it.copy(isLoading = false, sessionResolved = true, user = result.data) }
+                is Result.Error -> _uiState.update {
+                    it.copy(isLoading = false, sessionResolved = true, user = null, error = result.message)
+                }
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun logout(onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = authRepository.logout()) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(isLoading = false, sessionResolved = true, user = null) }
+                    onSuccess()
+                }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun login(email: String, password: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, sessionResolved = false, error = null) }
             when (val result = loginUseCase(email, password)) {
                 is Result.Success -> _uiState.update { it.copy(isLoading = false, user = result.data) }
                 is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = result.message) }
@@ -46,7 +96,7 @@ class AuthViewModel @Inject constructor(
         role: UserRole
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, sessionResolved = false, error = null) }
             when (val result = registerUseCase(email, password, displayName, role)) {
                 is Result.Success -> _uiState.update { it.copy(isLoading = false, user = result.data) }
                 is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = result.message) }

@@ -93,8 +93,8 @@ fun LoginScreen(
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
     // Pre-filled Email & Password
-    var email by remember { mutableStateOf("fam@gmail.com") }
-    var password by remember { mutableStateOf("fam123") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
     Scaffold(
         snackbarHost = { AgroSnackbarHost(snackbarHostState) },

@@ -23,6 +23,8 @@ class PlaceBidUseCase @Inject constructor(
         if (bid.offerPrice <= 0) return Result.Error("Offer price must be greater than zero")
         if (bid.supplierId.isBlank()) return Result.Error("Supplier ID is required")
         if (bid.listingId.isBlank()) return Result.Error("Listing ID is required")
+        val supplierId = authRepository.currentUserId
+            ?: return Result.Error("Sign in as a Supplier to place bids")
 
         val profileResult = authRepository.getCurrentUserProfile().first()
         val currentRole = when (profileResult) {
@@ -30,7 +32,8 @@ class PlaceBidUseCase @Inject constructor(
             is Result.Error -> return profileResult
             Result.Loading -> null
         }
-        if (currentRole != UserRole.SUPPLIER) {
+        val profile = profileResult.getOrNull()
+        if (currentRole != UserRole.SUPPLIER || profile?.userId != supplierId || bid.supplierId != supplierId) {
             return Result.Error("Only Suppliers can place bids")
         }
 

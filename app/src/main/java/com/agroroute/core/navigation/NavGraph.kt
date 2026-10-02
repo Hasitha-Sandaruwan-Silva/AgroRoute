@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,9 +18,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.navArgument
 import com.agroroute.features.auth.LoginScreen
 import com.agroroute.features.auth.RegisterScreen
+import com.agroroute.features.auth.AuthViewModel
 import com.agroroute.features.welcome.WelcomeScreen
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.util.Constants
@@ -49,14 +53,49 @@ private val authRoutes = setOf(
     Screen.Register.route
 )
 
+internal fun roleHomeDestination(role: UserRole?): String? = when (role) {
+    UserRole.FARMER -> Screen.FarmerHome.route
+    UserRole.SUPPLIER -> Screen.SupplierHome.route
+    null -> null
+}
+
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController()
 ) {
     var currentUserRole by remember { mutableStateOf<UserRole?>(null) }
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    LaunchedEffect(Unit) {
+        authViewModel.restoreSession()
+    }
+
+    LaunchedEffect(authState.user?.role, authState.sessionResolved, currentUserRole, currentRoute) {
+        if (authState.sessionResolved) currentUserRole = authState.user?.role
+        val role = if (authState.sessionResolved) authState.user?.role else currentUserRole
+        val destination = roleHomeDestination(role)
+        when {
+            destination != null && currentRoute == Screen.Welcome.route -> {
+                navController.navigate(destination) {
+                    popUpTo(Screen.Welcome.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+            destination != null && role == UserRole.FARMER && currentRoute in supplierRoutes -> {
+                navController.navigate(destination) { popUpTo(0) { inclusive = true } }
+            }
+            destination != null && role == UserRole.SUPPLIER && currentRoute in farmerRoutes -> {
+                navController.navigate(destination) { popUpTo(0) { inclusive = true } }
+            }
+            authState.sessionResolved && destination == null && currentRoute !in authRoutes -> {
+                navController.navigate(Screen.Welcome.route) { popUpTo(0) { inclusive = true } }
+            }
+        }
+    }
 
     val hostContent: @Composable (PaddingValues) -> Unit = { paddingValues ->
         Surface(

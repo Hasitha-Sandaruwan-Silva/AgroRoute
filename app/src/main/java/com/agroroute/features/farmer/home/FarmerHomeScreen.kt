@@ -86,7 +86,7 @@ fun FarmerHomeScreen(
     // ✅ LOGIC EXACTLY UNCHANGED
     LaunchedEffect(Unit) {
         listingViewModel.loadFarmerListings(listingViewModel.currentFarmerId)
-        orderViewModel.loadOrdersForFarmer("current_farmer_id")
+        orderViewModel.loadOrdersForFarmer(orderViewModel.currentFarmerId)
     }
 
     ErrorSnackbarEffect(listingState.error, snackbarHostState) { listingViewModel.clearError() }

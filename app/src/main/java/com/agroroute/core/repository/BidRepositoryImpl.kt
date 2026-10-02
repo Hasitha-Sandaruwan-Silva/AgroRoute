@@ -47,8 +47,11 @@ class BidRepositoryImpl @Inject constructor(
             .catch { e -> emit(Result.Error(e.message ?: "Failed to load bid", e)) }
 
     override suspend fun placeBid(bid: Bid): Result<Unit> = safeCall {
-        val role = authRepository.getCurrentUserProfile().first().getOrNull()?.role
-        check(role == UserRole.SUPPLIER) { "Only Suppliers can place bids" }
+        val supplierId = authRepository.currentUserId ?: error("Sign in as a Supplier to place bids")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.SUPPLIER && profile.userId == supplierId && bid.supplierId == supplierId) {
+            "Only the signed-in Supplier can place bids"
+        }
         val pendingBid = bid.copy(status = BidStatus.PENDING)
 
         val firestore = firestoreService.firestore
@@ -64,10 +67,36 @@ class BidRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateBidStatus(bidId: String, status: BidStatus): Result<Unit> = safeCall {
-        val existing = firestoreService.getOnce<Bid>(Constants.COLLECTION_BIDS, bidId)
-            ?: error("Bid $bidId not found")
-        val updated = existing.copy(status = status, updatedAt = System.currentTimeMillis())
-        firestoreService.set(Constants.COLLECTION_BIDS, bidId, updated)
+        val userId = authRepository.currentUserId ?: error("Sign in to respond to bids")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+            ?: error("Account profile is unavailable")
+        check(profile.userId == userId) { "Account profile does not match the signed-in user" }
+        val firestore = firestoreService.firestore
+        val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(bidId)
+        val updated = firestoreService.runTransaction { transaction ->
+            val existing = transaction.get(bidRef).toObject(Bid::class.java)
+                ?: error("Bid $bidId not found")
+            check(existing.status == BidStatus.PENDING) { "Only pending bids can change status" }
+            when (status) {
+                BidStatus.REJECTED -> {
+                    check(profile.role == UserRole.FARMER) { "Only Farmers can reject incoming bids" }
+                    val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS)
+                        .document(existing.listingId)
+                    val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
+                        ?: error("Listing not found")
+                    check(listing.farmerId == userId) { "Only the listing's Farmer can reject this bid" }
+                }
+                BidStatus.WITHDRAWN -> {
+                    check(profile.role == UserRole.SUPPLIER && existing.supplierId == userId) {
+                        "Only the Supplier who placed this bid can withdraw it"
+                    }
+                }
+                else -> error("This bid status transition is not supported")
+            }
+            existing.copy(status = status, updatedAt = System.currentTimeMillis()).also {
+                transaction.set(bidRef, it)
+            }
+        }
         dao.upsertBid(updated)
     }
 

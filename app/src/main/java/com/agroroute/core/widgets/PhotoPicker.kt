@@ -12,6 +12,7 @@ import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,9 +30,20 @@ fun PhotoPicker(
     onImageSelected: (Uri) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> uri?.let(onImageSelected) }
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            onImageSelected(it)
+        }
+    }
 
     Box(
         modifier = modifier
@@ -42,7 +54,7 @@ fun PhotoPicker(
                 color = MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(12.dp)
             )
-            .clickable { launcher.launch("image/*") },
+            .clickable { launcher.launch(arrayOf("image/*")) },
         contentAlignment = Alignment.Center
     ) {
         if (selectedUri != null) {

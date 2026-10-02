@@ -1,0 +1,42 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userProfile() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isFarmer(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && userProfile().userId == userId
+        && userProfile().role == 'FARMER';
+    }
+
+    function listingData(listingId) {
+      return firestore.get(/databases/(default)/documents/listings/$(listingId)).data;
+    }
+
+    match /listing_images/{farmerId}/{listingId}/photo {
+      allow read: if isFarmer(farmerId)
+        || (signedIn()
+          && userProfile().role == 'SUPPLIER'
+          && listingData(listingId).farmerId == farmerId
+          && listingData(listingId).get('isDraft', false) == false
+          && listingData(listingId).status == 'OPEN');
+
+      allow create, update: if isFarmer(farmerId)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      allow delete: if isFarmer(farmerId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

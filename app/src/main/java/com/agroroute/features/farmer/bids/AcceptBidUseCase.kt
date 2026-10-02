@@ -12,7 +12,6 @@ import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.util.Result
 import com.agroroute.core.repository.OrderRepository
 import com.agroroute.core.repository.HarvestListingRepository
-import java.util.UUID
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
@@ -60,7 +59,7 @@ class AcceptBidUseCase @Inject constructor(
         }
 
         val order = Order(
-            orderId      = UUID.randomUUID().toString(),
+            orderId      = bid.bidId,
             listingId    = currentListing.listingId,
             bidId        = bid.bidId,
             farmerId     = currentListing.farmerId,

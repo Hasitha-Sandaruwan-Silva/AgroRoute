@@ -3,10 +3,12 @@ package com.agroroute.features.supplier.marketplace
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.remote.NetworkConnectivityMonitor
 import com.agroroute.core.util.Result
 import com.agroroute.core.usecase.GetListingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** UI state for the supplier marketplace screen. */
@@ -21,8 +23,15 @@ data class MarketplaceUiState(
  */
 @HiltViewModel
 class MarketplaceViewModel @Inject constructor(
-    private val getListingsUseCase: GetListingsUseCase
+    private val getListingsUseCase: GetListingsUseCase,
+    networkConnectivityMonitor: NetworkConnectivityMonitor
 ) : ViewModel() {
+
+    init {
+        networkConnectivityMonitor.isOnline
+            .onEach { online -> if (online) getListingsUseCase.syncListings() }
+            .launchIn(viewModelScope)
+    }
 
     val uiState: StateFlow<MarketplaceUiState> =
         getListingsUseCase.getOpenListings()

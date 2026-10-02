@@ -11,6 +11,8 @@ interface AuthRepository {
 
     fun getCurrentUserProfile(): Flow<Result<UserProfile?>>
 
+    suspend fun restoreSession(): Result<UserProfile?>
+
     suspend fun login(email: String, password: String): Result<UserProfile>
 
     suspend fun register(

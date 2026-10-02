@@ -7,6 +7,8 @@ import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.usecase.GetOrdersUseCase
 import com.agroroute.core.repository.OrderRepository
+import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.remote.NetworkConnectivityMonitor
 import com.agroroute.core.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -30,18 +32,38 @@ data class FarmerOrderUiState(
 class FarmerOrderViewModel @Inject constructor(
     private val getOrdersUseCase: GetOrdersUseCase,
     private val orderRepository: OrderRepository,
-    private val bidRepository: BidRepository
+    private val bidRepository: BidRepository,
+    private val authRepository: AuthRepository,
+    networkConnectivityMonitor: NetworkConnectivityMonitor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FarmerOrderUiState())
     val uiState: StateFlow<FarmerOrderUiState> = _uiState.asStateFlow()
+    val currentFarmerId: String get() = authRepository.currentUserId.orEmpty()
+
+    init {
+        networkConnectivityMonitor.isOnline
+            .drop(1)
+            .filter { it }
+            .onEach {
+                if (currentFarmerId.isNotBlank()) orderRepository.syncOrders(currentFarmerId)
+            }
+            .launchIn(viewModelScope)
+    }
 
     fun loadOrderById(orderId: String) {
         getOrdersUseCase.byId(orderId)
             .onEach { result ->
                 when (result) {
                     is Result.Loading -> _uiState.update { it.copy(isLoading = true) }
-                    is Result.Success -> _uiState.update { it.copy(isLoading = false, selectedOrder = result.data) }
+                    is Result.Success -> {
+                        val order = result.data
+                        if (order?.farmerId == currentFarmerId) {
+                            _uiState.update { it.copy(isLoading = false, selectedOrder = order) }
+                        } else {
+                            _uiState.update { it.copy(isLoading = false, selectedOrder = null, error = "Order not found") }
+                        }
+                    }
                     is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = result.message) }
                 }
             }
@@ -49,6 +71,12 @@ class FarmerOrderViewModel @Inject constructor(
     }
 
     fun loadOrdersForFarmer(farmerId: String) {
+        viewModelScope.launch {
+            when (val sync = orderRepository.syncOrders(farmerId)) {
+                is Result.Error -> _uiState.update { it.copy(error = sync.message) }
+                else -> Unit
+            }
+        }
         getOrdersUseCase.forFarmer(farmerId)
             .onEach { result ->
                 when (result) {

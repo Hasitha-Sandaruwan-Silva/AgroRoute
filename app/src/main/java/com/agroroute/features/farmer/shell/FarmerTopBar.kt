@@ -2,6 +2,7 @@ package com.agroroute.features.farmer.shell
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -68,8 +70,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
+import com.agroroute.features.auth.AuthViewModel
 
 // Premium Fresh Green Theme Palette
 private val PrimaryGreen = Color(0xFF2E7D32)
@@ -97,6 +101,8 @@ fun FarmerTopBar(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val isTab = currentRoute in farmerTabRoutes
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
@@ -352,8 +358,10 @@ fun FarmerTopBar(
                                 },
                                 onClick = {
                                     showAvatarMenu = false
-                                    navController.navigate(Screen.Login.route) {
-                                        popUpTo(0) { inclusive = true }
+                                    authViewModel.logout {
+                                        navController.navigate(Screen.Welcome.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
                                     }
                                 }
                             )
@@ -364,6 +372,19 @@ fun FarmerTopBar(
 
             HorizontalDivider(color = BorderColor.copy(alpha = 0.5f), thickness = 0.8.dp)
         }
+    }
+
+    authState.error?.let { error ->
+        AlertDialog(
+            onDismissRequest = authViewModel::clearError,
+            title = { Text("Could not sign out") },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(onClick = authViewModel::clearError) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     // ─── Notification Bottom Sheet ───

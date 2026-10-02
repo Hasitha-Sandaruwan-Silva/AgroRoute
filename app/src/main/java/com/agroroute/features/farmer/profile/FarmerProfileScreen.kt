@@ -40,8 +40,8 @@ fun FarmerProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val user = uiState.user
-    val displayName = user?.displayName ?: "Farmer User"
-    val email = user?.email ?: "farmer@agroroute.lk"
+    val displayName = user?.displayName?.takeIf(String::isNotBlank) ?: "Profile unavailable"
+    val email = user?.email.orEmpty()
     val role = user?.role ?: userRole ?: UserRole.FARMER
     val initials = displayName.split(" ")
         .mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
@@ -83,6 +83,9 @@ fun FarmerProfileScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
+            uiState.error?.let { error ->
+                Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+            }
             Spacer(Modifier.height(12.dp))
             RoleBadge(role = role)
             Spacer(Modifier.height(24.dp))
@@ -103,8 +106,10 @@ fun FarmerProfileScreen(
             Spacer(Modifier.height(24.dp))
             OutlinedButton(
                 onClick = {
-                    navController.navigate(Screen.Welcome.route) {
-                        popUpTo(0) { inclusive = true }
+                    viewModel.logout {
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 },
                 modifier = Modifier

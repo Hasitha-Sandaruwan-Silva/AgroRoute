@@ -92,6 +92,7 @@ fun PlaceBidScreen(
 
     var bidAmount by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
+    val submissionBidId = remember(listingId) { UUID.randomUUID().toString() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -145,10 +146,10 @@ fun PlaceBidScreen(
                     isLoading = uiState.isLoading,
                     onClick = {
                         val bid = Bid(
-                            bidId = UUID.randomUUID().toString(),
+                            bidId = submissionBidId,
                             listingId = listingId,
-                            supplierId = "current_supplier_id", // TODO: Get from auth context
-                            supplierName = "Current Supplier", // TODO: Get from auth context
+                            supplierId = uiState.supplierId,
+                            supplierName = uiState.supplierName,
                             offerPrice = bidAmount.toDoubleOrNull() ?: 0.0,
                             message = message
                         )
@@ -237,7 +238,9 @@ private fun ListingSummaryCard(listing: HarvestListing) {
 data class BiddingUiState(
     val isLoading: Boolean = false,
     val bidPlaced: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val supplierId: String = "",
+    val supplierName: String = ""
 )
 
 /**
@@ -247,7 +250,7 @@ data class BiddingUiState(
 class PlaceBidViewModel @Inject constructor(
     private val placeBidUseCase: PlaceBidUseCase,
     private val listingRepository: HarvestListingRepository,
-    authRepository: AuthRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BiddingUiState())
@@ -262,7 +265,17 @@ class PlaceBidViewModel @Inject constructor(
     init {
         authRepository.getCurrentUserProfile()
             .onEach { result ->
-                _canPlaceBids.value = result.getOrNull()?.role == UserRole.SUPPLIER
+                val profile = result.getOrNull()
+                _canPlaceBids.value = profile?.role == UserRole.SUPPLIER &&
+                    profile.userId == authRepository.currentUserId
+                if (_canPlaceBids.value) {
+                    _uiState.update {
+                        it.copy(
+                            supplierId = profile?.userId.orEmpty(),
+                            supplierName = profile?.displayName.orEmpty()
+                        )
+                    }
+                }
             }
             .launchIn(viewModelScope)
     }

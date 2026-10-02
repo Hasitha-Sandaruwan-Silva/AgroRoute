@@ -1,7 +1,12 @@
 package com.agroroute.core.remote
 
 import android.net.Uri
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
+import com.agroroute.core.repository.ListingPhotoStorage
+import com.agroroute.core.repository.listingPhotoStoragePath
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,8 +16,15 @@ import javax.inject.Singleton
  */
 @Singleton
 class StorageService @Inject constructor(
-    private val storage: FirebaseStorage
-) {
+    private val storage: FirebaseStorage,
+    @ApplicationContext private val context: Context
+) : ListingPhotoStorage {
+
+    override suspend fun uploadListingPhoto(
+        localUri: String,
+        farmerId: String,
+        listingId: String
+    ): String = uploadImage(Uri.parse(localUri), listingPhotoStoragePath(farmerId, listingId))
 
     /**
      * Uploads the file at [localUri] to the given [storagePath].
@@ -23,7 +35,11 @@ class StorageService @Inject constructor(
      */
     suspend fun uploadImage(localUri: Uri, storagePath: String): String {
         val ref = storage.reference.child(storagePath)
-        ref.putFile(localUri).await()
+        val contentType = context.contentResolver.getType(localUri)
+            ?.takeIf { it.startsWith("image/") }
+            ?: error("Unable to determine the selected image type")
+        val metadata = StorageMetadata.Builder().setContentType(contentType).build()
+        ref.putFile(localUri, metadata).await()
         return ref.downloadUrl.await().toString()
     }
 

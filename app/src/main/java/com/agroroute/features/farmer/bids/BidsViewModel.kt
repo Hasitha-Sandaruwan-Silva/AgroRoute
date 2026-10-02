@@ -9,8 +9,10 @@ import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.util.Result
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.repository.BidRepository
+import com.agroroute.core.remote.NetworkConnectivityMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -38,12 +40,32 @@ class BidsViewModel @Inject constructor(
     private val listingRepository: HarvestListingRepository,
     private val acceptBidUseCase: AcceptBidUseCase,
     private val rejectBidUseCase: RejectBidUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    networkConnectivityMonitor: NetworkConnectivityMonitor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BidsUiState())
     val uiState: StateFlow<BidsUiState> = _uiState.asStateFlow()
     val currentFarmerId: String get() = authRepository.currentUserId.orEmpty()
+    private var farmerBidsJob: Job? = null
+    private var farmerInboxLoaded = false
+
+    init {
+        networkConnectivityMonitor.isOnline
+            .drop(1)
+            .filter { it }
+            .onEach {
+                if (farmerInboxLoaded) {
+                    loadFarmerBids()
+                } else {
+                    val listingId = _uiState.value.listing?.listingId
+                    if (listingId != null && verifiedFarmerId() != null) {
+                        bidRepository.syncBidsForListing(listingId)
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+    }
 
     /** Loads a listing's bids only after verifying it belongs to the signed-in Farmer. */
     fun loadBids(listingId: String) {
@@ -93,7 +115,9 @@ class BidsViewModel @Inject constructor(
 
     /** Loads and synchronizes bids for every published listing owned by the signed-in Farmer. */
     fun loadFarmerBids() {
-        viewModelScope.launch {
+        farmerInboxLoaded = true
+        farmerBidsJob?.cancel()
+        farmerBidsJob = viewModelScope.launch {
             val farmerId = verifiedFarmerId()
             if (farmerId == null) {
                 _uiState.update { it.copy(isLoading = false, error = "Sign in as a Farmer to view bids") }

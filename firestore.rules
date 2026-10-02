@@ -1,0 +1,189 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userProfilePath(userId) {
+      return /databases/$(database)/documents/users/$(userId);
+    }
+
+    function hasRole(role) {
+      return signedIn()
+        && exists(userProfilePath(request.auth.uid))
+        && get(userProfilePath(request.auth.uid)).data.userId == request.auth.uid
+        && get(userProfilePath(request.auth.uid)).data.role == role;
+    }
+
+    function farmer() {
+      return hasRole('FARMER');
+    }
+
+    function supplier() {
+      return hasRole('SUPPLIER');
+    }
+
+    function listingPath(listingId) {
+      return /databases/$(database)/documents/listings/$(listingId);
+    }
+
+    function ownsListing(listingId) {
+      return farmer()
+        && exists(listingPath(listingId))
+        && get(listingPath(listingId)).data.farmerId == request.auth.uid
+        && get(listingPath(listingId)).data.get('isDraft', false) == false;
+    }
+
+    function publishedListing(data) {
+      return data.get('isDraft', false) == false;
+    }
+
+    function availableStock(data) {
+      let savedStock = data.get('availableQuantity', null);
+      return savedStock is number
+        ? savedStock
+        : data.quantity - data.get('soldQuantity', 0);
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.role in ['FARMER', 'SUPPLIER'];
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && resource.data.userId == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'email', 'phone', 'profileImageUrl', 'location'
+        ]);
+      allow delete: if false;
+    }
+
+    match /listings/{listingId} {
+      allow get, list: if signedIn() && (
+        (farmer() && resource.data.farmerId == request.auth.uid)
+        || (supplier() && publishedListing(resource.data) && resource.data.status == 'OPEN')
+      );
+
+      allow create: if farmer()
+        && request.resource.data.listingId == listingId
+        && request.resource.data.farmerId == request.auth.uid
+        && request.resource.data.status == 'OPEN'
+        && request.resource.data.get('isDraft', false) == false
+        && request.resource.data.biddingEnabled == true
+        && availableStock(request.resource.data) > 0;
+
+      allow update: if farmer()
+        && resource.data.farmerId == request.auth.uid
+        && request.resource.data.farmerId == request.auth.uid
+        && request.resource.data.listingId == listingId
+        && request.resource.data.get('isDraft', false) == false
+        && (request.resource.data.get('biddingEnabled', false) == false
+          || (request.resource.data.status == 'OPEN'
+            && availableStock(request.resource.data) > 0))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'description', 'quantity', 'quantityUnit', 'reservePrice', 'imageUrls',
+          'location', 'status', 'biddingEnabled', 'category', 'expectedHarvestAt',
+          'qualityGrade', 'availableQuantity', 'soldQuantity', 'expiresAt'
+        ]);
+
+      allow delete: if farmer() && resource.data.farmerId == request.auth.uid;
+    }
+
+    match /bids/{bidId} {
+      allow get, list: if signedIn() && (
+        (supplier() && resource.data.supplierId == request.auth.uid)
+        || ownsListing(resource.data.listingId)
+      );
+
+      allow create: if supplier()
+        && request.resource.data.supplierId == request.auth.uid
+        && request.resource.data.status == 'PENDING'
+        && request.resource.data.bidId == bidId
+        && exists(listingPath(request.resource.data.listingId))
+        && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
+        && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
+        && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && availableStock(get(listingPath(request.resource.data.listingId)).data) > 0;
+
+      allow update: if signedIn()
+        && resource.data.status == 'PENDING'
+        && request.resource.data.bidId == resource.data.bidId
+        && request.resource.data.listingId == resource.data.listingId
+        && request.resource.data.supplierId == resource.data.supplierId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && (
+          (farmer()
+            && ownsListing(resource.data.listingId)
+            && request.resource.data.status == 'REJECTED')
+          || (supplier()
+            && resource.data.supplierId == request.auth.uid
+            && request.resource.data.status == 'WITHDRAWN')
+          || (farmer()
+            && ownsListing(resource.data.listingId)
+            && request.resource.data.status == 'ACCEPTED'
+            && existsAfter(/databases/$(database)/documents/orders/$(bidId))
+            && getAfter(/databases/$(database)/documents/orders/$(bidId)).data.bidId == bidId
+            && getAfter(/databases/$(database)/documents/orders/$(bidId)).data.listingId == resource.data.listingId)
+        );
+
+      allow delete: if false;
+    }
+
+    match /orders/{orderId} {
+      allow get, list: if signedIn()
+        && ((farmer() && resource.data.farmerId == request.auth.uid)
+          || (supplier() && resource.data.supplierId == request.auth.uid));
+
+      allow create: if farmer()
+        && request.resource.data.orderId == orderId
+        && request.resource.data.orderId == request.resource.data.bidId
+        && request.resource.data.farmerId == request.auth.uid
+        && request.resource.data.status == 'AWAITING_PICKUP'
+        && exists(/databases/$(database)/documents/bids/$(request.resource.data.bidId))
+        && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'PENDING'
+        && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.supplierId == request.resource.data.supplierId
+        && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.listingId == request.resource.data.listingId
+        && exists(listingPath(request.resource.data.listingId))
+        && get(listingPath(request.resource.data.listingId)).data.farmerId == request.auth.uid
+        && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
+        && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
+        && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && request.resource.data.quantity == availableStock(get(listingPath(request.resource.data.listingId)).data)
+        && request.resource.data.agreedPrice == get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.offerPrice
+        && getAfter(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'ACCEPTED'
+        && getAfter(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.soldQuantity
+          == get(listingPath(request.resource.data.listingId)).data.get('soldQuantity', 0)
+            + request.resource.data.quantity
+        && availableStock(getAfter(listingPath(request.resource.data.listingId)).data)
+          == availableStock(get(listingPath(request.resource.data.listingId)).data)
+            - request.resource.data.quantity
+        && request.resource.data.quantity > 0;
+
+      allow update: if signedIn()
+        && ((farmer() && resource.data.farmerId == request.auth.uid)
+          || (supplier() && resource.data.supplierId == request.auth.uid))
+        && request.resource.data.orderId == resource.data.orderId
+        && request.resource.data.bidId == resource.data.bidId
+        && request.resource.data.listingId == resource.data.listingId
+        && request.resource.data.farmerId == resource.data.farmerId
+        && request.resource.data.supplierId == resource.data.supplierId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && (
+          request.resource.data.status == resource.data.status
+          || (resource.data.status == 'AWAITING_PICKUP'
+            && request.resource.data.status in ['IN_TRANSIT', 'CANCELLED'])
+          || (resource.data.status == 'IN_TRANSIT'
+            && request.resource.data.status in ['DELIVERED', 'CANCELLED'])
+          || (resource.data.status == 'DELIVERED' && request.resource.data.status == 'CANCELLED')
+        );
+
+      allow delete: if false;
+    }
+  }
+}

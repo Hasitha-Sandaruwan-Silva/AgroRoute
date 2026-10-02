@@ -116,6 +116,7 @@ fun CreateListingScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadFarmerDrafts(viewModel.currentFarmerId)
+        viewModel.loadCurrentFarmerName()
     }
     LaunchedEffect(uiState.draftSaved) {
         if (uiState.draftSaved) {
@@ -162,7 +163,7 @@ fun CreateListingScreen(
         return HarvestListing(
             listingId = listingId,
             farmerId = viewModel.currentFarmerId,
-            farmerName = "Current Farmer",
+            farmerName = uiState.farmerName,
             cropName = cropName,
             description = description,
             quantity = parsedQuantity,

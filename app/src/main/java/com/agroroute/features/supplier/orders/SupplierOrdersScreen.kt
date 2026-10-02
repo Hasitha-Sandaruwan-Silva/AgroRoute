@@ -50,9 +50,8 @@ fun SupplierOrdersScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Load orders for the current user (placeholder ID for now)
     LaunchedEffect(Unit) {
-        viewModel.loadOrdersForSupplier("current_supplier_id") // TODO: Get from auth context
+        viewModel.loadOrdersForSupplier(viewModel.currentSupplierId)
     }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }

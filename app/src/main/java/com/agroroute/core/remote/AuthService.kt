@@ -2,6 +2,9 @@ package com.agroroute.core.remote
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,6 +25,14 @@ class AuthService @Inject constructor(
 
     /** Returns true if a user is currently authenticated. */
     val isLoggedIn: Boolean get() = auth.currentUser != null
+
+    fun authStateChanges(): Flow<String?> = callbackFlow {
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            trySend(firebaseAuth.currentUser?.uid)
+        }
+        auth.addAuthStateListener(listener)
+        awaitClose { auth.removeAuthStateListener(listener) }
+    }
 
     /**
      * Signs in with email and password. Returns the [FirebaseUser] on success.

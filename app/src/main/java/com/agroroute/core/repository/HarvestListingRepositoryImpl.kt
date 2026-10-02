@@ -62,15 +62,34 @@ class HarvestListingRepositoryImpl @Inject constructor(
     // ── Write operations (Firestore first, then Room mirror) ───────────────────
 
     override suspend fun saveListing(listing: HarvestListing): Result<Unit> = safeCall {
+        val farmerId = authRepository.currentUserId ?: error("Sign in to publish listings")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == farmerId && listing.farmerId == farmerId) {
+            "Only the signed-in Farmer can publish this listing"
+        }
+        check(!listing.isDraft) { "Draft listings must remain in local storage" }
         firestoreService.set(Constants.COLLECTION_LISTINGS, listing.listingId, listing)
         dao.upsertListing(listing) // Mirror to Room on Firestore success
     }
 
     override suspend fun saveDraft(listing: HarvestListing): Result<Unit> = safeCall {
+        val farmerId = authRepository.currentUserId ?: error("Sign in to save a listing draft")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == farmerId && listing.farmerId == farmerId) {
+            "Only the signed-in Farmer can save this draft"
+        }
         dao.upsertListing(listing.copy(isDraft = true))
     }
 
     override suspend fun deleteListing(listingId: String): Result<Unit> = safeCall {
+        val farmerId = authRepository.currentUserId ?: error("Sign in to delete listings")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == farmerId) {
+            "Only Farmers can delete listings"
+        }
+        val listing = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
+            ?: error("Listing not found")
+        check(listing.farmerId == farmerId) { "You cannot delete another Farmer's listing" }
         firestoreService.delete(Constants.COLLECTION_LISTINGS, listingId)
         dao.deleteListing(listingId)
     }
@@ -78,12 +97,24 @@ class HarvestListingRepositoryImpl @Inject constructor(
     // ── Sync (Firestore → Room cache refresh) ──────────────────────────────────
 
     override suspend fun syncListings(): Result<Unit> = safeCall {
-        val remote = firestoreService.collectionFlow<HarvestListing>(Constants.COLLECTION_LISTINGS)
-        // Collect one snapshot, write to Room, then done.
-        // For a production app, consider a permanent listener instead.
-        remote.first().let { listings ->
-            dao.upsertListings(listings)
+        val userId = authRepository.currentUserId ?: error("Sign in to sync listings")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+            ?: error("Account profile is unavailable")
+        check(profile.userId == userId) { "Account profile does not match the signed-in user" }
+
+        val listings = when (profile.role) {
+            UserRole.FARMER -> firestoreService.queryFlow<HarvestListing>(
+                Constants.COLLECTION_LISTINGS,
+                "farmerId",
+                userId
+            ).first()
+            UserRole.SUPPLIER -> firestoreService.queryFlow<HarvestListing>(
+                Constants.COLLECTION_LISTINGS,
+                "status",
+                ListingStatus.OPEN.name
+            ).first().filterNot { it.isDraft }
         }
+        dao.upsertListings(listings)
     }
 
     override suspend fun toggleBiddingMode(listingId: String, enabled: Boolean): Result<Unit> = safeCall {

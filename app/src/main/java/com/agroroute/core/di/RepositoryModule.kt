@@ -6,6 +6,10 @@ import com.agroroute.core.repository.OrderRepository
 import com.agroroute.core.repository.OrderRepositoryImpl
 import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.repository.BidRepositoryImpl
+import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.repository.AuthRepositoryImpl
+import com.agroroute.core.repository.ListingPhotoStorage
+import com.agroroute.core.remote.StorageService
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -16,10 +20,13 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
-    // TODO: Restore for production when Firebase is ready
-    // @Binds
-    // @Singleton
-    // abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindListingPhotoStorage(impl: StorageService): ListingPhotoStorage
 
     @Binds
     @Singleton

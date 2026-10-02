@@ -83,7 +83,7 @@ fun FarmerOrdersScreen(
     val deliveredValue = deliveredOrders.sumOf { it.quantity * it.agreedPrice }
 
     LaunchedEffect(Unit) {
-        viewModel.loadOrdersForFarmer("current_farmer_id")
+        viewModel.loadOrdersForFarmer(viewModel.currentFarmerId)
     }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }

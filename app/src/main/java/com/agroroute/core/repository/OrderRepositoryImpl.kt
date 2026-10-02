@@ -11,6 +11,8 @@ import com.agroroute.core.model.recordSale
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
+import com.agroroute.core.model.UserRole
+import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.model.releaseSale
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -33,7 +35,8 @@ class OrderRepositoryImpl @Inject constructor(
     internal val dao: OrderDao,
     @PublishedApi internal val firestoreService: FirestoreService,
     private val bidDao: BidDao,
-    private val listingDao: HarvestListingDao
+    private val listingDao: HarvestListingDao,
+    private val authRepository: AuthRepository
 ) : OrderRepository {
 
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
@@ -57,6 +60,11 @@ class OrderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun acceptBidAndCreateOrder(order: Order): Result<Unit> = safeCall {
+        val userId = authRepository.currentUserId ?: error("Sign in as the listing's Farmer to accept a bid")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == userId && order.farmerId == userId) {
+            "Only the listing's Farmer can accept this bid"
+        }
         val firestore = firestoreService.firestore
         val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(order.listingId)
         val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(order.bidId)
@@ -94,11 +102,19 @@ class OrderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> = safeCall {
+        val userId = authRepository.currentUserId ?: error("Sign in to update this order")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+            ?: error("Account profile is unavailable")
+        check(profile.userId == userId) { "Account profile does not match the signed-in user" }
         if (status == OrderStatus.CANCELLED) {
             val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
             val updatedRecords = firestoreService.runTransaction<Pair<Order, HarvestListing?>> { transaction ->
                 val existing = transaction.get(orderRef).toObject(Order::class.java)
                     ?: error("Order $orderId not found")
+                check(
+                    (profile.role == UserRole.FARMER && existing.farmerId == userId) ||
+                        (profile.role == UserRole.SUPPLIER && existing.supplierId == userId)
+                ) { "Only an order participant can update this order" }
                 if (existing.status == OrderStatus.CANCELLED) return@runTransaction existing to null
 
                 val listingRef = firestoreService.firestore
@@ -117,6 +133,10 @@ class OrderRepositoryImpl @Inject constructor(
         } else {
             val existing = firestoreService.getOnce<Order>(Constants.COLLECTION_ORDERS, orderId)
                 ?: error("Order $orderId not found")
+            check(
+                (profile.role == UserRole.FARMER && existing.farmerId == userId) ||
+                    (profile.role == UserRole.SUPPLIER && existing.supplierId == userId)
+            ) { "Only an order participant can update this order" }
             val updated = existing.copy(status = status, updatedAt = System.currentTimeMillis())
             firestoreService.set(Constants.COLLECTION_ORDERS, orderId, updated)
             dao.upsertOrder(updated)
@@ -124,10 +144,19 @@ class OrderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncOrders(userId: String): Result<Unit> = safeCall {
-        // Fetch orders where user is farmer
-        val farmerOrders = firestoreService.queryFlow<Order>(Constants.COLLECTION_ORDERS, "farmerId", userId).first()
-        // Fetch orders where user is supplier
-        val supplierOrders = firestoreService.queryFlow<Order>(Constants.COLLECTION_ORDERS, "supplierId", userId).first()
-        dao.upsertOrders((farmerOrders + supplierOrders).distinctBy { it.orderId })
+        check(authRepository.currentUserId == userId) { "Cannot sync another account's orders" }
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+            ?: error("Account profile is unavailable")
+        check(profile.userId == userId) { "Account profile does not match the signed-in user" }
+        val ownerField = when (profile.role) {
+            UserRole.FARMER -> "farmerId"
+            UserRole.SUPPLIER -> "supplierId"
+        }
+        val orders = firestoreService.queryFlow<Order>(
+            Constants.COLLECTION_ORDERS,
+            ownerField,
+            userId
+        ).first()
+        dao.upsertOrders(orders.distinctBy { it.orderId })
     }
 }
