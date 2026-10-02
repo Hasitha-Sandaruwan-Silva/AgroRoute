@@ -15,6 +15,10 @@ interface AuthRepository {
 
     suspend fun login(email: String, password: String): Result<UserProfile>
 
+    suspend fun signInWithGoogle(idToken: String): Result<GoogleSignInOutcome>
+
+    suspend fun completeGoogleSignIn(role: UserRole): Result<UserProfile>
+
     suspend fun register(
         email: String,
         password: String,
@@ -26,3 +30,11 @@ interface AuthRepository {
 
     suspend fun updateProfile(profile: UserProfile): Result<Unit>
 }
+
+sealed interface GoogleSignInOutcome {
+    data class ProfileReady(val profile: UserProfile) : GoogleSignInOutcome
+    data object RoleRequired : GoogleSignInOutcome
+}
+
+internal fun googleSignInOutcome(profile: UserProfile?): GoogleSignInOutcome =
+    profile?.let(GoogleSignInOutcome::ProfileReady) ?: GoogleSignInOutcome.RoleRequired

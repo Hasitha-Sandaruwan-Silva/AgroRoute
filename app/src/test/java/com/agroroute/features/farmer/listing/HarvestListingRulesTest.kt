@@ -18,6 +18,7 @@ import com.agroroute.core.model.setBiddingEnabled
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.navigation.roleHomeDestination
 import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.repository.GoogleSignInOutcome
 import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.repository.ListingPhotoStorage
@@ -588,6 +589,12 @@ class HarvestListingRulesTest {
 
         override suspend fun login(email: String, password: String) =
             Result.Error("Not used") as Result<UserProfile>
+
+        override suspend fun signInWithGoogle(idToken: String): Result<GoogleSignInOutcome> =
+            Result.Error("Not used")
+
+        override suspend fun completeGoogleSignIn(role: UserRole): Result<UserProfile> =
+            Result.Error("Not used")
 
         override suspend fun register(
             email: String,

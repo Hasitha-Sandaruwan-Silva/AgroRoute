@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.navArgument
 import com.agroroute.features.auth.LoginScreen
 import com.agroroute.features.auth.RegisterScreen
+import com.agroroute.features.auth.GoogleRoleSelectionScreen
 import com.agroroute.features.auth.AuthViewModel
 import com.agroroute.features.welcome.WelcomeScreen
 import com.agroroute.core.model.UserRole
@@ -50,7 +51,8 @@ import com.agroroute.features.supplier.shell.supplierRoutes
 private val authRoutes = setOf(
     Screen.Welcome.route,
     Screen.Login.route,
-    Screen.Register.route
+    Screen.Register.route,
+    Screen.RoleSelection.route
 )
 
 internal fun roleHomeDestination(role: UserRole?): String? = when (role) {
@@ -115,7 +117,19 @@ fun NavGraph(
                 composable(Screen.Login.route) {
                     LoginScreen(
                         navController = navController,
-                        onLoginSuccess = { role -> currentUserRole = role }
+                        onLoginSuccess = { role -> currentUserRole = role },
+                        onGoogleRoleRequired = {
+                            navController.navigate(Screen.RoleSelection.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+
+                composable(Screen.RoleSelection.route) {
+                    GoogleRoleSelectionScreen(
+                        navController = navController,
+                        viewModel = authViewModel
                     )
                 }
 

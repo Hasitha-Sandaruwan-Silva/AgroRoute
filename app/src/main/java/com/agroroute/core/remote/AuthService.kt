@@ -2,6 +2,7 @@ package com.agroroute.core.remote
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -41,6 +42,13 @@ class AuthService @Inject constructor(
     suspend fun signIn(email: String, password: String): FirebaseUser {
         val result = auth.signInWithEmailAndPassword(email, password).await()
         return result.user ?: error("Sign-in succeeded but user is null")
+    }
+
+    /** Signs in using a Google ID token without retaining the token. */
+    suspend fun signInWithGoogle(idToken: String): FirebaseUser {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        val result = auth.signInWithCredential(credential).await()
+        return result.user ?: error("Google sign-in succeeded but user is null")
     }
 
     /**

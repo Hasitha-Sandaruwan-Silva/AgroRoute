@@ -65,6 +65,50 @@ class AuthRepositoryImpl @Inject constructor(
             restored ?: error("No account profile is associated with this sign-in (${firebaseUser.uid})")
         })
 
+    override suspend fun signInWithGoogle(idToken: String): Result<GoogleSignInOutcome> =
+        mapGoogleSignInFailure(safeCall {
+            val firebaseUser = authService.signInWithGoogle(idToken)
+            val snapshot = firestoreService.getDocumentOnce(Constants.COLLECTION_USERS, firebaseUser.uid)
+            val savedRole = snapshot.getString("role")?.let { roleName ->
+                runCatching { UserRole.valueOf(roleName) }.getOrNull()
+            }
+            val profile = if (snapshot.exists() && savedRole != null) {
+                val savedProfile = snapshot.toObject(UserProfile::class.java)
+                    ?.copy(userId = firebaseUser.uid, role = savedRole)
+                    ?: error("Could not read the saved account profile")
+                userProfileDao.upsertUserProfile(savedProfile)
+                savedProfile
+            } else {
+                null
+            }
+            googleSignInOutcome(profile)
+        })
+
+    override suspend fun completeGoogleSignIn(role: UserRole): Result<UserProfile> =
+        mapFirebaseFailure(safeCall {
+            val firebaseUser = authService.currentUser ?: error("Sign in with Google to continue")
+            val snapshot = firestoreService.getDocumentOnce(Constants.COLLECTION_USERS, firebaseUser.uid)
+            val savedRole = snapshot.getString("role")?.let { roleName ->
+                runCatching { UserRole.valueOf(roleName) }.getOrNull()
+            }
+            val profile = if (snapshot.exists()) {
+                val existing = snapshot.toObject(UserProfile::class.java)
+                    ?: error("Could not read the saved account profile")
+                existing.copy(userId = firebaseUser.uid, role = savedRole ?: role)
+            } else {
+                UserProfile(
+                    userId = firebaseUser.uid,
+                    displayName = firebaseUser.displayName.orEmpty(),
+                    email = firebaseUser.email.orEmpty(),
+                    role = role,
+                    profileImageUrl = firebaseUser.photoUrl?.toString()
+                )
+            }
+            firestoreService.set(Constants.COLLECTION_USERS, firebaseUser.uid, profile)
+            userProfileDao.upsertUserProfile(profile)
+            profile
+        })
+
     override suspend fun register(
         email: String,
         password: String,
@@ -102,6 +146,21 @@ class AuthRepositoryImpl @Inject constructor(
     private fun <T> mapFirebaseFailure(result: Result<T>): Result<T> = when (result) {
         is Result.Error -> Result.Error(result.cause?.toUserMessage() ?: result.message, result.cause)
         else -> result
+    }
+
+    private fun <T> mapGoogleSignInFailure(result: Result<T>): Result<T> = when (result) {
+        is Result.Error -> Result.Error(
+            result.cause?.toGoogleSignInMessage() ?: result.message,
+            result.cause
+        )
+        else -> result
+    }
+
+    private fun Throwable.toGoogleSignInMessage(): String = when ((this as? FirebaseAuthException)?.errorCode) {
+        "ERROR_INVALID_CREDENTIAL" -> "Google sign-in could not be verified. Please try again."
+        "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" ->
+            "An account already exists with a different sign-in method. Sign in with that method first."
+        else -> toUserMessage()
     }
 
     private fun Throwable.isNetworkFailure(): Boolean =

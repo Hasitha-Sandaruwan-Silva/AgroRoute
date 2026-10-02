@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.repository.GoogleSignInOutcome
 import com.agroroute.core.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,7 @@ import javax.inject.Inject
 data class AuthUiState(
     val isLoading: Boolean = false,
     val user: UserProfile? = null,
+    val requiresGoogleRole: Boolean = false,
     val sessionResolved: Boolean = false,
     val error: String? = null
 )
@@ -89,6 +91,39 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun signInWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, sessionResolved = false, error = null) }
+            when (val result = authRepository.signInWithGoogle(idToken)) {
+                is Result.Success -> when (val outcome = result.data) {
+                    is GoogleSignInOutcome.ProfileReady -> _uiState.update {
+                        it.copy(isLoading = false, sessionResolved = true, user = outcome.profile)
+                    }
+                    GoogleSignInOutcome.RoleRequired -> _uiState.update {
+                        it.copy(isLoading = false, requiresGoogleRole = true)
+                    }
+                }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun completeGoogleSignIn(role: UserRole) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = authRepository.completeGoogleSignIn(role)) {
+                is Result.Success -> _uiState.update {
+                    it.copy(isLoading = false, sessionResolved = true, user = result.data)
+                }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun showError(message: String) = _uiState.update { it.copy(error = message) }
+
     fun register(
         email: String,
         password: String,
@@ -107,5 +142,5 @@ class AuthViewModel @Inject constructor(
 
     fun clearError() = _uiState.update { it.copy(error = null) }
 
-    fun consumeUser() = _uiState.update { it.copy(user = null) }
+    fun consumeUser() = _uiState.update { it.copy(user = null, requiresGoogleRole = false) }
 }

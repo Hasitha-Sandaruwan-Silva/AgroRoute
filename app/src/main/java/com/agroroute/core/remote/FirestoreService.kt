@@ -1,6 +1,7 @@
 package com.agroroute.core.remote
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.Transaction
 import kotlinx.coroutines.channels.awaitClose
@@ -96,4 +97,7 @@ class FirestoreService @Inject constructor(
     suspend inline fun <reified T : Any> getOnce(collection: String, docId: String): T? =
         firestore.collection(collection).document(docId).get().await()
             .toObject(T::class.java)
+
+    suspend fun getDocumentOnce(collection: String, docId: String): DocumentSnapshot =
+        firestore.collection(collection).document(docId).get().await()
 }

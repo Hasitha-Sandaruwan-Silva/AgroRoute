@@ -25,12 +25,14 @@ import androidx.compose.material.icons.filled.Shield
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,9 +50,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 import com.agroroute.R
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.navigation.Screen
@@ -70,10 +81,15 @@ private val LineGray = Color(0xFFE5E7EB)
 fun LoginScreen(
     navController: NavController,
     onLoginSuccess: (UserRole) -> Unit = {},
+    onGoogleRoleRequired: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+    val scope = rememberCoroutineScope()
+    var googleLoading by remember { mutableStateOf(false) }
 
     // ✅ LOGIC UNCHANGED
     LaunchedEffect(uiState.user) {
@@ -88,6 +104,10 @@ fun LoginScreen(
             }
             viewModel.consumeUser()
         }
+    }
+
+    LaunchedEffect(uiState.requiresGoogleRole) {
+        if (uiState.requiresGoogleRole) onGoogleRoleRequired()
     }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
@@ -226,6 +246,52 @@ fun LoginScreen(
                                 .fillMaxWidth()
                                 .height(52.dp)
                         )
+
+                        Spacer(Modifier.height(12.dp))
+
+                        OutlinedButton(
+                            onClick = {
+                                scope.launch {
+                                    googleLoading = true
+                                    try {
+                                        val googleOption = GetGoogleIdOption.Builder()
+                                            .setFilterByAuthorizedAccounts(false)
+                                            .setServerClientId(context.getString(R.string.default_web_client_id))
+                                            .setAutoSelectEnabled(false)
+                                            .build()
+                                        val request = GetCredentialRequest.Builder()
+                                            .addCredentialOption(googleOption)
+                                            .build()
+                                        val credential = credentialManager.getCredential(context, request).credential
+                                        if (credential is CustomCredential &&
+                                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                                        ) {
+                                            val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                            viewModel.signInWithGoogle(googleCredential.idToken)
+                                        } else {
+                                            viewModel.showError("Google sign-in did not return a supported account.")
+                                        }
+                                    } catch (_: GetCredentialCancellationException) {
+                                        viewModel.showError("Google sign-in was cancelled.")
+                                    } catch (_: GetCredentialException) {
+                                        viewModel.showError("Google sign-in couldn't be started. Please try again.")
+                                    } catch (_: Exception) {
+                                        viewModel.showError("Google sign-in couldn't be completed. Check your connection and try again.")
+                                    } finally {
+                                        googleLoading = false
+                                    }
+                                }
+                            },
+                            enabled = !uiState.isLoading && !googleLoading,
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(
+                                text = if (googleLoading) "Connecting to Google..." else "Continue with Google",
+                                color = DarkGreenText,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
 
                         Spacer(Modifier.height(10.dp))
 
