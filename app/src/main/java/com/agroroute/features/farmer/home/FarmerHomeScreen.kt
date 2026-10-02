@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -66,6 +65,13 @@ private val AgroLeaf = Color(0xFF43A047)
 private val AgroBg = Color(0xFFF6FAF6)
 private val AgroText = Color(0xFF1B1B1B)
 private val AgroMuted = Color(0xFF5F6B5F)
+
+internal enum class FarmerHomeDestination(val route: String) {
+    CREATE_LISTING(Screen.CreateListing.route),
+    MY_LISTINGS(Screen.MyListings.route),
+    ORDERS(Screen.FarmerOrders.route),
+    HARVEST_CALENDAR(Screen.HarvestCalendar.route)
+}
 
 @Composable
 fun FarmerHomeScreen(
@@ -230,7 +236,7 @@ fun FarmerHomeScreen(
                         Spacer(Modifier.height(16.dp))
 
                         Surface(
-                            onClick = { navController.navigate(Screen.CreateListing.route) },
+                            onClick = { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) },
                             shape = RoundedCornerShape(14.dp),
                             color = Color.White,
                             modifier = Modifier
@@ -263,14 +269,14 @@ fun FarmerHomeScreen(
                     title = "My Listings",
                     subtitle = "View & manage",
                     icon = Icons.Default.Description,
-                    onClick = { navController.navigate(Screen.MyListings.route) },
+                    onClick = { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
                     modifier = Modifier.weight(1f)
                 )
                 ShortcutCard(
                     title = "Orders",
                     subtitle = "Track status",
                     icon = Icons.Default.Receipt,
-                    onClick = { navController.navigate(Screen.FarmerOrders.route) },
+                    onClick = { navController.navigate(FarmerHomeDestination.ORDERS.route) },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -282,16 +288,7 @@ fun FarmerHomeScreen(
                 title = "Harvest Calendar",
                 subtitle = "Upcoming dates and reminders",
                 icon = Icons.Default.TrendingUp,
-                onClick = { navController.navigate(Screen.HarvestCalendar.route) },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-
-            ShortcutCard(
-                title = "Marketplace",
-                subtitle = "Browse active harvest listings",
-                icon = Icons.Default.Storefront,
-                onClick = { navController.navigate(Screen.SupplierMarketplace.route) },
+                onClick = { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) },
                 modifier = Modifier.fillMaxWidth()
             )
 

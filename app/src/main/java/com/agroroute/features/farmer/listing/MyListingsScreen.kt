@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -17,8 +18,8 @@ import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -98,6 +99,7 @@ fun MyListingsScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadFarmerListings("current_farmer_id")
+        viewModel.loadFarmerDrafts("current_farmer_id")
     }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
@@ -125,13 +127,13 @@ fun MyListingsScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = { navController.navigate(Screen.CreateListing.route) },
+                icon = { Icon(Lucide.Plus, contentDescription = null) },
+                text = { Text("New Listing") },
                 containerColor = MaterialTheme.colorScheme.primary,
                 shape = MaterialTheme.shapes.large
-            ) {
-                Icon(Lucide.Plus, contentDescription = "Create Listing")
-            }
+            )
         },
         snackbarHost = { AgroSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -140,6 +142,35 @@ fun MyListingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            if (uiState.drafts.isNotEmpty()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Saved drafts (${uiState.drafts.size})",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Open to choose a draft and resume editing",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        TextButton(onClick = { navController.navigate(Screen.CreateListing.route) }) {
+                            Text("Resume")
+                        }
+                    }
+                }
+            }
             when {
                 uiState.isLoading && publishedListings.isEmpty() -> ListSkeleton()
                 publishedListings.isEmpty() -> Box(
@@ -346,6 +377,14 @@ private fun ListingCard(
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
+        }
+        TextButton(
+            onClick = onCardClick,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Icon(Lucide.Gavel, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text("View details & bids")
         }
         Row(
             modifier = Modifier

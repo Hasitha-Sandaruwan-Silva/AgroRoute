@@ -106,17 +106,6 @@ fun ViewBidsScreen(
         when {
             uiState.isLoading && uiState.bids.isEmpty() -> ListSkeleton()
 
-            uiState.bids.isEmpty() -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                EmptyState(
-                    icon = Lucide.User,
-                    title = "No Bids Yet",
-                    subtitle = "Suppliers haven't placed any bids on this listing yet"
-                )
-            }
-
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp, start = 16.dp, end = 16.dp),
@@ -155,22 +144,62 @@ fun ViewBidsScreen(
                                     color = TextSecondary
                                 )
                             }
+                            Text(
+                                text = "${listing.quantity} ${listing.quantityUnit.name} · Rs. ${listing.reservePrice} per ${listing.quantityUnit.name}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextSecondary,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                            listing.expectedHarvestAt?.let { harvestAt ->
+                                Text(
+                                    text = "Expected harvest: ${formatDate(harvestAt)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                            listing.location.takeIf(String::isNotBlank)?.let { location ->
+                                Text(
+                                    text = "Location: $location",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                            listing.description.takeIf(String::isNotBlank)?.let { notes ->
+                                Text(
+                                    text = notes,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
 
-                items(uiState.bids) { bid ->
-                    val isBest = bid.status == BidStatus.PENDING &&
-                            bestPendingPrice != null &&
-                            bid.offerPrice >= bestPendingPrice
+                if (uiState.bids.isEmpty()) {
+                    item {
+                        EmptyState(
+                            icon = Lucide.User,
+                            title = "No Bids Yet",
+                            subtitle = "Suppliers haven't placed any bids on this listing yet"
+                        )
+                    }
+                } else {
+                    items(uiState.bids) { bid ->
+                        val isBest = bid.status == BidStatus.PENDING &&
+                                bestPendingPrice != null &&
+                                bid.offerPrice >= bestPendingPrice
 
-                    PremiumBidCard(
-                        bid = bid,
-                        isBestOffer = isBest,
-                        onAcceptClick = { viewModel.acceptBid(bid) },
-                        onRejectClick = { viewModel.rejectBid(bid) },
-                        isAccepting = uiState.isLoading
-                    )
+                        PremiumBidCard(
+                            bid = bid,
+                            isBestOffer = isBest,
+                            onAcceptClick = { viewModel.acceptBid(bid) },
+                            onRejectClick = { viewModel.rejectBid(bid) },
+                            isAccepting = uiState.isLoading
+                        )
+                    }
                 }
             }
         }
