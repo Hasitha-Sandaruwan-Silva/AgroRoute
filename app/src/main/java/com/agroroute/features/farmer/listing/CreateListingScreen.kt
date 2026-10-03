@@ -81,6 +81,7 @@ import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.QuantityUnit
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
@@ -126,37 +127,19 @@ internal fun shouldShowPhotoUploadRetry(
     photoUploadError: String?
 ): Boolean = hasSelectedPhoto && !isLoading && photoUploadError != null
 
+internal fun hasLocalPhotoUri(uri: Uri?): Boolean =
+    uri?.scheme == "content" || uri?.scheme == "file"
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 @Composable
 fun CreateListingScreen(
     navController: NavController,
+    editListingId: String? = null,
     viewModel: ListingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.actionSuccess) {
-        if (uiState.actionSuccess) {
-            navController.popBackStack()
-            viewModel.clearActionSuccess()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loadFarmerDrafts(viewModel.currentFarmerId)
-        viewModel.loadCurrentFarmerName()
-    }
-    LaunchedEffect(uiState.draftSaved) {
-        if (uiState.draftSaved) {
-            snackbarHostState.showSnackbar("Draft saved on this device")
-            viewModel.clearDraftSaved()
-        }
-    }
-
-    ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
-
-    // ── Form state ────────────────────────────────────────────────────────────
     var cropName by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var selectedUnit by remember { mutableStateOf(QuantityUnit.KG) }
@@ -170,7 +153,49 @@ fun CreateListingScreen(
     var expectedHarvestAt by remember { mutableStateOf<Long?>(null) }
     var qualityGrade by remember { mutableStateOf("") }
     var showHarvestDatePicker by remember { mutableStateOf(false) }
+    var formLoadedFor by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+
+    LaunchedEffect(uiState.actionSuccess) {
+        if (uiState.actionSuccess) {
+            navController.popBackStack()
+            viewModel.clearActionSuccess()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadFarmerDrafts(viewModel.currentFarmerId)
+        viewModel.loadCurrentFarmerName()
+    }
+    LaunchedEffect(editListingId) {
+        editListingId?.let(viewModel::loadListingForEdit)
+    }
+    LaunchedEffect(editListingId, uiState.editingListing) {
+        val listing = uiState.editingListing
+        if (editListingId != null && listing?.listingId == editListingId && formLoadedFor != editListingId) {
+            listingId = listing.listingId
+            cropName = listing.cropName
+            quantity = listing.quantity.toString()
+            selectedUnit = listing.quantityUnit
+            price = listing.reservePrice.toString()
+            description = listing.description
+            location = listing.location
+            selectedPhotoUri = listing.imageUrls.firstOrNull()?.let(Uri::parse)
+            selectedCategory = listing.category
+            expectedHarvestAt = listing.expectedHarvestAt
+            qualityGrade = listing.qualityGrade.orEmpty()
+            formLoadedFor = editListingId
+        }
+    }
+    LaunchedEffect(uiState.draftSaved) {
+        if (uiState.draftSaved) {
+            snackbarHostState.showSnackbar("Draft saved on this device")
+            viewModel.clearDraftSaved()
+        }
+    }
+    ErrorSnackbarEffect(uiState.error, snackbarHostState) {
+        if (editListingId == null || uiState.editingListing != null) viewModel.clearError()
+    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -191,24 +216,31 @@ fun CreateListingScreen(
 
     fun buildListing(isDraft: Boolean): HarvestListing {
         val parsedQuantity = quantity.toDoubleOrNull() ?: 0.0
+        val existing = uiState.editingListing
         return HarvestListing(
-            listingId = listingId,
-            farmerId = viewModel.currentFarmerId,
-            farmerName = uiState.farmerName,
+            listingId = existing?.listingId ?: listingId,
+            farmerId = existing?.farmerId ?: viewModel.currentFarmerId,
+            farmerName = existing?.farmerName ?: uiState.farmerName,
             cropName = cropName,
             description = description,
             quantity = parsedQuantity,
             quantityUnit = selectedUnit,
             reservePrice = price.toDoubleOrNull() ?: 0.0,
-            imageUrls = if (selectedPhotoUri != null) listOf(selectedPhotoUri.toString()) else emptyList(),
+            imageUrls = selectedPhotoUri?.toString()?.let(::listOf)
+                ?: existing?.imageUrls.orEmpty(),
             location = location,
-            status = ListingStatus.OPEN,
-            biddingEnabled = true,
+            status = existing?.status ?: ListingStatus.OPEN,
+            biddingEnabled = existing?.biddingEnabled ?: true,
+            createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+            expiresAt = existing?.expiresAt,
             category = selectedCategory,
             expectedHarvestAt = expectedHarvestAt,
             qualityGrade = qualityGrade.trim().ifBlank { null },
-            availableQuantity = parsedQuantity,
-            isDraft = isDraft
+            availableQuantity = existing?.let {
+                (it.availableStock() + parsedQuantity - it.quantity).coerceAtLeast(0.0)
+            } ?: parsedQuantity,
+            soldQuantity = existing?.soldQuantity ?: 0.0,
+            isDraft = if (existing != null) false else isDraft
         )
     }
 
@@ -219,7 +251,8 @@ fun CreateListingScreen(
             return
         }
         categorySelectionError = false
-        viewModel.createListing(buildListing(isDraft = false).copy(category = category))
+        val listing = buildListing(isDraft = false).copy(category = category)
+        if (editListingId == null) viewModel.createListing(listing) else viewModel.updateListing(listing)
     }
 
     fun resumeDraft(draft: HarvestListing) {
@@ -263,8 +296,10 @@ fun CreateListingScreen(
         bottomBar = {
             CreateListingBottomBar(
                 isLoading = uiState.isLoading,
-                hasPhoto = selectedPhotoUri != null,
-                canSubmit = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank(),
+                isPhotoUploadRequired = hasLocalPhotoUri(selectedPhotoUri),
+                isEditing = editListingId != null,
+                canSubmit = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank() &&
+                    (editListingId == null || uiState.editingListing?.listingId == editListingId),
                 onPublish = ::publishListing,
                 onSaveDraft = { viewModel.saveDraft(buildListing(isDraft = true)) }
             )
@@ -281,7 +316,18 @@ fun CreateListingScreen(
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             // ── Hero header ───────────────────────────────────────────────────
-            CreateListingHeroHeader()
+            CreateListingHeroHeader(isEditing = editListingId != null)
+
+            if (editListingId != null && uiState.isLoading && uiState.editingListing == null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(10.dp))
+                    Text("Loading your listing…", style = MaterialTheme.typography.bodySmall)
+                }
+            }
 
             // ── Error banner ──────────────────────────────────────────────────
             uiState.error?.let { error ->
@@ -292,7 +338,7 @@ fun CreateListingScreen(
             }
 
             // ── Saved local drafts ────────────────────────────────────────────
-            if (uiState.drafts.isNotEmpty()) {
+            if (editListingId == null && uiState.drafts.isNotEmpty()) {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -528,7 +574,8 @@ fun CreateListingScreen(
                 // Photo preview / picker — always visible
                 PhotoPickerCard(
                     selectedUri = selectedPhotoUri,
-                    isLoading = uiState.isLoading,
+                    isLoading = uiState.isLoading && hasLocalPhotoUri(selectedPhotoUri),
+                    isEditing = editListingId != null,
                     enabled = !uiState.isLoading,
                     onImageSelected = {
                         selectedPhotoUri = it
@@ -537,7 +584,7 @@ fun CreateListingScreen(
                 )
                 // Upload progress indicator
                 AnimatedVisibility(
-                    visible = uiState.isLoading && selectedPhotoUri != null,
+                    visible = uiState.isLoading && hasLocalPhotoUri(selectedPhotoUri),
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
@@ -656,7 +703,7 @@ fun CreateListingScreen(
 // ── Private composables ───────────────────────────────────────────────────────
 
 @Composable
-private fun CreateListingHeroHeader() {
+private fun CreateListingHeroHeader(isEditing: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -689,20 +736,20 @@ private fun CreateListingHeroHeader() {
             Spacer(Modifier.width(16.dp))
             Column {
                 Text(
-                    text = "NEW HARVEST",
+                    text = if (isEditing) "UPDATE HARVEST" else "NEW HARVEST",
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White.copy(alpha = 0.80f),
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.5.sp
                 )
                 Text(
-                    text = "Create a listing",
+                    text = if (isEditing) "Edit your listing" else "Create a listing",
                     style = MaterialTheme.typography.headlineSmall,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Share your harvest with potential buyers.",
+                    text = if (isEditing) "Update your harvest details for buyers." else "Share your harvest with potential buyers.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.88f),
                     modifier = Modifier.padding(top = 4.dp)
@@ -784,6 +831,7 @@ private fun ErrorBanner(message: String, modifier: Modifier = Modifier) {
 private fun PhotoPickerCard(
     selectedUri: Uri?,
     isLoading: Boolean,
+    isEditing: Boolean,
     enabled: Boolean,
     onImageSelected: (Uri) -> Unit
 ) {
@@ -877,7 +925,8 @@ private fun PhotoPickerCard(
     val captionText = if (selectedUri == null) {
         "A clear photo helps buyers assess quality and builds trust."
     } else {
-        "Photo selected. Upload happens when you tap \"Publish listing\"."
+        if (isEditing) "Keep the current photo or choose a replacement. Changes upload when saved."
+        else "Photo selected. Upload happens when you tap \"Publish listing\"."
     }
     Text(
         text = captionText,
@@ -893,7 +942,8 @@ private fun PhotoPickerCard(
 @Composable
 private fun CreateListingBottomBar(
     isLoading: Boolean,
-    hasPhoto: Boolean,
+    isPhotoUploadRequired: Boolean,
+    isEditing: Boolean,
     canSubmit: Boolean,
     onPublish: () -> Unit,
     onSaveDraft: () -> Unit
@@ -911,8 +961,10 @@ private fun CreateListingBottomBar(
         ) {
             LoadingButton(
                 text = when {
-                    isLoading && hasPhoto -> "Uploading photo…"
+                    isLoading && isPhotoUploadRequired -> "Uploading photo…"
+                    isLoading && isEditing -> "Saving changes…"
                     isLoading -> "Publishing listing…"
+                    isEditing -> "Save changes"
                     else -> "Publish listing"
                 },
                 isLoading = isLoading,
@@ -920,14 +972,16 @@ private fun CreateListingBottomBar(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = canSubmit
             )
-            TextButton(
-                onClick = onSaveDraft,
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Lucide.Save, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Save draft on this device")
+            if (!isEditing) {
+                TextButton(
+                    onClick = onSaveDraft,
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Lucide.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Save draft on this device")
+                }
             }
         }
     }

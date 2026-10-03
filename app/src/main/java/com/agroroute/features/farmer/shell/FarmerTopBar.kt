@@ -613,6 +613,7 @@ internal val farmerRoutes = setOf(
     *farmerTabRoutes.toTypedArray(),
     Screen.HarvestCalendar.route,
     Screen.CreateListing.route,
+    Screen.EditListing.route,
     Screen.ViewBids.route,
     Screen.FarmerOrderDetail.route
 )
@@ -625,6 +626,7 @@ internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerOrders.route -> "Orders"
     route == Screen.FarmerProfile.route -> "Profile"
     route == Screen.CreateListing.route -> "Create Listing"
+    route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Edit Listing"
     route.startsWith(Screen.ViewBids.route.substringBefore("{")) -> "Bids Received"
     route.startsWith(Screen.FarmerOrderDetail.route.substringBefore("{")) -> "Order Details"
     else -> "Farmer"
@@ -638,6 +640,7 @@ private fun farmerSubtitle(route: String): String? = when {
     route == Screen.FarmerOrders.route -> "Pickups & deliveries"
     route == Screen.FarmerProfile.route -> "Account settings"
     route == Screen.CreateListing.route -> "Publish produce"
+    route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Update listing details"
     route.startsWith(Screen.ViewBids.route.substringBefore("{")) -> "Best offer"
     route.startsWith(Screen.FarmerOrderDetail.route.substringBefore("{")) -> "Order progress"
     else -> null

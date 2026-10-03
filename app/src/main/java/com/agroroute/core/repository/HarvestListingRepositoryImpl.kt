@@ -4,6 +4,7 @@ import com.agroroute.core.database.HarvestListingDao
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.model.setBiddingEnabled
 import com.agroroute.core.remote.FirestoreService
@@ -70,6 +71,60 @@ class HarvestListingRepositoryImpl @Inject constructor(
         check(!listing.isDraft) { "Draft listings must remain in local storage" }
         firestoreService.set(Constants.COLLECTION_LISTINGS, listing.listingId, listing)
         dao.upsertListing(listing) // Mirror to Room on Firestore success
+    }
+
+    override suspend fun updateListing(listing: HarvestListing): Result<Unit> = safeCall {
+        val farmerId = authRepository.currentUserId ?: error("Sign in to edit listings")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == farmerId) {
+            "Only the signed-in Farmer can edit listings"
+        }
+        check(listing.farmerId == farmerId) { "You can only edit your own listing" }
+        check(!listing.isDraft) { "Only published listings can be edited here" }
+
+        val existing = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listing.listingId)
+            ?: error("Listing not found")
+        check(existing.farmerId == farmerId) { "You can only edit your own listing" }
+        check(existing.listingId == listing.listingId) { "Listing identity does not match" }
+        check(listing.quantity > 0.0) { "Quantity must be greater than zero" }
+        check(listing.quantity >= existing.soldQuantity) {
+            "Quantity cannot be less than the amount already sold or reserved"
+        }
+        check(existing.soldQuantity <= 0.0 || listing.quantityUnit == existing.quantityUnit) {
+            "Quantity unit cannot change after stock has been sold or reserved"
+        }
+
+        val updatedAvailable = (existing.availableStock() + listing.quantity - existing.quantity)
+            .coerceAtLeast(0.0)
+        val updated = listing.copy(
+            farmerId = existing.farmerId,
+            farmerName = existing.farmerName,
+            status = existing.status,
+            biddingEnabled = existing.biddingEnabled,
+            createdAt = existing.createdAt,
+            expiresAt = existing.expiresAt,
+            availableQuantity = updatedAvailable,
+            soldQuantity = existing.soldQuantity,
+            isDraft = false
+        )
+        firestoreService.updateFields(
+            Constants.COLLECTION_LISTINGS,
+            listing.listingId,
+            mapOf(
+                "cropName" to updated.cropName,
+                "description" to updated.description,
+                "quantity" to updated.quantity,
+                "quantityUnit" to updated.quantityUnit.name,
+                "reservePrice" to updated.reservePrice,
+                "imageUrls" to updated.imageUrls,
+                "location" to updated.location,
+                "category" to updated.category?.name,
+                "expectedHarvestAt" to updated.expectedHarvestAt,
+                "qualityGrade" to updated.qualityGrade,
+                "availableQuantity" to updated.availableQuantity
+            )
+        )
+        dao.upsertListing(updated)
     }
 
     override suspend fun saveDraft(listing: HarvestListing): Result<Unit> = safeCall {

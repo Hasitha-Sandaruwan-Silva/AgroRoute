@@ -23,6 +23,9 @@ sealed class Screen(val route: String) {
 
     // ── Farmer flow ────────────────────────────────────────────────────────────
     data object CreateListing: Screen("create_listing")
+    data object EditListing : Screen("edit_listing/{${Constants.ARG_LISTING_ID}}") {
+        fun createRoute(listingId: String) = "edit_listing/$listingId"
+    }
     data object MyListings   : Screen("my_listings")
     data object FarmerBids   : Screen("farmer_bids")
     data object HarvestCalendar : Screen("harvest_calendar")

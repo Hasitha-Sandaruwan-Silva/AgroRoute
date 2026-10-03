@@ -68,7 +68,7 @@ fun BrowseListingsScreen(
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { /* flows from VM */ }
 
     val filtered = uiState.listings.filter { listing ->
-        if (!listing.acceptsNewBids()) return@filter false
+        if (!isSupplierMarketplaceEligible(listing)) return@filter false
         val matchesSearch = searchQuery.isBlank() ||
             listing.cropName.contains(searchQuery, ignoreCase = true) ||
             listing.location.contains(searchQuery, ignoreCase = true)
@@ -191,6 +191,7 @@ fun BrowseListingsScreen(
                     items(filtered) { listing ->
                         MarketplaceListingCard(
                             listing = listing,
+                            canPlaceBid = listing.acceptsNewBids(),
                             onCardClick = {
                                 navController.navigate(Screen.PlaceBid.createRoute(listing.listingId))
                             }
@@ -209,9 +210,10 @@ fun BrowseListingsScreen(
 @Composable
 private fun MarketplaceListingCard(
     listing: HarvestListing,
+    canPlaceBid: Boolean,
     onCardClick: () -> Unit
 ) {
-    AppCard(onClick = onCardClick) {
+    AppCard(onClick = onCardClick.takeIf { canPlaceBid }) {
         ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
         Spacer(Modifier.height(14.dp))
         Row(
@@ -228,9 +230,10 @@ private fun MarketplaceListingCard(
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.padding(horizontal = 4.dp))
-            if (listing.biddingEnabled) {
-                StatusChip(label = "Bidding open", tone = ChipTone.Success)
-            }
+            StatusChip(
+                label = if (canPlaceBid) "Bidding open" else "Bidding paused",
+                tone = if (canPlaceBid) ChipTone.Success else ChipTone.Neutral
+            )
         }
         Text(
             text = "by ${listing.farmerName}",
@@ -311,11 +314,13 @@ private fun MarketplaceListingCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
         )
-        TextButton(
-            onClick = onCardClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("View listing and place bid")
+        if (canPlaceBid) {
+            TextButton(
+                onClick = onCardClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("View listing and place bid")
+            }
         }
     }
 }

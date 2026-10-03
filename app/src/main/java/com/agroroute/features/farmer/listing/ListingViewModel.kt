@@ -3,6 +3,7 @@ package com.agroroute.features.farmer.listing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.UserRole
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.ListingPhotoStorageException
 import com.agroroute.core.remote.NetworkConnectivityMonitor
@@ -18,6 +19,7 @@ import javax.inject.Inject
 data class ListingUiState(
     val listings: List<HarvestListing> = emptyList(),
     val drafts: List<HarvestListing> = emptyList(),
+    val editingListing: HarvestListing? = null,
     val farmerName: String = "",
     val pendingBiddingListingIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
@@ -37,6 +39,7 @@ class ListingViewModel @Inject constructor(
     private val getListingDraftsUseCase: GetListingDraftsUseCase,
     private val saveListingDraftUseCase: SaveListingDraftUseCase,
     private val createListingUseCase: CreateListingUseCase,
+    private val updateListingUseCase: UpdateListingUseCase,
     private val toggleBiddingModeUseCase: ToggleBiddingModeUseCase,
     private val scheduleHarvestReminderUseCase: ScheduleHarvestReminderUseCase,
     private val closeListingUseCase: CloseListingUseCase,
@@ -126,6 +129,70 @@ class ListingViewModel @Inject constructor(
                     )
                 }
                 is Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun loadListingForEdit(listingId: String) {
+        if (_uiState.value.editingListing?.listingId == listingId) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val farmerId = currentFarmerId
+            val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+            if (farmerId.isBlank() || profile?.role != UserRole.FARMER || profile.userId != farmerId) {
+                _uiState.update { it.copy(isLoading = false, error = "Only the signed-in Farmer can edit listings") }
+                return@launch
+            }
+            when (val sync = getListingsUseCase.syncListings()) {
+                is Result.Error -> {
+                    _uiState.update { it.copy(isLoading = false, error = sync.message) }
+                    return@launch
+                }
+                Result.Loading -> {
+                    _uiState.update { it.copy(isLoading = false, error = "Could not load listing. Try again.") }
+                    return@launch
+                }
+                is Result.Success -> Unit
+            }
+            when (val result = getListingsUseCase.getByFarmer(farmerId).first()) {
+                is Result.Success -> {
+                    val listing = result.data.firstOrNull {
+                        it.listingId == listingId && it.farmerId == farmerId && !it.isDraft
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            editingListing = listing,
+                            error = if (listing == null) "Listing not found or you do not own it" else null
+                        )
+                    }
+                }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> _uiState.update {
+                    it.copy(isLoading = false, error = "Could not load listing. Try again.")
+                }
+            }
+        }
+    }
+
+    fun updateListing(listing: HarvestListing) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null, photoUploadError = null, actionSuccess = false) }
+            when (val result = updateListingUseCase(listing)) {
+                is Result.Success -> {
+                    scheduleHarvestReminderUseCase(listing)
+                    _uiState.update {
+                        it.copy(isLoading = false, photoUploadError = null, actionSuccess = true)
+                    }
+                }
+                is Result.Error -> _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = result.message,
+                        photoUploadError = (result.cause as? ListingPhotoStorageException)?.message
+                    )
+                }
+                Result.Loading -> Unit
             }
         }
     }

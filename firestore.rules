@@ -88,7 +88,7 @@ service cloud.firestore {
           || (request.resource.data.status == 'OPEN'
             && availableStock(request.resource.data) > 0))
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'description', 'quantity', 'quantityUnit', 'reservePrice', 'imageUrls',
+          'cropName', 'description', 'quantity', 'quantityUnit', 'reservePrice', 'imageUrls',
           'location', 'status', 'biddingEnabled', 'category', 'expectedHarvestAt',
           'qualityGrade', 'availableQuantity', 'soldQuantity', 'expiresAt'
         ]);

@@ -275,6 +275,9 @@ fun MyListingsScreen(
                             items(visibleListings, key = { it.listingId }) { listing ->
                                 ListingCard(
                                     listing = listing,
+                                    onEditClick = {
+                                        navController.navigate(Screen.EditListing.createRoute(listing.listingId))
+                                    },
                                     onCardClick = {
                                         navController.navigate(farmerListingDetailsRoute(listing.listingId))
                                     },
@@ -296,6 +299,7 @@ fun MyListingsScreen(
 @Composable
 private fun ListingCard(
     listing: HarvestListing,
+    onEditClick: () -> Unit,
     onCardClick: () -> Unit,
     onToggleBidding: (Boolean) -> Unit,
     isBiddingUpdating: Boolean,
@@ -392,6 +396,14 @@ private fun ListingCard(
             Icon(Lucide.Gavel, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text("View details & bids")
+        }
+        TextButton(
+            onClick = onEditClick,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Icon(Lucide.FileText, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text("Edit listing")
         }
         Row(
             modifier = Modifier

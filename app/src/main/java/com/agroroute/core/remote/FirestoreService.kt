@@ -85,6 +85,11 @@ class FirestoreService @Inject constructor(
             .await()
     }
 
+    suspend fun updateFields(collection: String, docId: String, fields: Map<String, Any?>) {
+        require(fields.isNotEmpty()) { "At least one field is required for an update" }
+        firestore.collection(collection).document(docId).update(fields).await()
+    }
+
     suspend fun <T> runTransaction(block: (Transaction) -> T): T =
         firestore.runTransaction { transaction -> block(transaction) }.await()
 

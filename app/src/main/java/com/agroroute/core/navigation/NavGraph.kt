@@ -166,6 +166,15 @@ fun NavGraph(
                     CreateListingScreen(navController = navController)
                 }
 
+                composable(
+                    route = Screen.EditListing.route,
+                    arguments = listOf(navArgument(Constants.ARG_LISTING_ID) { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val listingId = backStackEntry.arguments?.getString(Constants.ARG_LISTING_ID)
+                        ?: return@composable
+                    CreateListingScreen(navController = navController, editListingId = listingId)
+                }
+
                 composable(Screen.MyListings.route) {
                     MyListingsScreen(navController = navController)
                 }

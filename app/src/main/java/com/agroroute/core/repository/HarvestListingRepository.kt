@@ -28,6 +28,9 @@ interface HarvestListingRepository {
     /** Creates or updates a listing in Firestore and mirrors to Room on success. */
     suspend fun saveListing(listing: HarvestListing): Result<Unit>
 
+    /** Updates an existing owner listing in Firestore and mirrors it to Room on success. */
+    suspend fun updateListing(listing: HarvestListing): Result<Unit> = saveListing(listing)
+
     /** Saves an incomplete listing locally without publishing it to Firestore. */
     suspend fun saveDraft(listing: HarvestListing): Result<Unit>
 
