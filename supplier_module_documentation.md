@@ -65,7 +65,7 @@ Detailed view of a selected produce listing.
   * High-resolution crop image banner / gallery.
   * Crop name, available quantity, unit, price, location, quality grade, harvest date, and description.
 * **Actions:**
-  * **Place Bid** button.
+  * **Place Bid** button (if bidding is enabled).
 * **Validation Rules:**
   * The "Place Bid" action must be dynamically disabled if:
     * Bidding is toggled off by the Farmer.
@@ -99,6 +99,8 @@ Historical and live tracking view of all bids submitted by the logged-in Supplie
   * Status badge: `Pending`, `Accepted`, `Rejected`, or `Withdrawn`.
 * **Actions:**
   * **Withdraw Bid** button (active only for `Pending` bids, subject to system rules).
+
+Note: A dedicated `My Bids` screen and full withdraw UX are not present in the UI at the moment. The data-layer contains methods (`getBidsBySupplier`, `withdrawBid`) but there is no corresponding screen implemented in the current codebase.
 * **Data Isolation:**
   * Displays **strictly the logged-in Supplier's bids**.
   * Suppliers cannot view bids placed by competing buyers, edit external bids, or self-accept their own offers.
@@ -134,12 +136,14 @@ In-depth view of a specific confirmed order.
 User profile management and session control.
 
 * **Fields & Actions:**
-  * Full Name
-  * Email Address
-  * Contact Phone Number
-  * Business / Delivery Address
-  * Profile Photo upload/change
-  * **Logout** button (invalidates session token and returns to Auth).
+  * Full Name (read-only in current UI)
+  * Email Address (read-only)
+  * Contact Phone Number (read-only)
+  * Business / Delivery Address (not editable)
+  * Profile Photo upload/change: no UI in current build (Cloudinary support exists in remote code but no upload UI wired)
+  * **Logout** button (available)
+
+Note: Profile editing (changing name, phone, address, or uploading a photo) is not implemented in the current UI; the profile screen is effectively read-only except for logout.
 * **Isolation:** Excludes Farmer farm configuration tools, listing management options, or access to other user profiles.
 
 ---
@@ -149,9 +153,10 @@ User profile management and session control.
 * **Bottom Navigation Bar Tabs:**
   1. 🏠 **Home**
   2. 🛒 **Marketplace**
-  3. 🏷️ **Bids**
-  4. 📦 **Orders**
-  5. 👤 **Profile**
+  3. 📦 **Orders**
+  4. 👤 **Profile**
+
+Note: The documented 5-tab layout including a dedicated `Bids` tab is not present in the current app UI; the app exposes 4 tabs and bidding actions are surfaced from marketplace item cards when enabled.
 * **System Principles:**
   * Predictable back-stack navigation handling across all screens.
   * Unified design language (typography, colors, loading shimmers, offline alerts) matching the Farmer module.

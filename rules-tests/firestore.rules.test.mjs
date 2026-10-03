@@ -263,6 +263,37 @@ function orderFromRequest(request, overrides = {}) {
   };
 }
 
+function listingExpectedAfterSale(availableQuantity, soldQuantity) {
+  return {
+    listingId: "listing-expected",
+    farmerId: "farmer-1",
+    cropName: "Wheat",
+    quantity: availableQuantity + soldQuantity,
+    availableQuantity,
+    soldQuantity,
+    reservePrice: 5,
+    status: "OPEN",
+    biddingEnabled: false,
+    isDraft: false,
+    harvestStatus: "READY"
+  };
+}
+
+function buildAcceptBatchForExpected(db, request, resultingAvailable, resultingSold) {
+  const batch = writeBatch(db);
+  batch.set(
+    doc(db, "listings", request.listingId),
+    listingExpectedAfterSale(resultingAvailable, resultingSold)
+  );
+  batch.set(doc(db, "orders", request.requestId), orderFromRequest(request));
+  batch.set(doc(db, "order_requests", request.requestId), {
+    ...request,
+    status: "ACCEPTED",
+    updatedAt: 2
+  });
+  return batch;
+}
+
 async function seedRequest(requestId, overrides = {}) {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     await setDoc(
@@ -692,4 +723,33 @@ test("farmer cannot accept a pre-harvest request on an expected listing (harvest
   });
   // listing stays as EXPECTED (harvest not ready) — the order create rule must reject this.
   await assertFails(batch.commit());
+});
+
+test("multiple pending pre-harvest requests may exist but only accepted up to available stock", async () => {
+  // Create two pre-harvest requests whose total exceeds the estimate (estimate = 20)
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "order_requests", "pre-req-A"), preHarvestRequestDoc("pre-req-A", { requestedQuantity: 12 }));
+    await setDoc(doc(db, "order_requests", "pre-req-B"), preHarvestRequestDoc("pre-req-B", { requestedQuantity: 10 }));
+  });
+
+  // Farmer marks listing expected -> READY with actual availableQuantity = 15
+  const dbFarmer = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertSucceeds(updateDoc(doc(dbFarmer, "listings/listing-expected"), {
+    harvestStatus: "READY",
+    availableQuantity: 15,
+    quantity: 15,
+    soldQuantity: 0,
+    harvestUpdatedAt: Date.now()
+  }));
+
+  // Accept first request (12) -> should succeed
+  const requestA = preHarvestRequestDoc("pre-req-A", { requestedQuantity: 12 });
+  const batchA = buildAcceptBatchForExpected(dbFarmer, requestA, 3, 12);
+  await assertSucceeds(batchA.commit());
+
+  // Accept second request (10) -> should fail because only 3 remain
+  const requestB = preHarvestRequestDoc("pre-req-B", { requestedQuantity: 10 });
+  const batchB = buildAcceptBatchForExpected(dbFarmer, requestB, -7, 22);
+  await assertFails(batchB.commit());
 });

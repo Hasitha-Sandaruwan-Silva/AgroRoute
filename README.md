@@ -2,7 +2,7 @@
 
 **Smart Agro Cold-Chain & Harvest Pooling App** — Mobile Application Development (MAD) coursework project.
 
-AgroRoute is a harvest-pooling and cold-chain visibility platform for small-scale farmers: farmers list surplus harvest with quality photos, pool transport with nearby farmers via GPS matching, book cold-storage slots, and sell directly to buyers/suppliers through fixed pricing or an open bidding system.
+AgroRoute is a harvest-pooling platform for small-scale farmers. Farmers list harvest with photos and sell directly to buyers/suppliers through fixed pricing or an open bidding system. Several features mentioned in older descriptions (cold-storage booking, full GPS transport pooling, a Driver role, or a payment gateway) are not implemented in the current codebase — see "Status" below for details.
 
 ---
 
@@ -11,7 +11,7 @@ AgroRoute is a harvest-pooling and cold-chain visibility platform for small-scal
 | Layer | Technology |
 |---|---|
 | UI | Jetpack Compose (Kotlin) |
-| Architecture | MVVM + Repository + Service layer |
+| Architecture | MVVM + Repository + UseCase-style features |
 | Local Database | Room (SQLite) — offline-first |
 | Remote Backend | Firebase (Firestore, Authentication, Storage) |
 | DI | Hilt |
@@ -30,15 +30,15 @@ UI (Composable Screen)
     ↓ observes state / calls functions
 ViewModel (holds UI state, triggers actions)
     ↓ calls
-Service (business logic per feature — validation, rules, coordination)
+UseCases / Feature logic (validation, coordination per action)
     ↓ calls
 Repository Interface → Repository Implementation
     ↓ uses
 Room (local cache) + Firestore/Firebase (remote source)
 ```
 
-- **ViewModels** never call Firebase/Room directly — always through a Repository or Service.
-- **Services** hold business logic per feature (e.g. `ListingService`, `BiddingService`), replacing a one-class-per-action UseCase pattern.
+- **ViewModels** never call Firebase/Room directly — always through a Repository or UseCase.
+- **UseCases** and small feature-coordination classes hold business logic per action (the codebase favors per-action UseCases over a single monolithic `Service` layer).
 - **Repositories** are the single source of truth: read from Room (offline-first), write to Firestore then mirror to Room.
 
 ---
@@ -87,8 +87,8 @@ app/src/main/java/com/agroroute/
 
 - **Harvest Listing** — quantity, category (Organic/Inorganic), price, quality photo; price editable after listing.
 - **Bidding System** — farmer can open a listing for bidding if it can't sell at the fixed price; suppliers submit offers with payment terms; farmer accepts/rejects.
-- **Order Tracking** — status flow from confirmed through to paid/delivered, separately for Farmer and Supplier views.
-- **Role-based Auth** — Firebase Authentication with Farmer / Supplier / Driver roles.
+-- **Order Tracking** — status flow from confirmed through to delivered (AWAITING_PICKUP, IN_TRANSIT, DELIVERED, CANCELLED). There is no `PAID` status and no built-in payment gateway; creating or delivering an order does not imply that a payment was processed.
+-- **Role-based Auth** — Firebase Authentication with Farmer / Supplier roles (the Driver role referenced in older docs is not implemented).
 - **Offline-first** — Room caches data locally; syncs with Firestore when connectivity resumes.
 
 ---
@@ -104,4 +104,9 @@ app/src/main/java/com/agroroute/
 
 ## Status
 
-Actively in development — base architecture, Firebase integration, and core Farmer/Supplier screens in progress.
+Actively in development — base architecture, Firebase integration, and core Farmer/Supplier screens are present. Known limitations and differences from older documentation:
+
+- Driver role: NOT IMPLEMENTED. The app currently recognizes only `FARMER` and `SUPPLIER` roles in code.
+- Payments: NOT IMPLEMENTED. There is no payment gateway integration and no `PAID` order status; orders do not record payment transactions.
+- Cold-chain / GPS transport pooling / cold-storage booking: NOT IMPLEMENTED.
+- Future Harvest (EXPECTED) flows: client-side code supports expected harvest listings and pre-harvest requests. The Firestore rules enforce per-request limits, and availability is enforced at acceptance time; see `firestore.rules` and `rules-tests` for details.

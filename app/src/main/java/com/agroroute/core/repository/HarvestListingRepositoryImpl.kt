@@ -118,6 +118,21 @@ class HarvestListingRepositoryImpl @Inject constructor(
             listing.expectedHarvestAt != existing.expectedHarvestAt ||
                 listing.estimatedQuantity != existing.estimatedQuantity
             )
+        // Best-effort: block lowering the estimatedQuantity below the largest single pending
+        // pre-harvest request. Firestore rules still enforce per-request <= estimatedQuantity
+        // and acceptance enforces availableStock at the moment of accept; this check is
+        // non-transactional (query) and is intended to avoid obvious estimate regressions.
+        if (estimateChanged && isExpected && listing.estimatedQuantity != null) {
+            val pendingRequests = firestoreService.queryFlow<OrderRequest>(
+                Constants.COLLECTION_ORDER_REQUESTS,
+                "listingId",
+                listing.listingId
+            ).first().filter { it.isPreHarvest && it.status == OrderRequestStatus.PENDING }
+            val maxPending = pendingRequests.maxOfOrNull { it.requestedQuantity } ?: 0.0
+            if (listing.estimatedQuantity != null && listing.estimatedQuantity < maxPending) {
+                error("Cannot lower estimate below the largest pending pre-harvest request ($maxPending)")
+            }
+        }
         val updated = listing.copy(
             farmerId = existing.farmerId,
             farmerName = existing.farmerName,
