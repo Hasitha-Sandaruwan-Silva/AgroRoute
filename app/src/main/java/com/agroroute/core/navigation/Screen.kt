@@ -43,8 +43,15 @@ sealed class Screen(val route: String) {
         fun createRoute(listingId: String) = "place_bid/$listingId"
     }
 
+    /** Requires [listingId] argument. */
+    data object PlaceOrderRequest : Screen("place_order_request/{${Constants.ARG_LISTING_ID}}") {
+        fun createRoute(listingId: String) = "place_order_request/$listingId"
+    }
+
     // ── Farmer Orders ─────────────────────────────────────────────────────────
     data object FarmerOrders : Screen("farmer_orders")
+
+    data object FarmerOrderRequests : Screen("farmer_order_requests")
 
     /** Requires [orderId] argument. */
     data object FarmerOrderDetail : Screen("farmer_order_detail/{${Constants.ARG_ORDER_ID}}") {

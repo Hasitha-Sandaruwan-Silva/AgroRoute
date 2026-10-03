@@ -42,6 +42,18 @@ enum class OrderStatus {
     CANCELLED
 }
 
+/** Lifecycle status of an [OrderRequest] for fixed-price listings. */
+enum class OrderRequestStatus {
+    /** Request is awaiting farmer review. */
+    PENDING,
+    /** Farmer accepted - order created, stock updated. */
+    ACCEPTED,
+    /** Farmer rejected - no stock change. */
+    REJECTED,
+    /** Supplier cancelled before farmer decision. */
+    CANCELLED
+}
+
 /** Unit of weight/volume used when specifying harvest quantities. */
 enum class QuantityUnit {
     KG,

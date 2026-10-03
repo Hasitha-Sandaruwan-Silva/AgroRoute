@@ -47,6 +47,9 @@ fun HarvestListing.isEligibleForMarketplace(): Boolean =
 fun HarvestListing.acceptsNewBids(): Boolean =
     status == ListingStatus.OPEN && biddingEnabled && !isDraft && availableStock() > 0.0
 
+fun HarvestListing.acceptsDirectOrders(): Boolean =
+    status == ListingStatus.OPEN && !biddingEnabled && !isDraft && availableStock() > 0.0
+
 fun HarvestListing.setBiddingEnabled(enabled: Boolean): HarvestListing {
     require(status == ListingStatus.OPEN) { "Only open listings can be paused or resumed" }
     require(!enabled || (!isDraft && availableStock() > 0.0)) {

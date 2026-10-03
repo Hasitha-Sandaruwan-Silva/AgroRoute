@@ -666,6 +666,9 @@ class HarvestListingRulesTest {
             return Result.Success(Unit)
         }
 
+        override suspend fun acceptOrderRequestAndCreateOrder(requestId: String): Result<Unit> =
+            Result.Success(Unit)
+
         override suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> =
             Result.Success(Unit)
 

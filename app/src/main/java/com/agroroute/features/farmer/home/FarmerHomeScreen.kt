@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -70,6 +71,7 @@ internal enum class FarmerHomeDestination(val route: String) {
     CREATE_LISTING(Screen.CreateListing.route),
     MY_LISTINGS(Screen.MyListings.route),
     ORDERS(Screen.FarmerOrders.route),
+    ORDER_REQUESTS(Screen.FarmerOrderRequests.route),
     HARVEST_CALENDAR(Screen.HarvestCalendar.route)
 }
 
@@ -282,6 +284,16 @@ fun FarmerHomeScreen(
             }
 
             Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
+
+            ShortcutCard(
+                title = "Order Requests",
+                subtitle = "Review direct order requests",
+                icon = Icons.Default.ShoppingCart,
+                onClick = { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Spacer(Modifier.height(12.dp))
 
             ShortcutCard(

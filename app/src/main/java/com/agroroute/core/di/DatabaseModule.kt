@@ -9,6 +9,7 @@ import com.agroroute.core.util.Constants
 import com.agroroute.core.database.HarvestListingDao
 import com.agroroute.core.database.OrderDao
 import com.agroroute.core.database.BidDao
+import com.agroroute.core.database.OrderRequestDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +34,8 @@ object DatabaseModule {
         )
             .addMigrations(
                 DatabaseMigrations.MIGRATION_1_2,
-                DatabaseMigrations.MIGRATION_2_3
+                DatabaseMigrations.MIGRATION_2_3,
+                DatabaseMigrations.MIGRATION_3_4
             )
             .fallbackToDestructiveMigration() // Acceptable for coursework; use migrations in prod
             .build()
@@ -53,4 +55,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideOrderDao(db: AppDatabase): OrderDao = db.orderDao()
+
+    @Provides
+    @Singleton
+    fun provideOrderRequestDao(db: AppDatabase): OrderRequestDao = db.orderRequestDao()
 }

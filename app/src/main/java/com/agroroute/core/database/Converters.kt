@@ -5,6 +5,7 @@ import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.OrderStatus
+import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.QuantityUnit
 import com.agroroute.core.model.UserRole
 import com.google.gson.Gson
@@ -37,6 +38,10 @@ class Converters {
     // ── Enum: OrderStatus ──────────────────────────────────────────────────────
     @TypeConverter fun fromOrderStatus(value: OrderStatus): String = value.name
     @TypeConverter fun toOrderStatus(value: String): OrderStatus   = OrderStatus.valueOf(value)
+
+    // ── Enum: OrderRequestStatus ────────────────────────────────────────────────
+    @TypeConverter fun fromOrderRequestStatus(value: OrderRequestStatus): String = value.name
+    @TypeConverter fun toOrderRequestStatus(value: String): OrderRequestStatus   = OrderRequestStatus.valueOf(value)
 
     // ── Enum: QuantityUnit ─────────────────────────────────────────────────────
     @TypeConverter fun fromQuantityUnit(value: QuantityUnit): String = value.name

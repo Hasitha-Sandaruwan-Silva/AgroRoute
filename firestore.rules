@@ -136,6 +136,61 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /order_requests/{requestId} {
+      allow get, list: if signedIn() && (
+        (supplier() && resource.data.supplierId == request.auth.uid)
+        || (farmer() && resource.data.farmerId == request.auth.uid)
+      );
+
+      allow create: if supplier()
+        && request.resource.data.requestId == requestId
+        && request.resource.data.supplierId == request.auth.uid
+        && request.resource.data.status == 'PENDING'
+        && request.resource.data.requestedQuantity > 0
+        && exists(listingPath(request.resource.data.listingId))
+        && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
+        && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
+        && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && request.resource.data.requestedQuantity
+          <= availableStock(get(listingPath(request.resource.data.listingId)).data)
+        && request.resource.data.farmerId
+          == get(listingPath(request.resource.data.listingId)).data.farmerId
+        && request.resource.data.listedPrice
+          == get(listingPath(request.resource.data.listingId)).data.reservePrice;
+
+      allow update: if signedIn()
+        && resource.data.status == 'PENDING'
+        && request.resource.data.requestId == resource.data.requestId
+        && request.resource.data.listingId == resource.data.listingId
+        && request.resource.data.farmerId == resource.data.farmerId
+        && request.resource.data.supplierId == resource.data.supplierId
+        && request.resource.data.requestedQuantity == resource.data.requestedQuantity
+        && request.resource.data.listedPrice == resource.data.listedPrice
+        && request.resource.data.cropName == resource.data.cropName
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && (
+          (farmer()
+            && ownsListing(resource.data.listingId)
+            && request.resource.data.status == 'REJECTED')
+          || (supplier()
+            && resource.data.supplierId == request.auth.uid
+            && request.resource.data.status == 'CANCELLED')
+          || (farmer()
+            && ownsListing(resource.data.listingId)
+            && request.resource.data.status == 'ACCEPTED'
+            && existsAfter(/databases/$(database)/documents/orders/$(requestId))
+            && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.orderId == requestId
+            && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.bidId == ''
+            && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.listingId == resource.data.listingId
+            && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.supplierId == resource.data.supplierId
+            && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.farmerId == resource.data.farmerId
+            && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.quantity == resource.data.requestedQuantity
+            && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.agreedPrice == resource.data.listedPrice)
+        );
+
+      allow delete: if false;
+    }
+
     match /orders/{orderId} {
       allow get, list: if signedIn()
         && ((farmer() && resource.data.farmerId == request.auth.uid)
@@ -143,28 +198,54 @@ service cloud.firestore {
 
       allow create: if farmer()
         && request.resource.data.orderId == orderId
-        && request.resource.data.orderId == request.resource.data.bidId
         && request.resource.data.farmerId == request.auth.uid
         && request.resource.data.status == 'AWAITING_PICKUP'
-        && exists(/databases/$(database)/documents/bids/$(request.resource.data.bidId))
-        && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'PENDING'
-        && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.supplierId == request.resource.data.supplierId
-        && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.listingId == request.resource.data.listingId
-        && exists(listingPath(request.resource.data.listingId))
-        && get(listingPath(request.resource.data.listingId)).data.farmerId == request.auth.uid
-        && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
-        && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
-        && publishedListing(get(listingPath(request.resource.data.listingId)).data)
-        && request.resource.data.quantity == availableStock(get(listingPath(request.resource.data.listingId)).data)
-        && request.resource.data.agreedPrice == get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.offerPrice
-        && getAfter(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'ACCEPTED'
-        && getAfter(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.soldQuantity
-          == get(listingPath(request.resource.data.listingId)).data.get('soldQuantity', 0)
-            + request.resource.data.quantity
-        && availableStock(getAfter(listingPath(request.resource.data.listingId)).data)
-          == availableStock(get(listingPath(request.resource.data.listingId)).data)
-            - request.resource.data.quantity
-        && request.resource.data.quantity > 0;
+        && (
+          (request.resource.data.orderId == request.resource.data.bidId
+            && exists(/databases/$(database)/documents/bids/$(request.resource.data.bidId))
+            && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'PENDING'
+            && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.supplierId == request.resource.data.supplierId
+            && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.listingId == request.resource.data.listingId
+            && exists(listingPath(request.resource.data.listingId))
+            && get(listingPath(request.resource.data.listingId)).data.farmerId == request.auth.uid
+            && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
+            && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
+            && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+            && request.resource.data.quantity == availableStock(get(listingPath(request.resource.data.listingId)).data)
+            && request.resource.data.agreedPrice == get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.offerPrice
+            && getAfter(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'ACCEPTED'
+            && getAfter(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.soldQuantity
+              == get(listingPath(request.resource.data.listingId)).data.get('soldQuantity', 0)
+                + request.resource.data.quantity
+            && availableStock(getAfter(listingPath(request.resource.data.listingId)).data)
+              == availableStock(get(listingPath(request.resource.data.listingId)).data)
+                - request.resource.data.quantity
+            && request.resource.data.quantity > 0)
+          || (request.resource.data.bidId == ''
+            && exists(/databases/$(database)/documents/order_requests/$(orderId))
+            && get(/databases/$(database)/documents/order_requests/$(orderId)).data.status == 'PENDING'
+            && get(/databases/$(database)/documents/order_requests/$(orderId)).data.requestId == orderId
+            && get(/databases/$(database)/documents/order_requests/$(orderId)).data.farmerId == request.auth.uid
+            && get(/databases/$(database)/documents/order_requests/$(orderId)).data.listingId == request.resource.data.listingId
+            && get(/databases/$(database)/documents/order_requests/$(orderId)).data.supplierId == request.resource.data.supplierId
+            && get(/databases/$(database)/documents/order_requests/$(orderId)).data.requestedQuantity == request.resource.data.quantity
+            && get(/databases/$(database)/documents/order_requests/$(orderId)).data.listedPrice == request.resource.data.agreedPrice
+            && exists(listingPath(request.resource.data.listingId))
+            && get(listingPath(request.resource.data.listingId)).data.farmerId == request.auth.uid
+            && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
+            && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
+            && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+            && request.resource.data.quantity > 0
+            && request.resource.data.quantity
+              <= availableStock(get(listingPath(request.resource.data.listingId)).data)
+            && getAfter(/databases/$(database)/documents/order_requests/$(orderId)).data.status == 'ACCEPTED'
+            && getAfter(listingPath(request.resource.data.listingId)).data.soldQuantity
+              == get(listingPath(request.resource.data.listingId)).data.get('soldQuantity', 0)
+                + request.resource.data.quantity
+            && availableStock(getAfter(listingPath(request.resource.data.listingId)).data)
+              == availableStock(get(listingPath(request.resource.data.listingId)).data)
+                - request.resource.data.quantity)
+        );
 
       allow update: if signedIn()
         && ((farmer() && resource.data.farmerId == request.auth.uid)

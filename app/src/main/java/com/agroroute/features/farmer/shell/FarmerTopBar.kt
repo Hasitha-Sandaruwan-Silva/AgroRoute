@@ -615,7 +615,8 @@ internal val farmerRoutes = setOf(
     Screen.CreateListing.route,
     Screen.EditListing.route,
     Screen.ViewBids.route,
-    Screen.FarmerOrderDetail.route
+    Screen.FarmerOrderDetail.route,
+    Screen.FarmerOrderRequests.route
 )
 
 internal fun farmerTitle(route: String): String = when {
@@ -624,6 +625,7 @@ internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerBids.route -> "Bids"
     route == Screen.HarvestCalendar.route -> "Harvest Calendar"
     route == Screen.FarmerOrders.route -> "Orders"
+    route == Screen.FarmerOrderRequests.route -> "Order Requests"
     route == Screen.FarmerProfile.route -> "Profile"
     route == Screen.CreateListing.route -> "Create Listing"
     route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Edit Listing"
@@ -638,6 +640,7 @@ private fun farmerSubtitle(route: String): String? = when {
     route == Screen.FarmerBids.route -> "Incoming supplier offers"
     route == Screen.HarvestCalendar.route -> "Upcoming harvest dates"
     route == Screen.FarmerOrders.route -> "Pickups & deliveries"
+    route == Screen.FarmerOrderRequests.route -> "Direct order requests"
     route == Screen.FarmerProfile.route -> "Account settings"
     route == Screen.CreateListing.route -> "Publish produce"
     route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Update listing details"

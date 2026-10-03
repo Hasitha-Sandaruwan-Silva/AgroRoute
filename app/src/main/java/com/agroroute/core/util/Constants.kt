@@ -6,10 +6,11 @@ package com.agroroute.core.util
 object Constants {
 
     // ── Firestore collection names ─────────────────────────────────────────────
-    const val COLLECTION_USERS     = "users"
-    const val COLLECTION_LISTINGS  = "listings"
-    const val COLLECTION_BIDS      = "bids"
-    const val COLLECTION_ORDERS    = "orders"
+    const val COLLECTION_USERS         = "users"
+    const val COLLECTION_LISTINGS      = "listings"
+    const val COLLECTION_BIDS          = "bids"
+    const val COLLECTION_ORDERS        = "orders"
+    const val COLLECTION_ORDER_REQUESTS = "order_requests"
 
     // ── Firebase Storage paths ─────────────────────────────────────────────────
     const val STORAGE_LISTING_IMAGES = "listing_images"
@@ -17,7 +18,7 @@ object Constants {
 
     // ── Room database ──────────────────────────────────────────────────────────
     const val DATABASE_NAME    = "agroroute_db"
-    const val DATABASE_VERSION = 3
+    const val DATABASE_VERSION = 4
 
     // ── Navigation argument keys ───────────────────────────────────────────────
     const val ARG_LISTING_ID = "listingId"

@@ -19,7 +19,8 @@ class FarmerNavigationTest {
                 Screen.CreateListing.route,
                 Screen.MyListings.route,
                 Screen.FarmerOrders.route,
-                Screen.HarvestCalendar.route
+                Screen.HarvestCalendar.route,
+                Screen.FarmerOrderRequests.route
             ),
             homeRoutes
         )

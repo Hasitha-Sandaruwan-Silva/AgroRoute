@@ -36,12 +36,14 @@ import com.agroroute.features.farmer.listing.CreateListingScreen
 import com.agroroute.features.farmer.listing.MyListingsScreen
 import com.agroroute.features.farmer.orders.FarmerOrderDetailScreen
 import com.agroroute.features.farmer.orders.FarmerOrdersScreen
+import com.agroroute.features.farmer.orderrequests.FarmerOrderRequestsScreen
 import com.agroroute.features.farmer.profile.FarmerProfileScreen
 import com.agroroute.features.farmer.shell.FarmerScaffold
 import com.agroroute.features.farmer.shell.farmerRoutes
 import com.agroroute.features.supplier.home.SupplierHomeScreen
 import com.agroroute.features.supplier.bidding.PlaceBidScreen
 import com.agroroute.features.supplier.marketplace.BrowseListingsScreen
+import com.agroroute.features.supplier.orderrequest.PlaceOrderRequestScreen
 import com.agroroute.features.supplier.orders.SupplierOrderDetailScreen
 import com.agroroute.features.supplier.orders.SupplierOrdersScreen
 import com.agroroute.features.supplier.profile.SupplierProfileScreen
@@ -199,6 +201,10 @@ fun NavGraph(
                     FarmerOrdersScreen(navController = navController)
                 }
 
+                composable(Screen.FarmerOrderRequests.route) {
+                    FarmerOrderRequestsScreen(navController = navController)
+                }
+
                 composable(
                     route = Screen.FarmerOrderDetail.route,
                     arguments = listOf(navArgument(Constants.ARG_ORDER_ID) { type = NavType.StringType })
@@ -217,6 +223,14 @@ fun NavGraph(
                 ) { backStackEntry ->
                     val listingId = backStackEntry.arguments?.getString(Constants.ARG_LISTING_ID) ?: return@composable
                     PlaceBidScreen(listingId = listingId, navController = navController)
+                }
+
+                composable(
+                    route = Screen.PlaceOrderRequest.route,
+                    arguments = listOf(navArgument(Constants.ARG_LISTING_ID) { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val listingId = backStackEntry.arguments?.getString(Constants.ARG_LISTING_ID) ?: return@composable
+                    PlaceOrderRequestScreen(listingId = listingId, navController = navController)
                 }
 
                 composable(Screen.SupplierOrders.route) {

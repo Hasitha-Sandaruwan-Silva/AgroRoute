@@ -29,19 +29,23 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Order
+import com.agroroute.core.model.OrderRequest
+import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
+import com.agroroute.core.widgets.OrderRequestStatusChip
 import com.agroroute.core.widgets.OrderStatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Screen showing the current status and timeline of orders for the supplier user.
+ * Screen showing the supplier's pending order requests, rejected requests,
+ * and confirmed orders.
  */
 @Composable
 fun SupplierOrdersScreen(
@@ -57,30 +61,74 @@ fun SupplierOrdersScreen(
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
+    val pendingRequests = uiState.requests.filter { it.status == OrderRequestStatus.PENDING }
+    val rejectedRequests = uiState.requests.filter { it.status == OrderRequestStatus.REJECTED }
+    val isEmpty = uiState.requests.isEmpty() && uiState.orders.isEmpty()
+
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
             when {
-                uiState.isLoading && uiState.orders.isEmpty() -> ListSkeleton()
-                uiState.orders.isEmpty() -> Box(
+                uiState.isLoading && isEmpty -> ListSkeleton()
+                isEmpty -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
                         icon = Lucide.Receipt,
                         title = "No Orders Yet",
-                        subtitle = "Your order history will appear here"
+                        subtitle = "Your order requests and order history will appear here"
                     )
                 }
                 else -> LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (uiState.requests.isNotEmpty()) {
+                        item {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = "Order requests",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${pendingRequests.size} pending",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 3.dp)
+                                )
+                            }
+                        }
+                        items(pendingRequests, key = { "req-${it.requestId}" }) { request ->
+                            OrderRequestCard(
+                                request = request,
+                                onCancel = { viewModel.cancelRequest(request.requestId) }
+                            )
+                        }
+                        if (rejectedRequests.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Rejected requests",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            items(rejectedRequests, key = { "req-${it.requestId}" }) { request ->
+                                OrderRequestCard(
+                                    request = request,
+                                    onCancel = null
+                                )
+                            }
+                        }
+                    }
                     item {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Your orders",
                                 style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = if (uiState.requests.isEmpty()) 0.dp else 8.dp)
                             )
                             Text(
                                 text = if (uiState.orders.size == 1) "1 order" else "${uiState.orders.size} orders",
@@ -90,7 +138,7 @@ fun SupplierOrdersScreen(
                             )
                         }
                     }
-                    items(uiState.orders) { order ->
+                    items(uiState.orders, key = { "order-${it.orderId}" }) { order ->
                         OrderCard(
                             order = order,
                             onCardClick = {
@@ -104,6 +152,54 @@ fun SupplierOrdersScreen(
                 snackbarHostState = snackbarHostState,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
+        }
+    }
+}
+
+@Composable
+private fun OrderRequestCard(
+    request: OrderRequest,
+    onCancel: (() -> Unit)?
+) {
+    AppCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = request.cropName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            OrderRequestStatusChip(request.status)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Quantity: ${request.requestedQuantity} ${request.quantityUnit.name}",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = "Listed price: Rs. ${request.listedPrice}/${request.quantityUnit.name}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = "Farmer: ${request.farmerName.ifBlank { "Name unavailable" }}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Requested ${formatDate(request.createdAt)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (request.status == OrderRequestStatus.PENDING && onCancel != null) {
+            TextButton(onClick = onCancel, modifier = Modifier.align(Alignment.End)) {
+                Text("Cancel request")
+            }
         }
     }
 }

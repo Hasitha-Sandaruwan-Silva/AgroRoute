@@ -3,9 +3,11 @@ package com.agroroute.features.supplier.orders
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.Order
+import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.usecase.GetOrdersUseCase
 import com.agroroute.core.repository.OrderRepository
+import com.agroroute.core.repository.OrderRequestRepository
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.NetworkConnectivityMonitor
 import com.agroroute.core.util.Result
@@ -17,6 +19,7 @@ import javax.inject.Inject
 /** UI state for supplier order screens. */
 data class SupplierOrderUiState(
     val orders: List<Order> = emptyList(),
+    val requests: List<OrderRequest> = emptyList(),
     val selectedOrder: Order? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -30,6 +33,7 @@ data class SupplierOrderUiState(
 class SupplierOrderViewModel @Inject constructor(
     private val getOrdersUseCase: GetOrdersUseCase,
     private val orderRepository: OrderRepository,
+    private val orderRequestRepository: OrderRequestRepository,
     private val authRepository: AuthRepository,
     networkConnectivityMonitor: NetworkConnectivityMonitor
 ) : ViewModel() {
@@ -83,6 +87,35 @@ class SupplierOrderViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        viewModelScope.launch {
+            when (val sync = orderRequestRepository.syncRequestsForUser(supplierId)) {
+                is Result.Error -> _uiState.update { it.copy(error = sync.message) }
+                else -> Unit
+            }
+        }
+        orderRequestRepository.getRequestsForSupplier(supplierId)
+            .onEach { result ->
+                when (result) {
+                    is Result.Loading -> _uiState.update { it.copy(isLoading = true) }
+                    is Result.Success -> _uiState.update {
+                        it.copy(isLoading = false, requests = result.data.sortedByDescending { r -> r.createdAt })
+                    }
+                    is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun cancelRequest(requestId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = orderRequestRepository.cancelRequest(requestId)) {
+                is Result.Success -> _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> Unit
+            }
+        }
     }
 
     fun updateOrderStatus(orderId: String, status: OrderStatus) {

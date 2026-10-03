@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.acceptsNewBids
+import com.agroroute.core.model.acceptsDirectOrders
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.util.HarvestAvailabilityDate
@@ -192,8 +193,13 @@ fun BrowseListingsScreen(
                         MarketplaceListingCard(
                             listing = listing,
                             canPlaceBid = listing.acceptsNewBids(),
+                            canRequestOrder = listing.acceptsDirectOrders(),
                             onCardClick = {
-                                navController.navigate(Screen.PlaceBid.createRoute(listing.listingId))
+                                if (listing.acceptsNewBids()) {
+                                    navController.navigate(Screen.PlaceBid.createRoute(listing.listingId))
+                                } else if (listing.acceptsDirectOrders()) {
+                                    navController.navigate(Screen.PlaceOrderRequest.createRoute(listing.listingId))
+                                }
                             }
                         )
                     }
@@ -211,9 +217,10 @@ fun BrowseListingsScreen(
 private fun MarketplaceListingCard(
     listing: HarvestListing,
     canPlaceBid: Boolean,
+    canRequestOrder: Boolean,
     onCardClick: () -> Unit
 ) {
-    AppCard(onClick = onCardClick.takeIf { canPlaceBid }) {
+    AppCard(onClick = onCardClick.takeIf { canPlaceBid || canRequestOrder }) {
         ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
         Spacer(Modifier.height(14.dp))
         Row(
@@ -230,10 +237,11 @@ private fun MarketplaceListingCard(
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.padding(horizontal = 4.dp))
-            StatusChip(
-                label = if (canPlaceBid) "Bidding open" else "Bidding paused",
-                tone = if (canPlaceBid) ChipTone.Success else ChipTone.Neutral
-            )
+            when {
+                canPlaceBid -> StatusChip(label = "Bidding open", tone = ChipTone.Success)
+                canRequestOrder -> StatusChip(label = "Fixed price", tone = ChipTone.Success)
+                else -> StatusChip(label = "Unavailable", tone = ChipTone.Neutral)
+            }
         }
         Text(
             text = "by ${listing.farmerName}",
@@ -320,6 +328,13 @@ private fun MarketplaceListingCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("View listing and place bid")
+            }
+        } else if (canRequestOrder) {
+            TextButton(
+                onClick = onCardClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("View listing and request order")
             }
         }
     }

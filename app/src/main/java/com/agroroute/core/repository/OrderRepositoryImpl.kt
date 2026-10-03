@@ -3,9 +3,12 @@ package com.agroroute.core.repository
 import com.agroroute.core.database.OrderDao
 import com.agroroute.core.database.BidDao
 import com.agroroute.core.database.HarvestListingDao
+import com.agroroute.core.database.OrderRequestDao
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.OrderRequest
+import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.recordSale
 import com.agroroute.core.model.ListingStatus
@@ -36,6 +39,7 @@ class OrderRepositoryImpl @Inject constructor(
     @PublishedApi internal val firestoreService: FirestoreService,
     private val bidDao: BidDao,
     private val listingDao: HarvestListingDao,
+    private val orderRequestDao: OrderRequestDao,
     private val authRepository: AuthRepository
 ) : OrderRepository {
 
@@ -99,6 +103,63 @@ class OrderRepositoryImpl @Inject constructor(
         listingDao.upsertListing(updatedRecords.first)
         bidDao.upsertBid(updatedRecords.second)
         dao.upsertOrder(order)
+    }
+
+    override suspend fun acceptOrderRequestAndCreateOrder(requestId: String): Result<Unit> = safeCall {
+        val userId = authRepository.currentUserId ?: error("Sign in as the listing's Farmer to accept this request")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == userId) {
+            "Only the listing's Farmer can accept this order request"
+        }
+        val firestore = firestoreService.firestore
+        val requestRef = firestore.collection(Constants.COLLECTION_ORDER_REQUESTS).document(requestId)
+        val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS)
+        val orderRef = firestore.collection(Constants.COLLECTION_ORDERS).document(requestId)
+
+        val updatedRecords = firestoreService.runTransaction<Triple<HarvestListing, Order, OrderRequest>> { transaction ->
+            val request = transaction.get(requestRef).toObject(OrderRequest::class.java)
+                ?: error("Order request $requestId not found")
+            check(request.farmerId == userId) { "Only the listing's Farmer can accept this order request" }
+            check(request.status == OrderRequestStatus.PENDING) { "This order request is no longer pending" }
+
+            val listingDoc = listingRef.document(request.listingId)
+            val listing = transaction.get(listingDoc).toObject(HarvestListing::class.java)
+                ?: error("Listing ${request.listingId} not found")
+            check(listing.farmerId == userId) { "Only the listing's Farmer can accept this order request" }
+            check(listing.status == ListingStatus.OPEN && !listing.isDraft && !listing.biddingEnabled) {
+                "This listing is not accepting direct order requests"
+            }
+            check(request.requestedQuantity > 0.0 && request.requestedQuantity <= listing.availableStock()) {
+                "Insufficient listing stock for this order request"
+            }
+
+            val order = Order(
+                orderId = request.requestId,
+                listingId = request.listingId,
+                bidId = "",
+                farmerId = request.farmerId,
+                supplierId = request.supplierId,
+                cropName = listing.cropName,
+                quantity = request.requestedQuantity,
+                quantityUnit = listing.quantityUnit,
+                agreedPrice = request.listedPrice,
+                status = OrderStatus.AWAITING_PICKUP,
+                pickupLocation = listing.location
+            )
+            val updatedListing = listing.recordSale(request.requestedQuantity)
+            val updatedRequest = request.copy(
+                status = OrderRequestStatus.ACCEPTED,
+                updatedAt = System.currentTimeMillis()
+            )
+            transaction.set(listingDoc, updatedListing)
+            transaction.set(orderRef, order)
+            transaction.set(requestRef, updatedRequest)
+            Triple(updatedListing, order, updatedRequest)
+        }
+
+        listingDao.upsertListing(updatedRecords.first)
+        dao.upsertOrder(updatedRecords.second)
+        orderRequestDao.upsertRequest(updatedRecords.third)
     }
 
     override suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> = safeCall {

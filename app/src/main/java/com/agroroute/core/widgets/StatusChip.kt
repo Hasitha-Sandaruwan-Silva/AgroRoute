@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.ListingStatus
+import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.theme.AccentAmber
 import com.agroroute.core.theme.GreenDeep
@@ -69,6 +70,17 @@ fun OrderStatusChip(status: OrderStatus, modifier: Modifier = Modifier) {
         OrderStatus.IN_TRANSIT -> "In Transit" to ChipTone.Warning
         OrderStatus.DELIVERED -> "Delivered" to ChipTone.Success
         OrderStatus.CANCELLED -> "Cancelled" to ChipTone.Error
+    }
+    StatusChip(label = label, tone = tone, modifier = modifier)
+}
+
+@Composable
+fun OrderRequestStatusChip(status: OrderRequestStatus, modifier: Modifier = Modifier) {
+    val (label, tone) = when (status) {
+        OrderRequestStatus.PENDING -> "Pending" to ChipTone.Warning
+        OrderRequestStatus.ACCEPTED -> "Accepted" to ChipTone.Success
+        OrderRequestStatus.REJECTED -> "Rejected" to ChipTone.Error
+        OrderRequestStatus.CANCELLED -> "Cancelled" to ChipTone.Neutral
     }
     StatusChip(label = label, tone = tone, modifier = modifier)
 }

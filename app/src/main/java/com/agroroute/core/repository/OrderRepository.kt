@@ -25,6 +25,9 @@ interface OrderRepository {
     /** Atomically accepts a bid, consumes listing stock, and creates its order. */
     suspend fun acceptBidAndCreateOrder(order: Order): Result<Unit>
 
+    /** Atomically accepts an order request, consumes listing stock, and creates its order. */
+    suspend fun acceptOrderRequestAndCreateOrder(requestId: String): Result<Unit>
+
     /** Updates the [OrderStatus] for an existing order. */
     suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit>
 

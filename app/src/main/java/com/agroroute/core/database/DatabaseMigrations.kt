@@ -19,4 +19,30 @@ object DatabaseMigrations {
             database.execSQL("ALTER TABLE harvest_listings ADD COLUMN isDraft INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("""
+                CREATE TABLE IF NOT EXISTS order_requests (
+                    requestId TEXT PRIMARY KEY NOT NULL,
+                    listingId TEXT NOT NULL,
+                    farmerId TEXT NOT NULL,
+                    farmerName TEXT NOT NULL,
+                    supplierId TEXT NOT NULL,
+                    supplierName TEXT NOT NULL,
+                    cropName TEXT NOT NULL,
+                    requestedQuantity REAL NOT NULL,
+                    quantityUnit TEXT NOT NULL,
+                    listedPrice REAL NOT NULL,
+                    status TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+            """.trimIndent())
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_order_requests_listingId ON order_requests(listingId)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_order_requests_supplierId ON order_requests(supplierId)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_order_requests_farmerId ON order_requests(farmerId)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_order_requests_status ON order_requests(status)")
+        }
+    }
 }
