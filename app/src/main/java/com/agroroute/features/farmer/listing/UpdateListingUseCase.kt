@@ -2,6 +2,7 @@ package com.agroroute.features.farmer.listing
 
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.BidRepository
@@ -30,6 +31,14 @@ class UpdateListingUseCase @Inject constructor(
         if (listing.category == null) return Result.Error("Harvest category is required")
         if (listing.quantity <= 0.0) return Result.Error("Quantity must be greater than zero")
         if (listing.reservePrice < 0.0) return Result.Error("Reserve price cannot be negative")
+        if (listing.harvestStatus == HarvestStatus.EXPECTED) {
+            if (listing.expectedHarvestAt == null) {
+                return Result.Error("An estimated harvest date is required")
+            }
+            if ((listing.estimatedQuantity ?: listing.quantity) <= 0.0) {
+                return Result.Error("Estimated quantity must be greater than zero")
+            }
+        }
 
         val current = listingRepository.getListingById(listing.listingId).first().getOrNull()
             ?: return Result.Error("Listing not found")

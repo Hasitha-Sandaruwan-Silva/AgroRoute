@@ -2,10 +2,13 @@ package com.agroroute.core.repository
 
 import com.agroroute.core.database.OrderRequestDao
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
+import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -65,14 +68,26 @@ class OrderRequestRepositoryImpl @Inject constructor(
         firestoreService.runTransaction<Unit> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
                 ?: error("Listing ${pendingRequest.listingId} not found")
-            check(listing.status == com.agroroute.core.model.ListingStatus.OPEN && !listing.isDraft) {
+            check(listing.status == ListingStatus.OPEN && !listing.isDraft) {
                 "This listing is not available"
             }
             check(!listing.biddingEnabled) {
                 "This listing uses bidding; use the Place Bid flow instead"
             }
-            check(pendingRequest.requestedQuantity > 0.0 && pendingRequest.requestedQuantity <= listing.availableStock()) {
-                "Requested quantity must be greater than zero and not exceed available stock"
+            if (pendingRequest.isPreHarvest) {
+                // Pre-harvest request on an expected (future-harvest) listing: an estimate only.
+                // It must not reserve stock or create an order.
+                check(listing.harvestStatus == HarvestStatus.EXPECTED) {
+                    "This listing is not an expected (future-harvest) listing"
+                }
+                check(pendingRequest.requestedQuantity > 0.0 &&
+                    pendingRequest.requestedQuantity <= listing.estimatedAvailable()) {
+                    "Requested quantity must be greater than zero and not exceed the estimated quantity"
+                }
+            } else {
+                check(pendingRequest.requestedQuantity > 0.0 && pendingRequest.requestedQuantity <= listing.availableStock()) {
+                    "Requested quantity must be greater than zero and not exceed available stock"
+                }
             }
             transaction.set(requestRef, pendingRequest)
         }

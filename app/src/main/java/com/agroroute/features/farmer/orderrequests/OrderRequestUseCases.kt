@@ -1,5 +1,6 @@
 package com.agroroute.features.farmer.orderrequests
 
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.UserRole
@@ -48,6 +49,15 @@ class AcceptOrderRequestUseCase @Inject constructor(
         } ?: return Result.Error("Listing not found")
         if (listing.farmerId != farmerId) {
             return Result.Error("Only the listing's Farmer can accept this order request")
+        }
+        if (listing.harvestStatus != HarvestStatus.READY) {
+            return Result.Error(
+                if (listing.harvestStatus == HarvestStatus.FAILED) {
+                    "This harvest is unavailable, so the request cannot be accepted"
+                } else {
+                    "Mark this harvest ready and enter the actual quantity before accepting requests"
+                }
+            )
         }
 
         return orderRepository.acceptOrderRequestAndCreateOrder(request.requestId)

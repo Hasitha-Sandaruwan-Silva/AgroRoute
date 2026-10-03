@@ -46,6 +46,17 @@ service cloud.firestore {
         : data.quantity - data.get('soldQuantity', 0);
     }
 
+    // True if the listing is an expected (future-harvest) listing.
+    function isExpectedHarvest(data) {
+      return data.get('harvestStatus', 'READY') == 'EXPECTED';
+    }
+
+    // Estimated quantity for pre-harvest listings. Falls back to quantity if not set.
+    function estimatedQty(data) {
+      let est = data.get('estimatedQuantity', null);
+      return est is number && est > 0 ? est : data.quantity;
+    }
+
     match /users/{userId} {
       allow get: if signedIn() && request.auth.uid == userId;
       allow list: if false;
@@ -76,8 +87,11 @@ service cloud.firestore {
         && request.resource.data.status == 'OPEN'
         && request.resource.data.get('isDraft', false) == false
         && request.resource.data.biddingEnabled is bool
-
-        && availableStock(request.resource.data) > 0;
+        // Expected (future-harvest) listings start with zero actual stock — allow them when
+        // estimatedQuantity is positive.  All other listings need real available stock.
+        && (isExpectedHarvest(request.resource.data)
+          ? estimatedQty(request.resource.data) > 0
+          : availableStock(request.resource.data) > 0);
 
       allow update: if farmer()
         && resource.data.farmerId == request.auth.uid
@@ -86,11 +100,15 @@ service cloud.firestore {
         && request.resource.data.get('isDraft', false) == false
         && (request.resource.data.get('biddingEnabled', false) == false
           || (request.resource.data.status == 'OPEN'
-            && availableStock(request.resource.data) > 0))
+            && (isExpectedHarvest(request.resource.data)
+              ? estimatedQty(request.resource.data) > 0
+              : availableStock(request.resource.data) > 0)))
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'cropName', 'description', 'quantity', 'quantityUnit', 'reservePrice', 'imageUrls',
           'location', 'status', 'biddingEnabled', 'category', 'expectedHarvestAt',
-          'qualityGrade', 'availableQuantity', 'soldQuantity', 'expiresAt'
+          'qualityGrade', 'availableQuantity', 'soldQuantity', 'expiresAt',
+          // Harvest lifecycle fields — needed for mark-ready / mark-failed / estimate updates.
+          'harvestStatus', 'estimatedQuantity', 'harvestFailureReason', 'harvestUpdatedAt'
         ]);
 
       allow delete: if farmer() && resource.data.farmerId == request.auth.uid;
@@ -151,12 +169,18 @@ service cloud.firestore {
         && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
         && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
         && publishedListing(get(listingPath(request.resource.data.listingId)).data)
-        && request.resource.data.requestedQuantity
-          <= availableStock(get(listingPath(request.resource.data.listingId)).data)
         && request.resource.data.farmerId
           == get(listingPath(request.resource.data.listingId)).data.farmerId
         && request.resource.data.listedPrice
-          == get(listingPath(request.resource.data.listingId)).data.reservePrice;
+          == get(listingPath(request.resource.data.listingId)).data.reservePrice
+        // Pre-harvest: quantity must not exceed the farmer's stated estimate.
+        // Ready (normal): quantity must not exceed actual available stock.
+        && (isExpectedHarvest(get(listingPath(request.resource.data.listingId)).data)
+          ? (request.resource.data.get('isPreHarvest', false) == true
+            && request.resource.data.requestedQuantity
+              <= estimatedQty(get(listingPath(request.resource.data.listingId)).data))
+          : request.resource.data.requestedQuantity
+            <= availableStock(get(listingPath(request.resource.data.listingId)).data));
 
       allow update: if signedIn()
         && resource.data.status == 'PENDING'
@@ -174,6 +198,11 @@ service cloud.firestore {
             && request.resource.data.status == 'REJECTED')
           || (supplier()
             && resource.data.supplierId == request.auth.uid
+            && request.resource.data.status == 'CANCELLED')
+          // Farmer cancels a pre-harvest request atomically when marking the harvest failed.
+          || (farmer()
+            && resource.data.farmerId == request.auth.uid
+            && resource.data.get('isPreHarvest', false) == true
             && request.resource.data.status == 'CANCELLED')
           || (farmer()
             && ownsListing(resource.data.listingId)
@@ -235,6 +264,8 @@ service cloud.firestore {
             && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
             && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
             && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+            // The harvest must be READY (confirmed) before an order can be created from a request.
+            && get(listingPath(request.resource.data.listingId)).data.get('harvestStatus', 'READY') == 'READY'
             && request.resource.data.quantity > 0
             && request.resource.data.quantity
               <= availableStock(get(listingPath(request.resource.data.listingId)).data)

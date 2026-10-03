@@ -42,4 +42,12 @@ interface HarvestListingRepository {
 
     /** Toggles the [HarvestListing.biddingEnabled] flag for the given listing. */
     suspend fun toggleBiddingMode(listingId: String, enabled: Boolean): Result<Unit>
+
+    /** Marks an expected harvest as ready, recording the actual available quantity. */
+    suspend fun markHarvestReady(listingId: String, actualQuantity: Double): Result<Unit> =
+        Result.Error("Marking a harvest ready is not supported here")
+
+    /** Marks a harvest as failed/unavailable, stopping new purchase requests. */
+    suspend fun markHarvestFailed(listingId: String, reason: String?): Result<Unit> =
+        Result.Error("Marking a harvest failed is not supported here")
 }

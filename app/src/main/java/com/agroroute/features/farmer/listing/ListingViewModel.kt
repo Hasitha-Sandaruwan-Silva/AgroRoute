@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.repository.ListingPhotoStorageException
 import com.agroroute.core.remote.NetworkConnectivityMonitor
 import com.agroroute.core.util.Result
@@ -44,6 +45,7 @@ class ListingViewModel @Inject constructor(
     private val scheduleHarvestReminderUseCase: ScheduleHarvestReminderUseCase,
     private val closeListingUseCase: CloseListingUseCase,
     private val authRepository: AuthRepository,
+    private val listingRepository: HarvestListingRepository,
     networkConnectivityMonitor: NetworkConnectivityMonitor
 ) : ViewModel() {
 
@@ -226,6 +228,27 @@ class ListingViewModel @Inject constructor(
     fun closeListing(listing: HarvestListing) {
         viewModelScope.launch {
             when (val result = closeListingUseCase(listing)) {
+                is Result.Error -> _uiState.update { it.copy(error = result.message) }
+                else -> Unit
+            }
+        }
+    }
+
+    /** Marks an expected harvest as ready with the actual available quantity. */
+    fun markHarvestReady(listingId: String, actualQuantity: Double) {
+        viewModelScope.launch {
+            when (val result = listingRepository.markHarvestReady(listingId, actualQuantity)) {
+                is Result.Error -> _uiState.update { it.copy(error = result.message) }
+                else -> Unit
+            }
+        }
+    }
+
+    /** Marks an expected harvest as failed/unavailable; the repository cancels pending
+     *  pre-harvest requests without touching stock or creating orders. */
+    fun markHarvestFailed(listingId: String, reason: String?) {
+        viewModelScope.launch {
+            when (val result = listingRepository.markHarvestFailed(listingId, reason)) {
                 is Result.Error -> _uiState.update { it.copy(error = result.message) }
                 else -> Unit
             }

@@ -37,9 +37,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.acceptsDirectOrders
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
@@ -220,6 +222,7 @@ private fun MarketplaceListingCard(
     canRequestOrder: Boolean,
     onCardClick: () -> Unit
 ) {
+    val isExpected = listing.harvestStatus == HarvestStatus.EXPECTED
     AppCard(onClick = onCardClick.takeIf { canPlaceBid || canRequestOrder }) {
         ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
         Spacer(Modifier.height(14.dp))
@@ -251,6 +254,9 @@ private fun MarketplaceListingCard(
         )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (isExpected) {
+                StatusChip(label = "Expected harvest", tone = ChipTone.Tertiary)
+            }
             listing.category?.let { category ->
                 StatusChip(label = category.displayName, tone = ChipTone.Secondary)
             }
@@ -260,7 +266,11 @@ private fun MarketplaceListingCard(
         }
         listing.expectedHarvestAt?.let { harvestAt ->
             Text(
-                text = "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}",
+                text = if (isExpected) {
+                    "Expected harvest: ${HarvestAvailabilityDate.format(harvestAt)} (estimate)"
+                } else {
+                    "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -273,9 +283,17 @@ private fun MarketplaceListingCard(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
             ) {
                 Column(modifier = Modifier.padding(11.dp)) {
-                    Text("Available", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "${listing.availableStock()} ${listing.quantityUnit.name}",
+                        text = if (isExpected) "Estimated qty (estimate)" else "Available",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (isExpected) {
+                            "${listing.estimatedAvailable()} ${listing.quantityUnit.name}"
+                        } else {
+                            "${listing.availableStock()} ${listing.quantityUnit.name}"
+                        },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2

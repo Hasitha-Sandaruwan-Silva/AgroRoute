@@ -26,6 +26,17 @@ enum class ListingCategory(val displayName: String) {
     INORGANIC("Inorganic")
 }
 
+/**
+ * Tracks whether a listing's harvest is already available (READY) or only
+ * expected in the future (EXPECTED). FAILED marks a harvest that was lost.
+ * READY is the default so existing listings keep behaving as before.
+ */
+enum class HarvestStatus {
+    EXPECTED,
+    READY,
+    FAILED
+}
+
 /** Lifecycle status of a [Bid] placed by a supplier. */
 enum class BidStatus {
     PENDING,

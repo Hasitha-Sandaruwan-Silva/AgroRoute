@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -38,13 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
@@ -82,6 +86,8 @@ fun MyListingsScreen(
     var selectedSort by remember { mutableStateOf(ListingSort.NEWEST) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var listingPendingClosure by remember { mutableStateOf<HarvestListing?>(null) }
+    var listingPendingReady by remember { mutableStateOf<HarvestListing?>(null) }
+    var listingPendingFailure by remember { mutableStateOf<HarvestListing?>(null) }
 
     val publishedListings = remember(uiState.listings) { uiState.listings.filterNot { it.isDraft } }
     val visibleListings = remember(publishedListings, searchQuery, selectedStatus, selectedSort) {
@@ -126,6 +132,28 @@ fun MyListingsScreen(
                 TextButton(onClick = { listingPendingClosure = null }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    listingPendingReady?.let { listing ->
+        MarkHarvestReadyDialog(
+            listing = listing,
+            onDismiss = { listingPendingReady = null },
+            onConfirm = { actualQuantity ->
+                listingPendingReady = null
+                viewModel.markHarvestReady(listing.listingId, actualQuantity)
+            }
+        )
+    }
+
+    listingPendingFailure?.let { listing ->
+        MarkHarvestFailedDialog(
+            cropName = listing.cropName,
+            onDismiss = { listingPendingFailure = null },
+            onConfirm = { reason ->
+                listingPendingFailure = null
+                viewModel.markHarvestFailed(listing.listingId, reason)
             }
         )
     }
@@ -285,7 +313,9 @@ fun MyListingsScreen(
                                         viewModel.toggleBidding(listing.listingId, enabled)
                                     },
                                     isBiddingUpdating = listing.listingId in uiState.pendingBiddingListingIds,
-                                    onCloseClick = { listingPendingClosure = listing }
+                                    onCloseClick = { listingPendingClosure = listing },
+                                    onMarkReadyClick = { listingPendingReady = listing },
+                                    onMarkFailedClick = { listingPendingFailure = listing }
                                 )
                             }
                         }
@@ -303,7 +333,9 @@ private fun ListingCard(
     onCardClick: () -> Unit,
     onToggleBidding: (Boolean) -> Unit,
     isBiddingUpdating: Boolean,
-    onCloseClick: () -> Unit
+    onCloseClick: () -> Unit,
+    onMarkReadyClick: () -> Unit,
+    onMarkFailedClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
         ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 176.dp)
@@ -320,6 +352,7 @@ private fun ListingCard(
                 modifier = Modifier.weight(1f)
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                HarvestStatusChip(listing.harvestStatus)
                 ListingStatusChip(listing.status)
                 if (listing.status == ListingStatus.OPEN && !listing.biddingEnabled) {
                     StatusChip(label = "Paused", tone = ChipTone.Warning)
@@ -331,13 +364,33 @@ private fun ListingCard(
             StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
             Spacer(Modifier.height(8.dp))
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            StockValue("Original", listing.quantity, listing.quantityUnit.name)
-            StockValue("Available", listing.availableStock(), listing.quantityUnit.name)
-            StockValue("Sold / reserved", listing.soldQuantity, listing.quantityUnit.name)
+        if (listing.harvestStatus == HarvestStatus.EXPECTED) {
+            StockValue("Estimated quantity (estimate)", listing.estimatedAvailable(), listing.quantityUnit.name)
+            Text(
+                text = "Estimates only — the actual quantity is confirmed when you mark the harvest ready.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+        } else if (listing.harvestStatus == HarvestStatus.FAILED) {
+            Text(
+                text = buildString {
+                    append("This harvest is unavailable")
+                    listing.harvestFailureReason?.takeIf(String::isNotBlank)?.let { append(": $it") }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                StockValue("Original", listing.quantity, listing.quantityUnit.name)
+                StockValue("Available", listing.availableStock(), listing.quantityUnit.name)
+                StockValue("Sold / reserved", listing.soldQuantity, listing.quantityUnit.name)
+            }
         }
         Text(
             text = "Reserve: Rs. ${listing.reservePrice} / ${listing.quantityUnit.name}",
@@ -348,7 +401,11 @@ private fun ListingCard(
         )
         listing.expectedHarvestAt?.let { harvestAt ->
             Text(
-                text = HarvestAvailabilityDate.label(harvestAt),
+                text = if (listing.harvestStatus == HarvestStatus.EXPECTED) {
+                    "Estimated harvest date: ${HarvestAvailabilityDate.format(harvestAt)} (estimate)"
+                } else {
+                    HarvestAvailabilityDate.label(harvestAt)
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp)
@@ -357,6 +414,14 @@ private fun ListingCard(
         listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
             Text(
                 text = "Quality: $grade",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        listing.harvestUpdatedAt?.let { updatedAt ->
+            Text(
+                text = "Harvest details last updated ${formatDate(updatedAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -404,6 +469,21 @@ private fun ListingCard(
             Icon(Lucide.FileText, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text("Edit listing")
+        }
+        if (listing.harvestStatus == HarvestStatus.EXPECTED) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onMarkFailedClick) {
+                    Text("Mark harvest failed", color = MaterialTheme.colorScheme.error)
+                }
+                Spacer(Modifier.width(4.dp))
+                TextButton(onClick = onMarkReadyClick) {
+                    Text("Mark ready")
+                }
+            }
         }
         Row(
             modifier = Modifier
@@ -455,6 +535,112 @@ private fun StockValue(label: String, quantity: Double, unit: String) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("$quantity $unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
     }
+}
+
+@Composable
+private fun HarvestStatusChip(harvestStatus: HarvestStatus) {
+    when (harvestStatus) {
+        HarvestStatus.EXPECTED -> StatusChip(label = "Expected harvest", tone = ChipTone.Tertiary)
+        HarvestStatus.FAILED -> StatusChip(label = "Harvest failed", tone = ChipTone.Error)
+        HarvestStatus.READY -> Unit
+    }
+}
+
+@Composable
+private fun MarkHarvestReadyDialog(
+    listing: HarvestListing,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var quantityText by remember {
+        mutableStateOf(
+            listing.estimatedAvailable().takeIf { it > 0.0 }?.let {
+                if (it % 1.0 == 0.0) it.toLong().toString() else it.toString()
+            }.orEmpty()
+        )
+    }
+    val quantity = quantityText.toDoubleOrNull()
+    val isValid = quantity != null && quantity > 0.0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Mark harvest ready?") },
+        text = {
+            Column {
+                Text(
+                    text = "Enter the actual quantity available from the “${listing.cropName}” harvest. " +
+                        "The listing will sell from this amount, replacing the earlier estimate."
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = quantityText,
+                    onValueChange = {
+                        if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantityText = it
+                    },
+                    label = { Text("Actual available quantity") },
+                    supportingText = { Text("In ${listing.quantityUnit.name}.") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    isError = quantityText.isNotEmpty() && !isValid,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = isValid,
+                onClick = { quantity?.let(onConfirm) }
+            ) {
+                Text("Mark ready")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun MarkHarvestFailedDialog(
+    cropName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit
+) {
+    var reason by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Mark harvest as failed?") },
+        text = {
+            Column {
+                Text(
+                    text = "Suppliers will see the “$cropName” harvest as unavailable and pending " +
+                        "pre-harvest requests will be cancelled. No orders are created and no stock changes."
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    label = { Text("Reason (optional)") },
+                    supportingText = { Text("e.g. crop destroyed by weather or pests.") },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(reason.trim().ifBlank { null }) }) {
+                Text("Mark failed", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 private fun ListingStatus.displayLabel(): String = when (this) {

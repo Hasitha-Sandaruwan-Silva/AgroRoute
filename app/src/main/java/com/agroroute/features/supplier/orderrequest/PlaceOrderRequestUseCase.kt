@@ -1,11 +1,13 @@
 package com.agroroute.features.supplier.orderrequest
 
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.model.acceptsDirectOrders
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.util.Result
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
@@ -48,7 +50,12 @@ class PlaceOrderRequestUseCase @Inject constructor(
         if (!listing.acceptsDirectOrders()) {
             return Result.Error("This listing is not available for direct orders")
         }
-        if (request.requestedQuantity > listing.availableStock()) {
+        val isPreHarvest = listing.harvestStatus == HarvestStatus.EXPECTED
+        if (isPreHarvest) {
+            if (request.requestedQuantity > listing.estimatedAvailable()) {
+                return Result.Error("Requested quantity exceeds the estimated quantity")
+            }
+        } else if (request.requestedQuantity > listing.availableStock()) {
             return Result.Error("Requested quantity exceeds available stock")
         }
 
@@ -59,7 +66,8 @@ class PlaceOrderRequestUseCase @Inject constructor(
                 cropName = listing.cropName,
                 quantityUnit = listing.quantityUnit,
                 listedPrice = listing.reservePrice,
-                status = OrderRequestStatus.PENDING
+                status = OrderRequestStatus.PENDING,
+                isPreHarvest = isPreHarvest
             )
         )
     }

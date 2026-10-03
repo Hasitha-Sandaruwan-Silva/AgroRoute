@@ -35,25 +35,91 @@ data class HarvestListing(
     @ColumnInfo(defaultValue = "0.0")
     val soldQuantity: Double = 0.0,
     @ColumnInfo(defaultValue = "0")
-    val isDraft: Boolean = false
+    val isDraft: Boolean = false,
+    @ColumnInfo(defaultValue = "READY")
+    val harvestStatus: HarvestStatus = HarvestStatus.READY,
+    /** Estimated quantity for an EXPECTED (future-harvest) listing. Always an estimate, never actual stock. */
+    val estimatedQuantity: Double? = null,
+    /** Optional free-text reason recorded when a farmer marks a harvest FAILED. */
+    val harvestFailureReason: String? = null,
+    /** Last time the farmer changed anything harvest-related (estimate, ready, failed). */
+    val harvestUpdatedAt: Long? = null
 )
 
 fun HarvestListing.availableStock(): Double =
     (availableQuantity ?: (quantity - soldQuantity)).coerceAtLeast(0.0)
 
+/** True only when the harvest is confirmed harvested and there is real stock on hand. */
+fun HarvestListing.hasConfirmedStock(): Boolean =
+    harvestStatus == HarvestStatus.READY && availableStock() > 0.0
+
+/** True when the listing may appear in the supplier marketplace. */
 fun HarvestListing.isEligibleForMarketplace(): Boolean =
-    status == ListingStatus.OPEN && !isDraft && availableStock() > 0.0
+    status == ListingStatus.OPEN && !isDraft &&
+        (hasConfirmedStock() || harvestStatus == HarvestStatus.EXPECTED)
 
 fun HarvestListing.acceptsNewBids(): Boolean =
-    status == ListingStatus.OPEN && biddingEnabled && !isDraft && availableStock() > 0.0
+    status == ListingStatus.OPEN && biddingEnabled && !isDraft &&
+        (hasConfirmedStock() || harvestStatus == HarvestStatus.EXPECTED)
 
 fun HarvestListing.acceptsDirectOrders(): Boolean =
-    status == ListingStatus.OPEN && !biddingEnabled && !isDraft && availableStock() > 0.0
+    status == ListingStatus.OPEN && !biddingEnabled && !isDraft &&
+        (hasConfirmedStock() || harvestStatus == HarvestStatus.EXPECTED)
+
+/** Max quantity a pre-harvest (EXPECTED) request may ask for — the farmer's estimate. */
+fun HarvestListing.estimatedAvailable(): Double =
+    (estimatedQuantity ?: quantity).coerceAtLeast(0.0)
+
+/** Marks the harvest as ready for sale with the actual, measured available quantity. */
+fun HarvestListing.markHarvestReady(actualQuantity: Double): HarvestListing {
+    require(actualQuantity > 0.0) { "Actual available quantity must be greater than zero" }
+    require(harvestStatus != HarvestStatus.FAILED) { "A failed harvest cannot be marked ready" }
+    return copy(
+        quantity = actualQuantity,
+        availableQuantity = actualQuantity,
+        soldQuantity = 0.0,
+        harvestStatus = HarvestStatus.READY,
+        harvestFailureReason = null,
+        harvestUpdatedAt = System.currentTimeMillis()
+    )
+}
+
+/** Marks the harvest as lost/unavailable and stops new purchase requests. */
+fun HarvestListing.markHarvestFailed(reason: String?): HarvestListing {
+    require(harvestStatus != HarvestStatus.FAILED) { "Harvest is already marked as failed" }
+    return copy(
+        harvestStatus = HarvestStatus.FAILED,
+        biddingEnabled = false,
+        harvestFailureReason = reason?.trim()?.ifBlank { null },
+        harvestUpdatedAt = System.currentTimeMillis()
+    )
+}
+
+/** Updates the estimated harvest date and/or estimated quantity for an EXPECTED listing. */
+fun HarvestListing.updateHarvestEstimate(
+    expectedHarvestAt: Long?,
+    estimatedQuantity: Double?
+): HarvestListing {
+    require(harvestStatus == HarvestStatus.EXPECTED) { "Only an expected harvest can have its estimate updated" }
+    require(expectedHarvestAt != null) { "An estimated harvest date is required" }
+    require(estimatedQuantity == null || estimatedQuantity > 0.0) {
+        "Estimated quantity must be greater than zero"
+    }
+    return copy(
+        expectedHarvestAt = expectedHarvestAt,
+        estimatedQuantity = estimatedQuantity,
+        quantity = estimatedQuantity ?: quantity,
+        harvestUpdatedAt = System.currentTimeMillis()
+    )
+}
 
 fun HarvestListing.setBiddingEnabled(enabled: Boolean): HarvestListing {
     require(status == ListingStatus.OPEN) { "Only open listings can be paused or resumed" }
-    require(!enabled || (!isDraft && availableStock() > 0.0)) {
-        "A listing needs available stock before bidding can resume"
+    require(harvestStatus != HarvestStatus.FAILED) { "A failed harvest cannot accept bids" }
+    require(
+        !enabled || (!isDraft && (hasConfirmedStock() || harvestStatus == HarvestStatus.EXPECTED))
+    ) {
+        "A listing needs available stock, or an expected harvest, before bidding can resume"
     }
     return copy(biddingEnabled = enabled)
 }

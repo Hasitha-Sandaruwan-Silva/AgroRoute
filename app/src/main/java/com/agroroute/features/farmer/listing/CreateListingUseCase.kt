@@ -1,11 +1,12 @@
 package com.agroroute.features.farmer.listing
 
 import com.agroroute.core.model.HarvestListing
-import com.agroroute.core.util.Result
+import com.agroroute.core.model.HarvestStatus
+import com.agroroute.core.model.UserRole
+import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.repository.ListingPhotoStorage
-import com.agroroute.core.repository.AuthRepository
-import com.agroroute.core.model.UserRole
+import com.agroroute.core.util.Result
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
@@ -29,6 +30,14 @@ class CreateListingUseCase @Inject constructor(
         if (listing.category == null) return Result.Error("Harvest category is required")
         if (listing.quantity <= 0) return Result.Error("Quantity must be greater than zero")
         if (listing.reservePrice < 0) return Result.Error("Reserve price cannot be negative")
+        if (listing.harvestStatus == HarvestStatus.EXPECTED) {
+            if (listing.expectedHarvestAt == null) {
+                return Result.Error("An estimated harvest date is required")
+            }
+            if ((listing.estimatedQuantity ?: listing.quantity) <= 0.0) {
+                return Result.Error("Estimated quantity must be greater than zero")
+            }
+        }
         val localUri = listing.imageUrls.firstOrNull()?.takeIf {
             it.startsWith("content://") || it.startsWith("file://")
         }

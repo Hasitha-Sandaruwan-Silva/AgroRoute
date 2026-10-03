@@ -3,8 +3,7 @@ package com.agroroute.features.supplier.marketplace
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.agroroute.core.model.HarvestListing
-import com.agroroute.core.model.ListingStatus
-import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.isEligibleForMarketplace
 import com.agroroute.core.remote.NetworkConnectivityMonitor
 import com.agroroute.core.util.Result
 import com.agroroute.core.usecase.GetListingsUseCase
@@ -21,9 +20,7 @@ data class MarketplaceUiState(
 )
 
 internal fun isSupplierMarketplaceEligible(listing: HarvestListing): Boolean =
-    !listing.isDraft &&
-        listing.status == ListingStatus.OPEN &&
-        listing.availableStock() > 0.0
+    listing.isEligibleForMarketplace()
 
 /**
  * ViewModel for [BrowseListingsScreen] — exposes open listings for the supplier marketplace.

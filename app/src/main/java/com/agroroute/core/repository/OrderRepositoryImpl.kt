@@ -7,6 +7,7 @@ import com.agroroute.core.database.OrderRequestDao
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.availableStock
@@ -82,6 +83,9 @@ class OrderRepositoryImpl @Inject constructor(
             check(listing.status == ListingStatus.OPEN && listing.biddingEnabled && !listing.isDraft) {
                 "This listing is not accepting bids"
             }
+            check(listing.harvestStatus == HarvestStatus.READY) {
+                "This harvest has not been confirmed ready for sale"
+            }
             check(bid.listingId == listing.listingId && bid.status == BidStatus.PENDING) {
                 "This bid is no longer available"
             }
@@ -128,6 +132,9 @@ class OrderRepositoryImpl @Inject constructor(
             check(listing.farmerId == userId) { "Only the listing's Farmer can accept this order request" }
             check(listing.status == ListingStatus.OPEN && !listing.isDraft && !listing.biddingEnabled) {
                 "This listing is not accepting direct order requests"
+            }
+            check(listing.harvestStatus == HarvestStatus.READY) {
+                "Mark this harvest ready and enter the actual quantity before accepting requests"
             }
             check(request.requestedQuantity > 0.0 && request.requestedQuantity <= listing.availableStock()) {
                 "Insufficient listing stock for this order request"

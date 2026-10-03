@@ -2,6 +2,7 @@ package com.agroroute.core.database
 
 import androidx.room.TypeConverter
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.OrderStatus
@@ -42,6 +43,10 @@ class Converters {
     // ── Enum: OrderRequestStatus ────────────────────────────────────────────────
     @TypeConverter fun fromOrderRequestStatus(value: OrderRequestStatus): String = value.name
     @TypeConverter fun toOrderRequestStatus(value: String): OrderRequestStatus   = OrderRequestStatus.valueOf(value)
+
+    // ── Enum: HarvestStatus ─────────────────────────────────────────────────────
+    @TypeConverter fun fromHarvestStatus(value: HarvestStatus): String = value.name
+    @TypeConverter fun toHarvestStatus(value: String): HarvestStatus   = HarvestStatus.valueOf(value)
 
     // ── Enum: QuantityUnit ─────────────────────────────────────────────────────
     @TypeConverter fun fromQuantityUnit(value: QuantityUnit): String = value.name

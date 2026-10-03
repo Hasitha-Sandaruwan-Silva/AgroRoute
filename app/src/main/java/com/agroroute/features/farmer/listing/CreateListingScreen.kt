@@ -78,6 +78,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.QuantityUnit
@@ -104,7 +105,10 @@ internal data class ListingDraftFormValues(
     val photoUri: String?,
     val category: ListingCategory?,
     val expectedHarvestAt: Long?,
-    val qualityGrade: String
+    val qualityGrade: String,
+    val harvestStatus: HarvestStatus,
+    val estimatedQuantity: String,
+    val harvestFailureReason: String?
 )
 
 internal fun HarvestListing.toDraftFormValues() = ListingDraftFormValues(
@@ -118,7 +122,10 @@ internal fun HarvestListing.toDraftFormValues() = ListingDraftFormValues(
     photoUri = imageUrls.firstOrNull(),
     category = category,
     expectedHarvestAt = expectedHarvestAt,
-    qualityGrade = qualityGrade.orEmpty()
+    qualityGrade = qualityGrade.orEmpty(),
+    harvestStatus = harvestStatus,
+    estimatedQuantity = estimatedQuantity?.takeIf { it > 0 }?.toString().orEmpty(),
+    harvestFailureReason = harvestFailureReason
 )
 
 internal fun shouldShowPhotoUploadRetry(
@@ -153,6 +160,8 @@ fun CreateListingScreen(
     var expectedHarvestAt by remember { mutableStateOf<Long?>(null) }
     var qualityGrade by remember { mutableStateOf("") }
     var showHarvestDatePicker by remember { mutableStateOf(false) }
+    var harvestStatus by remember { mutableStateOf(HarvestStatus.READY) }
+    var estimatedQuantity by remember { mutableStateOf("") }
     var formLoadedFor by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
@@ -184,6 +193,8 @@ fun CreateListingScreen(
             selectedCategory = listing.category
             expectedHarvestAt = listing.expectedHarvestAt
             qualityGrade = listing.qualityGrade.orEmpty()
+            harvestStatus = listing.harvestStatus
+            estimatedQuantity = listing.estimatedQuantity?.takeIf { it > 0 }?.toString().orEmpty()
             formLoadedFor = editListingId
         }
     }
@@ -216,6 +227,8 @@ fun CreateListingScreen(
 
     fun buildListing(isDraft: Boolean): HarvestListing {
         val parsedQuantity = quantity.toDoubleOrNull() ?: 0.0
+        val isExpected = harvestStatus == HarvestStatus.EXPECTED
+        val parsedEstimate = estimatedQuantity.toDoubleOrNull() ?: parsedQuantity
         val existing = uiState.editingListing
         return HarvestListing(
             listingId = existing?.listingId ?: listingId,
@@ -223,7 +236,7 @@ fun CreateListingScreen(
             farmerName = existing?.farmerName ?: uiState.farmerName,
             cropName = cropName,
             description = description,
-            quantity = parsedQuantity,
+            quantity = if (isExpected) parsedEstimate else parsedQuantity,
             quantityUnit = selectedUnit,
             reservePrice = price.toDoubleOrNull() ?: 0.0,
             imageUrls = selectedPhotoUri?.toString()?.let(::listOf)
@@ -234,13 +247,19 @@ fun CreateListingScreen(
             createdAt = existing?.createdAt ?: System.currentTimeMillis(),
             expiresAt = existing?.expiresAt,
             category = selectedCategory,
-            expectedHarvestAt = expectedHarvestAt,
+            expectedHarvestAt = if (isExpected) expectedHarvestAt else null,
             qualityGrade = qualityGrade.trim().ifBlank { null },
-            availableQuantity = existing?.let {
+            availableQuantity = if (isExpected) {
+                0.0
+            } else existing?.let {
                 (it.availableStock() + parsedQuantity - it.quantity).coerceAtLeast(0.0)
             } ?: parsedQuantity,
             soldQuantity = existing?.soldQuantity ?: 0.0,
-            isDraft = if (existing != null) false else isDraft
+            isDraft = if (existing != null) false else isDraft,
+            harvestStatus = if (isExpected) HarvestStatus.EXPECTED else existing?.harvestStatus ?: HarvestStatus.READY,
+            estimatedQuantity = if (isExpected) parsedEstimate.takeIf { it > 0.0 } else null,
+            harvestFailureReason = existing?.harvestFailureReason,
+            harvestUpdatedAt = existing?.harvestUpdatedAt ?: System.currentTimeMillis()
         )
     }
 
@@ -248,6 +267,10 @@ fun CreateListingScreen(
         val category = selectedCategory
         if (category == null) {
             categorySelectionError = true
+            return
+        }
+        if (harvestStatus == HarvestStatus.EXPECTED && expectedHarvestAt == null) {
+            showHarvestDatePicker = true
             return
         }
         categorySelectionError = false
@@ -268,6 +291,8 @@ fun CreateListingScreen(
         selectedCategory = values.category
         expectedHarvestAt = values.expectedHarvestAt
         qualityGrade = values.qualityGrade
+        harvestStatus = values.harvestStatus
+        estimatedQuantity = values.estimatedQuantity
     }
 
     // ── Date picker dialog ────────────────────────────────────────────────────
@@ -299,6 +324,7 @@ fun CreateListingScreen(
                 isPhotoUploadRequired = hasLocalPhotoUri(selectedPhotoUri),
                 isEditing = editListingId != null,
                 canSubmit = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank() &&
+                    (harvestStatus != HarvestStatus.EXPECTED || expectedHarvestAt != null) &&
                     (editListingId == null || uiState.editingListing?.listingId == editListingId),
                 onPublish = ::publishListing,
                 onSaveDraft = { viewModel.saveDraft(buildListing(isDraft = true)) }
@@ -388,6 +414,40 @@ fun CreateListingScreen(
                     supportingText = { Text("Use the name buyers will recognize.") }
                 )
                 Spacer(Modifier.height(12.dp))
+                HarvestStatusChoiceRow(
+                    selected = harvestStatus,
+                    isEditing = editListingId != null,
+                    existingStatus = uiState.editingListing?.harvestStatus,
+                    onSelect = { harvestStatus = it }
+                )
+                Spacer(Modifier.height(4.dp))
+                if (harvestStatus == HarvestStatus.EXPECTED) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Lucide.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Expected-harvest listings are estimates. Pre-harvest requests are not confirmed orders until you mark the harvest ready.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -397,8 +457,10 @@ fun CreateListingScreen(
                         onValueChange = {
                             if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantity = it
                         },
-                        label = { Text("Quantity") },
-                        supportingText = { Text("How much is available?") },
+                        label = { Text(if (harvestStatus == HarvestStatus.EXPECTED) "Estimated quantity" else "Quantity") },
+                        supportingText = {
+                            Text(if (harvestStatus == HarvestStatus.EXPECTED) "How much do you expect? (estimate)" else "How much is available?")
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         shape = MaterialTheme.shapes.medium,
@@ -461,10 +523,26 @@ fun CreateListingScreen(
                     TextButton(onClick = ::requestHarvestDatePicker, contentPadding = PaddingValues(0.dp)) {
                         Text(
                             text = expectedHarvestAt?.let {
-                                "Availability: ${HarvestAvailabilityDate.format(it)}"
-                            } ?: "Set expected availability date (optional)"
+                                if (harvestStatus == HarvestStatus.EXPECTED) {
+                                    "Estimated harvest date: ${HarvestAvailabilityDate.format(it)}"
+                                } else {
+                                    "Availability: ${HarvestAvailabilityDate.format(it)}"
+                                }
+                            } ?: if (harvestStatus == HarvestStatus.EXPECTED) {
+                                "Set estimated harvest date (required)"
+                            } else {
+                                "Set expected availability date (optional)"
+                            }
                         )
                     }
+                }
+                if (harvestStatus == HarvestStatus.EXPECTED && expectedHarvestAt == null) {
+                    Text(
+                        text = "An estimated harvest date is required for an expected-harvest listing.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
                 }
                 AgroTextField(
                     value = qualityGrade,
@@ -805,6 +883,102 @@ private fun FormDivider() {
         thickness = 1.dp,
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     )
+}
+
+private data class HarvestStatusOption(
+    val status: HarvestStatus,
+    val title: String,
+    val subtitle: String
+)
+
+@Composable
+private fun HarvestStatusChoiceRow(
+    selected: HarvestStatus,
+    isEditing: Boolean,
+    existingStatus: HarvestStatus?,
+    onSelect: (HarvestStatus) -> Unit
+) {
+    val options = listOf(
+        HarvestStatusOption(
+            HarvestStatus.READY,
+            "Already harvested",
+            "Ready to sell now"
+        ),
+        HarvestStatusOption(
+            HarvestStatus.EXPECTED,
+            "Expected in the future",
+            "Harvest date & quantity are estimates"
+        )
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Is this harvest ready to sell?",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            options.forEach { option ->
+                val isSelected = selected == option.status
+                val borderColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline,
+                    label = "harvestStatusBorder"
+                )
+                val bgColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surface,
+                    label = "harvestStatusBg"
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(MaterialTheme.shapes.medium)
+                        .background(bgColor)
+                        .border(1.5.dp, borderColor, MaterialTheme.shapes.medium)
+                        .selectable(
+                            selected = isSelected,
+                            onClick = { onSelect(option.status) },
+                            role = Role.RadioButton
+                        )
+                        .padding(horizontal = 10.dp, vertical = 10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = option.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = option.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+        if (isEditing && selected == HarvestStatus.READY) {
+            Text(
+                text = "This harvest is already confirmed. To change an estimate, first set it back to “Expected”.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable

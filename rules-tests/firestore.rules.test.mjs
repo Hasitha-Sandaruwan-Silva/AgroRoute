@@ -66,6 +66,21 @@ beforeEach(async () => {
       biddingEnabled: false,
       isDraft: false
     });
+    // Expected (future-harvest) listing — no actual stock yet.
+    await setDoc(doc(db, "listings/listing-expected"), {
+      listingId: "listing-expected",
+      farmerId: "farmer-1",
+      cropName: "Wheat",
+      quantity: 0,
+      availableQuantity: 0,
+      soldQuantity: 0,
+      estimatedQuantity: 20,
+      reservePrice: 5,
+      status: "OPEN",
+      biddingEnabled: false,
+      harvestStatus: "EXPECTED",
+      isDraft: false
+    });
   });
 });
 
@@ -97,6 +112,80 @@ test("listing owner cannot change listing ownership through edit", async () => {
   }));
 });
 
+// ── Harvest lifecycle fields on existing listings ─────────────────────────────
+
+test("farmer can update harvestStatus on their listing", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(updateDoc(doc(db, "listings/listing-expected"), {
+    harvestStatus: "READY",
+    availableQuantity: 18,
+    quantity: 18,
+    soldQuantity: 0,
+    harvestUpdatedAt: Date.now()
+  }));
+});
+
+test("farmer can update estimatedQuantity on an expected listing", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(updateDoc(doc(db, "listings/listing-expected"), {
+    estimatedQuantity: 25,
+    harvestUpdatedAt: Date.now()
+  }));
+});
+
+test("farmer can set harvestFailureReason on their listing", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(updateDoc(doc(db, "listings/listing-expected"), {
+    harvestStatus: "FAILED",
+    harvestFailureReason: "Flood",
+    biddingEnabled: false,
+    harvestUpdatedAt: Date.now()
+  }));
+});
+
+// ── Create EXPECTED (future-harvest) listing ──────────────────────────────────
+
+test("farmer can create an expected-harvest listing with no actual stock", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(setDoc(doc(db, "listings/listing-new-expected"), {
+    listingId: "listing-new-expected",
+    farmerId: "farmer-1",
+    cropName: "Barley",
+    quantity: 0,
+    availableQuantity: 0,
+    soldQuantity: 0,
+    estimatedQuantity: 15,
+    reservePrice: 6,
+    status: "OPEN",
+    biddingEnabled: false,
+    harvestStatus: "EXPECTED",
+    isDraft: false
+  }));
+});
+
+test("farmer cannot create an expected-harvest listing with zero estimatedQuantity", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(setDoc(doc(db, "listings/listing-bad-expected"), {
+    listingId: "listing-bad-expected",
+    farmerId: "farmer-1",
+    cropName: "Barley",
+    quantity: 0,
+    availableQuantity: 0,
+    soldQuantity: 0,
+    estimatedQuantity: 0,
+    reservePrice: 6,
+    status: "OPEN",
+    biddingEnabled: false,
+    harvestStatus: "EXPECTED",
+    isDraft: false
+  }));
+});
+
 // ── Order requests ───────────────────────────────────────────────────────────
 
 function orderRequestDoc(requestId, overrides = {}) {
@@ -112,6 +201,27 @@ function orderRequestDoc(requestId, overrides = {}) {
     quantityUnit: "KG",
     listedPrice: 8,
     status: "PENDING",
+    isPreHarvest: false,
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides
+  };
+}
+
+function preHarvestRequestDoc(requestId, overrides = {}) {
+  return {
+    requestId,
+    listingId: "listing-expected",
+    farmerId: "farmer-1",
+    farmerName: "Farmer One",
+    supplierId: "supplier-1",
+    supplierName: "Supplier One",
+    cropName: "Wheat",
+    requestedQuantity: 12,
+    quantityUnit: "KG",
+    listedPrice: 5,
+    status: "PENDING",
+    isPreHarvest: true,
     createdAt: 1,
     updatedAt: 1,
     ...overrides
@@ -158,6 +268,15 @@ async function seedRequest(requestId, overrides = {}) {
     await setDoc(
       doc(context.firestore(), "order_requests", requestId),
       orderRequestDoc(requestId, overrides)
+    );
+  });
+}
+
+async function seedPreHarvestRequest(requestId, overrides = {}) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "order_requests", requestId),
+      preHarvestRequestDoc(requestId, overrides)
     );
   });
 }
@@ -425,4 +544,152 @@ test("order request cannot be deleted", async () => {
   const db = testEnvironment.authenticatedContext("farmer-1").firestore();
 
   await assertFails(deleteDoc(doc(db, "order_requests/request-1")));
+});
+
+// ── Pre-harvest order request scenarios ──────────────────────────────────────
+
+test("supplier can create a pre-harvest request on an expected listing within estimated quantity", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    setDoc(doc(db, "order_requests/pre-req-1"), preHarvestRequestDoc("pre-req-1"))
+  );
+});
+
+test("supplier cannot create a pre-harvest request with isPreHarvest=false on an expected listing", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertFails(
+    setDoc(
+      doc(db, "order_requests/pre-req-1"),
+      preHarvestRequestDoc("pre-req-1", { isPreHarvest: false })
+    )
+  );
+});
+
+test("supplier cannot create a pre-harvest request exceeding the estimated quantity", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertFails(
+    setDoc(
+      doc(db, "order_requests/pre-req-1"),
+      preHarvestRequestDoc("pre-req-1", { requestedQuantity: 25 })
+    )
+  );
+});
+
+test("supplier cannot create a non-pre-harvest request on an expected listing", async () => {
+  // A normal order request (isPreHarvest=false) must not be allowed on an EXPECTED listing
+  // because there is no real stock. Already covered by the rule: isPreHarvest must be true.
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertFails(
+    setDoc(
+      doc(db, "order_requests/req-bad"),
+      {
+        requestId: "req-bad",
+        listingId: "listing-expected",
+        farmerId: "farmer-1",
+        farmerName: "Farmer One",
+        supplierId: "supplier-1",
+        supplierName: "Supplier One",
+        cropName: "Wheat",
+        requestedQuantity: 5,
+        quantityUnit: "KG",
+        listedPrice: 5,
+        status: "PENDING",
+        isPreHarvest: false,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    )
+  );
+});
+
+test("pre-harvest request is readable by the placing supplier and owning farmer only", async () => {
+  await seedPreHarvestRequest("pre-req-1");
+
+  await assertSucceeds(
+    getDoc(doc(testEnvironment.authenticatedContext("supplier-1").firestore(), "order_requests/pre-req-1"))
+  );
+  await assertSucceeds(
+    getDoc(doc(testEnvironment.authenticatedContext("farmer-1").firestore(), "order_requests/pre-req-1"))
+  );
+  await assertFails(
+    getDoc(doc(testEnvironment.authenticatedContext("supplier-2").firestore(), "order_requests/pre-req-1"))
+  );
+  await assertFails(
+    getDoc(doc(testEnvironment.authenticatedContext("farmer-2").firestore(), "order_requests/pre-req-1"))
+  );
+});
+
+test("farmer can cancel a pending pre-harvest request when marking harvest failed", async () => {
+  await seedPreHarvestRequest("pre-req-1");
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  // Simulate the harvest-failure cancellation (farmer cancels their own pre-harvest request).
+  await assertSucceeds(
+    updateDoc(doc(db, "order_requests/pre-req-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("farmer cannot cancel a non-pre-harvest request directly (must use reject flow)", async () => {
+  await seedRequest("request-1");
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  // Farmer trying to CANCEL a normal (non-pre-harvest) request is not allowed.
+  await assertFails(
+    updateDoc(doc(db, "order_requests/request-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("owning supplier can cancel their own pre-harvest request", async () => {
+  await seedPreHarvestRequest("pre-req-1");
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "order_requests/pre-req-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("farmer cannot accept a pre-harvest request on an expected listing (harvest not ready)", async () => {
+  // An order cannot be created from a request when the listing's harvestStatus is EXPECTED.
+  // This is enforced by the orders/create rule: harvestStatus must be READY.
+  await seedPreHarvestRequest("pre-req-1");
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  const request = preHarvestRequestDoc("pre-req-1");
+
+  const batch = writeBatch(db);
+  batch.set(doc(db, "order_requests/pre-req-1"), {
+    ...request,
+    status: "ACCEPTED",
+    updatedAt: 2
+  });
+  batch.set(doc(db, "orders/pre-req-1"), {
+    orderId: "pre-req-1",
+    listingId: "listing-expected",
+    bidId: "",
+    farmerId: "farmer-1",
+    supplierId: "supplier-1",
+    cropName: "Wheat",
+    quantity: 12,
+    quantityUnit: "KG",
+    agreedPrice: 5,
+    status: "AWAITING_PICKUP",
+    pickupLocation: "",
+    deliveryLocation: "",
+    createdAt: 1,
+    updatedAt: 2
+  });
+  // listing stays as EXPECTED (harvest not ready) — the order create rule must reject this.
+  await assertFails(batch.commit());
 });

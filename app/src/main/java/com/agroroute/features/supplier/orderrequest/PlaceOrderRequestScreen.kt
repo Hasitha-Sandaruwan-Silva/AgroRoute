@@ -34,10 +34,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.QuantityUnit
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.util.HarvestAvailabilityDate
@@ -128,8 +130,9 @@ fun PlaceOrderRequestScreen(
 
             if (canPlaceRequests && listingState is Result.Success && listingState.getOrNull() != null) {
                 val listing = listingState.getOrNull()!!
+                val isPreHarvest = listing.harvestStatus == HarvestStatus.EXPECTED
                 AppCard {
-                    SectionTitle(title = "Your order request")
+                    SectionTitle(title = if (isPreHarvest) "Your pre-harvest request" else "Your order request")
                     AgroTextField(
                         value = quantityText,
                         onValueChange = { quantityText = it },
@@ -138,7 +141,11 @@ fun PlaceOrderRequestScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "Available: ${listing.availableStock()} ${listing.quantityUnit.name}",
+                        text = if (isPreHarvest) {
+                            "Estimated available (estimate): ${listing.estimatedAvailable()} ${listing.quantityUnit.name}"
+                        } else {
+                            "Available: ${listing.availableStock()} ${listing.quantityUnit.name}"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -147,10 +154,20 @@ fun PlaceOrderRequestScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    if (isPreHarvest) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "This is a pre-harvest request, not a confirmed order. Nothing is " +
+                                "reserved or paid. The farmer can accept it only after marking the " +
+                                "harvest ready with the actual available quantity.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 LoadingButton(
-                    text = "Request Order",
+                    text = if (isPreHarvest) "Send pre-harvest request" else "Request Order",
                     isLoading = uiState.isLoading,
                     onClick = {
                         val quantity = quantityText.toDoubleOrNull() ?: 0.0
@@ -161,7 +178,8 @@ fun PlaceOrderRequestScreen(
                             supplierName = uiState.supplierName,
                             requestedQuantity = quantity
                         )
-                        viewModel.placeOrderRequest(request, listing.availableStock())
+                        val maxAllowed = if (isPreHarvest) listing.estimatedAvailable() else listing.availableStock()
+                        viewModel.placeOrderRequest(request, maxAllowed)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = quantityText.isNotBlank()
@@ -184,6 +202,7 @@ fun PlaceOrderRequestScreen(
 
 @Composable
 private fun ListingSummaryCard(listing: HarvestListing) {
+    val isExpected = listing.harvestStatus == HarvestStatus.EXPECTED
     AppCard {
         ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
         Spacer(modifier = Modifier.height(14.dp))
@@ -198,7 +217,12 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
-            StatusChip(label = "Fixed price", tone = ChipTone.Success)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (isExpected) {
+                    StatusChip(label = "Expected harvest", tone = ChipTone.Tertiary)
+                }
+                StatusChip(label = "Fixed price", tone = ChipTone.Success)
+            }
         }
         Text(
             text = "by ${listing.farmerName}",
@@ -226,9 +250,17 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
             ) {
                 Column(modifier = Modifier.padding(11.dp)) {
-                    Text("Available", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "${listing.availableStock()} ${listing.quantityUnit.name}",
+                        text = if (isExpected) "Estimated qty (estimate)" else "Available",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (isExpected) {
+                            "${listing.estimatedAvailable()} ${listing.quantityUnit.name}"
+                        } else {
+                            "${listing.availableStock()} ${listing.quantityUnit.name}"
+                        },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -252,7 +284,18 @@ private fun ListingSummaryCard(listing: HarvestListing) {
         }
         listing.expectedHarvestAt?.let { harvestAt ->
             Text(
-                text = "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}",
+                text = if (isExpected) {
+                    "Expected harvest: ${HarvestAvailabilityDate.format(harvestAt)} (estimate)"
+                } else {
+                    "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        listing.harvestUpdatedAt?.let { updatedAt ->
+            Text(
+                text = "Harvest details updated ${HarvestAvailabilityDate.format(updatedAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

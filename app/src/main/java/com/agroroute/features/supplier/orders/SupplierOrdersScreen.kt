@@ -34,11 +34,13 @@ import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
+import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
 import com.agroroute.core.widgets.OrderRequestStatusChip
 import com.agroroute.core.widgets.OrderStatusChip
+import com.agroroute.core.widgets.StatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -172,7 +174,12 @@ private fun OrderRequestCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            OrderRequestStatusChip(request.status)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (request.isPreHarvest) {
+                    StatusChip(label = "Pre-harvest", tone = ChipTone.Tertiary)
+                }
+                OrderRequestStatusChip(request.status)
+            }
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -196,6 +203,23 @@ private fun OrderRequestCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (request.isPreHarvest && request.status == OrderRequestStatus.PENDING) {
+            Text(
+                text = "Waiting for harvest confirmation — the farmer can confirm only after " +
+                    "the crop is harvested and the actual quantity is known.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        if (request.isPreHarvest && request.status == OrderRequestStatus.CANCELLED) {
+            Text(
+                text = "Cancelled — the farmer marked this harvest as unavailable.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         if (request.status == OrderRequestStatus.PENDING && onCancel != null) {
             TextButton(onClick = onCancel, modifier = Modifier.align(Alignment.End)) {
                 Text("Cancel request")

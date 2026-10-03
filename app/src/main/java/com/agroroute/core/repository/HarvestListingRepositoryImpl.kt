@@ -1,16 +1,23 @@
 package com.agroroute.core.repository
 
 import com.agroroute.core.database.HarvestListingDao
+import com.agroroute.core.database.OrderRequestDao
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingStatus
+import com.agroroute.core.model.OrderRequest
+import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.markHarvestFailed
+import com.agroroute.core.model.markHarvestReady
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.model.setBiddingEnabled
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
 import com.agroroute.core.util.Result
 import com.agroroute.core.util.safeCall
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -30,7 +37,8 @@ class HarvestListingRepositoryImpl @Inject constructor(
     internal val dao: HarvestListingDao,
     @PublishedApi
     internal val firestoreService: FirestoreService,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val orderRequestDao: OrderRequestDao
 ) : HarvestListingRepository {
 
     // ── Read operations (Room as source of truth) ──────────────────────────────
@@ -93,9 +101,23 @@ class HarvestListingRepositoryImpl @Inject constructor(
         check(existing.soldQuantity <= 0.0 || listing.quantityUnit == existing.quantityUnit) {
             "Quantity unit cannot change after stock has been sold or reserved"
         }
+        check(listing.harvestStatus == existing.harvestStatus) {
+            "Use mark harvest ready or failed to change harvest status"
+        }
+        check(existing.harvestStatus != HarvestStatus.FAILED) {
+            "A failed harvest cannot be edited"
+        }
 
-        val updatedAvailable = (existing.availableStock() + listing.quantity - existing.quantity)
-            .coerceAtLeast(0.0)
+        val isExpected = existing.harvestStatus == HarvestStatus.EXPECTED
+        val updatedAvailable = if (isExpected) {
+            0.0
+        } else {
+            (existing.availableStock() + listing.quantity - existing.quantity).coerceAtLeast(0.0)
+        }
+        val estimateChanged = isExpected && (
+            listing.expectedHarvestAt != existing.expectedHarvestAt ||
+                listing.estimatedQuantity != existing.estimatedQuantity
+            )
         val updated = listing.copy(
             farmerId = existing.farmerId,
             farmerName = existing.farmerName,
@@ -105,7 +127,10 @@ class HarvestListingRepositoryImpl @Inject constructor(
             expiresAt = existing.expiresAt,
             availableQuantity = updatedAvailable,
             soldQuantity = existing.soldQuantity,
-            isDraft = false
+            isDraft = false,
+            harvestStatus = existing.harvestStatus,
+            harvestFailureReason = listing.harvestFailureReason ?: existing.harvestFailureReason,
+            harvestUpdatedAt = if (estimateChanged) System.currentTimeMillis() else existing.harvestUpdatedAt
         )
         firestoreService.updateFields(
             Constants.COLLECTION_LISTINGS,
@@ -121,7 +146,11 @@ class HarvestListingRepositoryImpl @Inject constructor(
                 "category" to updated.category?.name,
                 "expectedHarvestAt" to updated.expectedHarvestAt,
                 "qualityGrade" to updated.qualityGrade,
-                "availableQuantity" to updated.availableQuantity
+                "availableQuantity" to updated.availableQuantity,
+                "harvestStatus" to updated.harvestStatus.name,
+                "estimatedQuantity" to updated.estimatedQuantity,
+                "harvestFailureReason" to updated.harvestFailureReason,
+                "harvestUpdatedAt" to updated.harvestUpdatedAt
             )
         )
         dao.upsertListing(updated)
@@ -184,5 +213,80 @@ class HarvestListingRepositoryImpl @Inject constructor(
         val updated = snapshot.setBiddingEnabled(enabled)
         firestoreService.set(Constants.COLLECTION_LISTINGS, listingId, updated)
         dao.upsertListing(updated)
+    }
+
+    override suspend fun markHarvestReady(listingId: String, actualQuantity: Double): Result<Unit> = safeCall {
+        val farmerId = authRepository.currentUserId ?: error("Sign in to update this harvest")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == farmerId) {
+            "Only Farmers can update harvest status"
+        }
+        val snapshot = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
+            ?: error("Listing $listingId not found")
+        check(snapshot.farmerId == farmerId) { "Only the listing's Farmer can update this harvest" }
+        val updated = snapshot.markHarvestReady(actualQuantity)
+        firestoreService.updateFields(
+            Constants.COLLECTION_LISTINGS,
+            listingId,
+            mapOf(
+                "quantity" to updated.quantity,
+                "availableQuantity" to updated.availableQuantity,
+                "soldQuantity" to updated.soldQuantity,
+                "harvestStatus" to updated.harvestStatus.name,
+                "harvestFailureReason" to updated.harvestFailureReason,
+                "harvestUpdatedAt" to updated.harvestUpdatedAt
+            )
+        )
+        dao.upsertListing(updated)
+    }
+
+    override suspend fun markHarvestFailed(listingId: String, reason: String?): Result<Unit> = safeCall {
+        val farmerId = authRepository.currentUserId ?: error("Sign in to update this harvest")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.FARMER && profile.userId == farmerId) {
+            "Only Farmers can update harvest status"
+        }
+        val snapshot = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
+            ?: error("Listing $listingId not found")
+        check(snapshot.farmerId == farmerId) { "Only the listing's Farmer can update this harvest" }
+        val pending = firestoreService.queryFlow<OrderRequest>(
+            Constants.COLLECTION_ORDER_REQUESTS,
+            "listingId",
+            listingId
+        ).first().filter {
+            it.listingId == listingId && it.isPreHarvest && it.status == OrderRequestStatus.PENDING
+        }
+        val firestore = firestoreService.firestore
+        val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(listingId)
+        val requestRefs = pending.map {
+            firestore.collection(Constants.COLLECTION_ORDER_REQUESTS).document(it.requestId)
+        }
+        val now = System.currentTimeMillis()
+        val updatedRecords = firestoreService.runTransaction<Pair<HarvestListing, List<OrderRequest>>> { transaction ->
+            val currentListing = transaction.get(listingRef).toObject(HarvestListing::class.java)
+                ?: error("Listing $listingId not found")
+            check(currentListing.farmerId == farmerId) { "Only the listing's Farmer can update this harvest" }
+            val currentRequests = requestRefs.map { ref ->
+                ref to transaction.get(ref).toObject(OrderRequest::class.java)
+            }
+            val failedListing = currentListing.markHarvestFailed(reason)
+            transaction.set(listingRef, failedListing)
+            val cancelled = currentRequests.mapNotNull { (ref, current) ->
+                if (current != null &&
+                    current.listingId == listingId &&
+                    current.isPreHarvest &&
+                    current.status == OrderRequestStatus.PENDING
+                ) {
+                    val updatedRequest = current.copy(status = OrderRequestStatus.CANCELLED, updatedAt = now)
+                    transaction.set(ref, updatedRequest)
+                    updatedRequest
+                } else {
+                    null
+                }
+            }
+            failedListing to cancelled
+        }
+        dao.upsertListing(updatedRecords.first)
+        updatedRecords.second.forEach { orderRequestDao.upsertRequest(it) }
     }
 }

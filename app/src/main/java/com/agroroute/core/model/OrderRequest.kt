@@ -1,9 +1,10 @@
 package com.agroroute.core.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import androidx.room.Index
 import com.agroroute.core.database.Converters
 
 /**
@@ -35,5 +36,8 @@ data class OrderRequest(
     val listedPrice: Double = 0.0,
     val status: OrderRequestStatus = OrderRequestStatus.PENDING,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    /** True for a pre-harvest request on an EXPECTED (future-harvest) listing. */
+    @ColumnInfo(defaultValue = "0")
+    val isPreHarvest: Boolean = false
 )
