@@ -12,13 +12,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,17 +33,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.theme.ThemeViewModel
+import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.RoleBadge
+import com.agroroute.core.widgets.SettingsSection
 import com.agroroute.features.auth.AuthViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun SupplierProfileScreen(
     navController: NavController,
     userRole: UserRole? = UserRole.SUPPLIER,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    themeViewModel: ThemeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val themeMode by themeViewModel.mode.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     val user = uiState.user
     val displayName = user?.displayName?.takeIf(String::isNotBlank) ?: "Profile unavailable"
     val email = user?.email.orEmpty()
@@ -51,7 +63,7 @@ fun SupplierProfileScreen(
         .joinToString("")
         .ifEmpty { "SP" }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -126,7 +138,35 @@ fun SupplierProfileScreen(
                 )
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            SettingsSection(
+                themeMode = themeMode,
+                onThemeModeChange = themeViewModel::setMode,
+                onChangePassword = {
+                    if (email.isNotBlank()) {
+                        viewModel.sendPasswordResetEmail(email)
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Password reset link sent to $email")
+                        }
+                    } else {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Email address unavailable")
+                        }
+                    }
+                },
+                onEditProfile = {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Profile editing needs backend logic changes")
+                    }
+                },
+                onHelp = { navController.navigate(Screen.HelpSupport.route) },
+                onAbout = { navController.navigate(Screen.About.route) },
+                onPrivacy = { navController.navigate(Screen.Privacy.route) }
+            )
+
             Spacer(Modifier.height(24.dp))
+
             OutlinedButton(
                 onClick = {
                     viewModel.logout {
@@ -151,5 +191,10 @@ fun SupplierProfileScreen(
                 }
             }
         }
+
+        AgroSnackbarHost(
+            snackbarHostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }

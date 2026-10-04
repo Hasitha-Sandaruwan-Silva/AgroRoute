@@ -156,7 +156,10 @@ internal val supplierRoutes = setOf(
     *supplierTabRoutes.toTypedArray(),
     Screen.PlaceBid.route,
     Screen.PlaceOrderRequest.route,
-    Screen.SupplierOrderDetail.route
+    Screen.SupplierOrderDetail.route,
+    Screen.HelpSupport.route,
+    Screen.About.route,
+    Screen.Privacy.route
 )
 
 internal fun supplierTitle(route: String): String = when {
@@ -165,6 +168,9 @@ internal fun supplierTitle(route: String): String = when {
     route == Screen.SupplierOrders.route -> "Orders"
     route == Screen.SupplierBids.route -> "My Bids"
     route == Screen.SupplierProfile.route -> "Profile"
+    route == Screen.HelpSupport.route -> "Help & Support"
+    route == Screen.About.route -> "About"
+    route == Screen.Privacy.route -> "Privacy & Terms"
     route.startsWith(Screen.PlaceBid.route.substringBefore("{")) -> "Place Bid"
     route.startsWith(Screen.PlaceOrderRequest.route.substringBefore("{")) -> "Place Order Request"
     route.startsWith(Screen.SupplierOrderDetail.route.substringBefore("{")) -> "Order Details"

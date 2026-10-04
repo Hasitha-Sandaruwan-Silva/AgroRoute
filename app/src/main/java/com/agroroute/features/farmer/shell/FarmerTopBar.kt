@@ -304,7 +304,10 @@ internal val farmerRoutes = setOf(
     Screen.EditListing.route,
     Screen.ViewBids.route,
     Screen.FarmerOrderDetail.route,
-    Screen.FarmerOrderRequests.route
+    Screen.FarmerOrderRequests.route,
+    Screen.HelpSupport.route,
+    Screen.About.route,
+    Screen.Privacy.route
 )
 
 internal fun farmerTitle(route: String): String = when {
@@ -316,6 +319,9 @@ internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerOrderRequests.route -> "Order Requests"
     route == Screen.FarmerProfile.route -> "Profile"
     route == Screen.CreateListing.route -> "Create Listing"
+    route == Screen.HelpSupport.route -> "Help & Support"
+    route == Screen.About.route -> "About"
+    route == Screen.Privacy.route -> "Privacy & Terms"
     route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Edit Listing"
     route.startsWith(Screen.ViewBids.route.substringBefore("{")) -> "Bids Received"
     route.startsWith(Screen.FarmerOrderDetail.route.substringBefore("{")) -> "Order Details"

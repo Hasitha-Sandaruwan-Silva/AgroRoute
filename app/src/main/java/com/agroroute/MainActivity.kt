@@ -8,12 +8,18 @@ import android.view.animation.AnticipateInterpolator
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.agroroute.core.navigation.NavGraph
 import com.agroroute.core.theme.AgroRouteTheme
+import com.agroroute.core.theme.ThemeMode
+import com.agroroute.core.theme.ThemeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,7 +70,16 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            AgroRouteTheme {
+            val themeViewModel: ThemeViewModel = hiltViewModel()
+            val mode by themeViewModel.mode.collectAsStateWithLifecycle()
+            val systemDark = isSystemInDarkTheme()
+            val darkTheme = when (mode) {
+                ThemeMode.SYSTEM -> systemDark
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+
+            AgroRouteTheme(darkTheme = darkTheme) {
                 NavGraph()
             }
         }

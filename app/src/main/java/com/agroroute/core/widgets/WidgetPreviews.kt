@@ -1,0 +1,48 @@
+package com.agroroute.core.widgets
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.agroroute.core.model.OrderStatus
+import com.agroroute.core.theme.AgroRouteTheme
+
+private val chipTones = ChipTone.entries
+
+@Composable
+private fun ChipRowPreview() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            chipTones.take(4).forEach { tone -> StatusChip(label = tone.name, tone = tone) }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            chipTones.drop(4).forEach { tone -> StatusChip(label = tone.name, tone = tone) }
+        }
+        OrderStatusTimeline(currentStatus = OrderStatus.IN_TRANSIT, modifier = Modifier.fillMaxWidth())
+        LoadingButton(text = "Place Bid", isLoading = false, onClick = {}, modifier = Modifier.fillMaxWidth())
+        LoadingButton(text = "Publishing…", isLoading = true, onClick = {}, modifier = Modifier.fillMaxWidth())
+        Text(text = "Sample caption", style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Preview(name = "Light", showBackground = true)
+@Composable
+private fun WidgetPreviewLight() {
+    AgroRouteTheme(darkTheme = false) { ChipRowPreview() }
+}
+
+@Preview(name = "Dark", showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun WidgetPreviewDark() {
+    AgroRouteTheme(darkTheme = true) { ChipRowPreview() }
+}

@@ -249,6 +249,19 @@ fun NavGraph(
                     val orderId = backStackEntry.arguments?.getString(Constants.ARG_ORDER_ID) ?: return@composable
                     SupplierOrderDetailScreen(orderId = orderId, navController = navController)
                 }
+
+                composable(Screen.HelpSupport.route) {
+                    val isFarmer = currentUserRole == UserRole.FARMER
+                    com.agroroute.features.settings.HelpSupportScreen(isFarmer = isFarmer)
+                }
+
+                composable(Screen.About.route) {
+                    com.agroroute.features.settings.AboutScreen()
+                }
+
+                composable(Screen.Privacy.route) {
+                    com.agroroute.features.settings.PrivacyScreen()
+                }
             }
         }
     }

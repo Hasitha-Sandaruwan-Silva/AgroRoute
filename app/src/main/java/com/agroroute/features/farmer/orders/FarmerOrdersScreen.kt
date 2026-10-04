@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,11 +29,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.agroroute.R
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.navigation.Screen
@@ -40,6 +46,7 @@ import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
+import com.agroroute.core.widgets.OrderProgressStrip
 import com.agroroute.core.widgets.OrderStatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -105,7 +112,8 @@ fun FarmerOrdersScreen(
                     FilterChip(
                         selected = selectedRange == range,
                         onClick = { selectedRange = range },
-                        label = { Text(range.label) }
+                        label = { Text(range.label) },
+                        modifier = Modifier.heightIn(min = 48.dp)
                     )
                 }
             }
@@ -150,7 +158,8 @@ fun FarmerOrdersScreen(
                     FilterChip(
                         selected = selectedStatus == null,
                         onClick = { selectedStatus = null },
-                        label = { Text("All statuses") }
+                        label = { Text("All statuses") },
+                        modifier = Modifier.heightIn(min = 48.dp)
                     )
                 }
                 items(OrderStatus.entries.size) { index ->
@@ -158,10 +167,20 @@ fun FarmerOrdersScreen(
                     FilterChip(
                         selected = selectedStatus == status,
                         onClick = { selectedStatus = status },
-                        label = { Text(status.displayLabel()) }
+                        label = { Text(status.displayLabel()) },
+                        modifier = Modifier.heightIn(min = 48.dp)
                     )
                 }
             }
+            Text(
+                text = stringResource(R.string.orders_payment_caption),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+            )
         }
         Box(modifier = Modifier.weight(1f)) {
             when {
@@ -224,13 +243,23 @@ private fun OrderCard(
             Text(
                 text = order.cropName,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
+            Spacer(Modifier.width(8.dp))
             OrderStatusChip(order.status)
         }
         Spacer(Modifier.height(8.dp))
         supplierName?.let {
-            Text("Supplier: $it", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Supplier: $it",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Spacer(Modifier.height(4.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -251,14 +280,18 @@ private fun OrderCard(
                 text = "Pickup: ${order.pickupLocation}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
+        Spacer(Modifier.height(12.dp))
+        OrderProgressStrip(currentStatus = order.status)
         Text(
             text = "Created ${formatDate(order.createdAt)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(top = 12.dp)
         )
     }
 }

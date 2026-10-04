@@ -66,4 +66,9 @@ sealed class Screen(val route: String) {
     data object SupplierOrderDetail : Screen("supplier_order_detail/{${Constants.ARG_ORDER_ID}}") {
         fun createRoute(orderId: String) = "supplier_order_detail/$orderId"
     }
+
+    // ── Settings Sub-Pages ────────────────────────────────────────────────────
+    data object HelpSupport : Screen("help_support")
+    data object About       : Screen("about")
+    data object Privacy     : Screen("privacy")
 }

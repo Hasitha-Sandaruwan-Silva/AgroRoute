@@ -1,8 +1,6 @@
 package com.agroroute.features.farmer.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,19 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -39,33 +26,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
+import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.ErrorSnackbarEffect
+import com.agroroute.core.widgets.ShimmerBox
 import com.agroroute.features.farmer.listing.ListingViewModel
 import com.agroroute.features.farmer.orders.FarmerOrderViewModel
-
-// Palette matching the TopBar clean theme
-private val AgroGreen = Color(0xFF2E7D32)
-private val AgroGreenDark = Color(0xFF1B5E20)
-private val AgroGreenSoft = Color(0xFFE8F5E9)
-private val AgroGreenMid = Color(0xFF66BB6A)
-private val AgroLeaf = Color(0xFF43A047)
-private val AgroBg = Color(0xFFF6FAF6)
-private val AgroText = Color(0xFF1B1B1B)
-private val AgroMuted = Color(0xFF5F6B5F)
 
 internal enum class FarmerHomeDestination(val route: String) {
     CREATE_LISTING(Screen.CreateListing.route),
@@ -103,7 +78,7 @@ fun FarmerHomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AgroBg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -111,22 +86,23 @@ fun FarmerHomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            // ── Clean Welcome Greeting (Without duplicate branding) ────
+            // ── Welcome greeting ─────────────────────────────────────
             Text(
                 text = "Good day, Farmer 👋",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = AgroText
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "Here's what's happening on your farm today.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = AgroMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp))
 
-            // ── Overview Section ──────────────────────────────────────
+            // ── Overview ─────────────────────────────────────────────
             SectionLabel("Overview")
 
             if (isLoading) {
@@ -134,17 +110,11 @@ fun FarmerHomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    repeat(2) {
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(100.dp),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(1.dp)
-                        ) {}
-                    }
+                    HomeStatCardSkeleton(modifier = Modifier.weight(1f))
+                    HomeStatCardSkeleton(modifier = Modifier.weight(1f))
                 }
+                Spacer(Modifier.height(12.dp))
+                HomeStatCardSkeleton(modifier = Modifier.fillMaxWidth())
             } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -153,17 +123,13 @@ fun FarmerHomeScreen(
                     HomeStatCard(
                         label = "My Listings",
                         value = totalListings.toString(),
-                        icon = Icons.Default.Description,
-                        accent = AgroGreen,
-                        soft = AgroGreenSoft,
+                        icon = Lucide.FileText,
                         modifier = Modifier.weight(1f)
                     )
                     HomeStatCard(
                         label = "Orders",
                         value = totalOrders.toString(),
-                        icon = Icons.Default.Receipt,
-                        accent = AgroLeaf,
-                        soft = Color(0xFFE6F4EA),
+                        icon = Lucide.Receipt,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -173,9 +139,7 @@ fun FarmerHomeScreen(
                 HomeStatCard(
                     label = "Open for Bids",
                     value = openListings.toString(),
-                    icon = Icons.Default.Gavel,
-                    accent = AgroGreenDark,
-                    soft = Color(0xFFFFF8E1),
+                    icon = Lucide.Gavel,
                     modifier = Modifier.fillMaxWidth(),
                     wide = true
                 )
@@ -183,76 +147,56 @@ fun FarmerHomeScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Quick Action Card ─────────────────────────────────────
+            // ── Quick action ─────────────────────────────────────────
             SectionLabel("Quick Action")
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(22.dp)),
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(0.dp)
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            Brush.linearGradient(
-                                listOf(AgroLeaf, AgroGreen, AgroGreenDark)
-                            )
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconBadge(
+                            icon = Lucide.Plus,
+                            contentDescription = "Create listing",
+                            modifier = Modifier.size(46.dp)
                         )
-                        .padding(20.dp)
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(46.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.2f))
-                                    .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                            Spacer(Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Create New Listing",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Post fresh harvest & get competitive bids",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
-                            }
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Create New Listing",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Post fresh harvest & get competitive bids",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
                         }
-                        Spacer(Modifier.height(16.dp))
+                    }
+                    Spacer(Modifier.height(16.dp))
 
-                        Surface(
-                            onClick = { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) },
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.White,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "New Listing",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = AgroGreenDark
-                                )
-                            }
+                    Surface(
+                        onClick = { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) },
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "New Listing",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
                 }
@@ -260,7 +204,7 @@ fun FarmerHomeScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Navigation Shortcuts ──────────────────────────────────
+            // ── Navigation shortcuts ─────────────────────────────────
             SectionLabel("Go to")
 
             Row(
@@ -270,26 +214,25 @@ fun FarmerHomeScreen(
                 ShortcutCard(
                     title = "My Listings",
                     subtitle = "View & manage",
-                    icon = Icons.Default.Description,
+                    icon = Lucide.FileText,
                     onClick = { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
                     modifier = Modifier.weight(1f)
                 )
                 ShortcutCard(
                     title = "Orders",
                     subtitle = "Track status",
-                    icon = Icons.Default.Receipt,
+                    icon = Lucide.Receipt,
                     onClick = { navController.navigate(FarmerHomeDestination.ORDERS.route) },
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Spacer(Modifier.height(12.dp))
-            Spacer(Modifier.height(12.dp))
 
             ShortcutCard(
                 title = "Order Requests",
                 subtitle = "Review direct order requests",
-                icon = Icons.Default.ShoppingCart,
+                icon = Lucide.ShoppingCart,
                 onClick = { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -299,52 +242,34 @@ fun FarmerHomeScreen(
             ShortcutCard(
                 title = "Harvest Calendar",
                 subtitle = "Upcoming dates and reminders",
-                icon = Icons.Default.TrendingUp,
+                icon = Lucide.CalendarDays,
                 onClick = { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) },
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Tip Banner ────────────────────────────────────────────
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = Color.White,
-                shadowElevation = 1.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, AgroGreenSoft, RoundedCornerShape(18.dp))
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(AgroGreenSoft),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.TrendingUp,
-                            contentDescription = null,
-                            tint = AgroGreen,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+            // ── Tip banner ───────────────────────────────────────────
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(
+                        icon = Lucide.TrendingUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp)
+                    )
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
                             text = "Pro tip",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = AgroGreenDark
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "Open bidding on listings to attract more suppliers and better prices.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = AgroMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                 }
@@ -366,9 +291,31 @@ private fun SectionLabel(text: String) {
         text = text,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
-        color = AgroText,
+        color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.padding(bottom = 10.dp)
     )
+}
+
+@Composable
+private fun IconBadge(
+    icon: ImageVector,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
 }
 
 @Composable
@@ -376,36 +323,27 @@ private fun HomeStatCard(
     label: String,
     value: String,
     icon: ImageVector,
-    accent: Color,
-    soft: Color,
     modifier: Modifier = Modifier,
     wide: Boolean = false
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
-    ) {
+    AppCard(modifier = modifier) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(if (wide) 44.dp else 40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(soft),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(if (wide) 44.dp else 40.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(22.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
             Spacer(Modifier.width(12.dp))
             Column {
@@ -413,12 +351,37 @@ private fun HomeStatCard(
                     text = value,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = AgroText
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodySmall,
-                    color = AgroMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeStatCardSkeleton(modifier: Modifier = Modifier) {
+    AppCard(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ShimmerBox(
+                modifier = Modifier.size(40.dp),
+                height = 40.dp,
+                cornerRadius = 12.dp
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                ShimmerBox(modifier = Modifier.width(64.dp), height = 22.dp)
+                ShimmerBox(
+                    modifier = Modifier
+                        .width(88.dp)
+                        .padding(top = 6.dp),
+                    height = 12.dp
                 )
             }
         }
@@ -433,32 +396,24 @@ private fun ShortcutCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .border(1.dp, AgroGreenSoft, RoundedCornerShape(18.dp)),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
+    AppCard(modifier = modifier, onClick = onClick) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(AgroGreenSoft),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(42.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = AgroGreen
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -466,18 +421,22 @@ private fun ShortcutCard(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = AgroText
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = AgroMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Lucide.ChevronRight,
                 contentDescription = null,
-                tint = AgroGreenMid
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
