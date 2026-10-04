@@ -279,8 +279,6 @@ service cloud.firestore {
         );
 
       allow update: if signedIn()
-        && ((farmer() && resource.data.farmerId == request.auth.uid)
-          || (supplier() && resource.data.supplierId == request.auth.uid))
         && request.resource.data.orderId == resource.data.orderId
         && request.resource.data.bidId == resource.data.bidId
         && request.resource.data.listingId == resource.data.listingId
@@ -290,10 +288,21 @@ service cloud.firestore {
         && (
           request.resource.data.status == resource.data.status
           || (resource.data.status == 'AWAITING_PICKUP'
-            && request.resource.data.status in ['IN_TRANSIT', 'CANCELLED'])
+            && request.resource.data.status == 'IN_TRANSIT'
+            && farmer()
+            && resource.data.farmerId == request.auth.uid)
+          || (resource.data.status == 'AWAITING_PICKUP'
+            && request.resource.data.status == 'CANCELLED'
+            && ((farmer() && resource.data.farmerId == request.auth.uid)
+              || (supplier() && resource.data.supplierId == request.auth.uid)))
           || (resource.data.status == 'IN_TRANSIT'
-            && request.resource.data.status in ['DELIVERED', 'CANCELLED'])
-          || (resource.data.status == 'DELIVERED' && request.resource.data.status == 'CANCELLED')
+            && request.resource.data.status == 'DELIVERED'
+            && supplier()
+            && resource.data.supplierId == request.auth.uid)
+          || (resource.data.status == 'IN_TRANSIT'
+            && request.resource.data.status == 'CANCELLED'
+            && ((farmer() && resource.data.farmerId == request.auth.uid)
+              || (supplier() && resource.data.supplierId == request.auth.uid)))
         );
 
       allow delete: if false;

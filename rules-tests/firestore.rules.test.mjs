@@ -693,3 +693,179 @@ test("farmer cannot accept a pre-harvest request on an expected listing (harvest
   // listing stays as EXPECTED (harvest not ready) — the order create rule must reject this.
   await assertFails(batch.commit());
 });
+
+// ── Order status transitions ───────────────────────────────────────────────────
+
+function orderDoc(orderId, overrides = {}) {
+  return {
+    orderId,
+    listingId: "listing-fixed",
+    bidId: "",
+    farmerId: "farmer-1",
+    supplierId: "supplier-1",
+    cropName: "Rice",
+    quantity: 5,
+    quantityUnit: "KG",
+    agreedPrice: 8,
+    status: "AWAITING_PICKUP",
+    pickupLocation: "North Farm",
+    deliveryLocation: "",
+    notes: "",
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides
+  };
+}
+
+async function seedOrder(orderId, overrides = {}) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "orders", orderId),
+      orderDoc(orderId, overrides)
+    );
+  });
+}
+
+test("farmer can mark order as IN_TRANSIT from AWAITING_PICKUP", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "IN_TRANSIT",
+      updatedAt: 2
+    })
+  );
+});
+
+test("supplier cannot mark order as IN_TRANSIT from AWAITING_PICKUP", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "IN_TRANSIT",
+      updatedAt: 2
+    })
+  );
+});
+
+test("supplier can mark order as DELIVERED from IN_TRANSIT", async () => {
+  await seedOrder("order-1", { status: "IN_TRANSIT" });
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "DELIVERED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("farmer cannot mark order as DELIVERED from IN_TRANSIT", async () => {
+  await seedOrder("order-1", { status: "IN_TRANSIT" });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "DELIVERED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("farmer can cancel order from AWAITING_PICKUP", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("supplier can cancel order from AWAITING_PICKUP", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("farmer can cancel order from IN_TRANSIT", async () => {
+  await seedOrder("order-1", { status: "IN_TRANSIT" });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("supplier can cancel order from IN_TRANSIT", async () => {
+  await seedOrder("order-1", { status: "IN_TRANSIT" });
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("cannot cancel order after DELIVERED", async () => {
+  await seedOrder("order-1", { status: "DELIVERED" });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("non-participant cannot update order status", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-2").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "IN_TRANSIT",
+      updatedAt: 2
+    })
+  );
+});
+
+test("cannot skip status from AWAITING_PICKUP to DELIVERED", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "DELIVERED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("cannot skip status from AWAITING_PICKUP to CANCELLED for wrong role", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-2").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});

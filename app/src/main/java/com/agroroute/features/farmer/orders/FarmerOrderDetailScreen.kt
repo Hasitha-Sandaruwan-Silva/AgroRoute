@@ -78,9 +78,9 @@ fun FarmerOrderDetailScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                         OrderStatus.IN_TRANSIT -> LoadingButton(
-                            text = "Mark as Delivered",
+                            text = "Cancel Order",
                             isLoading = uiState.isLoading,
-                            onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.DELIVERED) },
+                            onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.CANCELLED) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         else -> Unit

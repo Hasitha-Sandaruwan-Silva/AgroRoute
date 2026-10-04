@@ -199,15 +199,37 @@ class OrderRepositoryImpl @Inject constructor(
             val updatedListing = updatedRecords.second
             if (updatedListing != null) listingDao.upsertListing(updatedListing)
         } else {
-            val existing = firestoreService.getOnce<Order>(Constants.COLLECTION_ORDERS, orderId)
-                ?: error("Order $orderId not found")
-            check(
-                (profile.role == UserRole.FARMER && existing.farmerId == userId) ||
-                    (profile.role == UserRole.SUPPLIER && existing.supplierId == userId)
-            ) { "Only an order participant can update this order" }
-            val updated = existing.copy(status = status, updatedAt = System.currentTimeMillis())
-            firestoreService.set(Constants.COLLECTION_ORDERS, orderId, updated)
-            dao.upsertOrder(updated)
+            val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
+            val updatedOrder = firestoreService.runTransaction<Order> { transaction ->
+                val existing = transaction.get(orderRef).toObject(Order::class.java)
+                    ?: error("Order $orderId not found")
+                check(
+                    (profile.role == UserRole.FARMER && existing.farmerId == userId) ||
+                        (profile.role == UserRole.SUPPLIER && existing.supplierId == userId)
+                ) { "Only an order participant can update this order" }
+                when (status) {
+                    OrderStatus.IN_TRANSIT -> {
+                        check(profile.role == UserRole.FARMER && existing.farmerId == userId) {
+                            "Only the farmer can mark the order as in transit"
+                        }
+                        check(existing.status == OrderStatus.AWAITING_PICKUP) {
+                            "Order must be awaiting pickup to be marked as in transit"
+                        }
+                    }
+                    OrderStatus.DELIVERED -> {
+                        check(profile.role == UserRole.SUPPLIER && existing.supplierId == userId) {
+                            "Only the supplier can mark the order as delivered"
+                        }
+                        check(existing.status == OrderStatus.IN_TRANSIT) {
+                            "Order must be in transit to be marked as delivered"
+                        }
+                    }
+                    else -> error("Invalid status transition")
+                }
+                existing.copy(status = status, updatedAt = System.currentTimeMillis())
+            }
+            firestoreService.set(Constants.COLLECTION_ORDERS, orderId, updatedOrder)
+            dao.upsertOrder(updatedOrder)
         }
     }
 

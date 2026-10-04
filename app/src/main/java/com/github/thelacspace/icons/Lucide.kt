@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Lock
@@ -53,6 +54,7 @@ object Lucide {
     val Home: ImageVector get() = Icons.Default.Home
     val Image: ImageVector get() = Icons.Default.Image
     val ImagePlus: ImageVector get() = Icons.Default.AddPhotoAlternate
+    val Info: ImageVector get() = Icons.Default.Info
     val Label: ImageVector get() = Icons.Default.Label
     val Lock: ImageVector get() = Icons.Default.Lock
     val Mail: ImageVector get() = Icons.Default.Mail

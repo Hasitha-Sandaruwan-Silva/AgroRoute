@@ -75,16 +75,16 @@ fun SupplierOrderDetailScreen(
                     OrderStatusTimeline(currentStatus = uiState.selectedOrder!!.status)
 
                     when (uiState.selectedOrder!!.status) {
-                        OrderStatus.AWAITING_PICKUP -> LoadingButton(
-                            text = "Mark as In Transit",
-                            isLoading = uiState.isLoading,
-                            onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.IN_TRANSIT) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
                         OrderStatus.IN_TRANSIT -> LoadingButton(
                             text = "Mark as Delivered",
                             isLoading = uiState.isLoading,
                             onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.DELIVERED) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OrderStatus.AWAITING_PICKUP -> LoadingButton(
+                            text = "Cancel Order",
+                            isLoading = uiState.isLoading,
+                            onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.CANCELLED) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         else -> Unit
