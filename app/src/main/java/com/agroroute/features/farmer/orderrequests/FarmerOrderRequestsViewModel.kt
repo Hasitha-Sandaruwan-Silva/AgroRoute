@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -59,7 +60,7 @@ class FarmerOrderRequestsViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /** Syncs then collects order requests owned by the signed-in Farmer. */
+    /** Syncs then reactively collects listings **and** order requests for the signed-in Farmer. */
     fun loadRequests() {
         inboxLoaded = true
         inboxJob?.cancel()
@@ -72,32 +73,44 @@ class FarmerOrderRequestsViewModel @Inject constructor(
 
             _uiState.update { it.copy(isLoading = true, error = null) }
             val listingSyncError = (listingRepository.syncListings() as? Result.Error)?.message
-            val listingsResult = listingRepository.getListingsByFarmer(farmerId).first()
-            val listings = when (listingsResult) {
-                is Result.Success -> listingsResult.data.filter { it.farmerId == farmerId && !it.isDraft }
-                is Result.Error -> {
-                    _uiState.update {
-                        it.copy(isLoading = false, error = listingsResult.message ?: listingSyncError)
-                    }
-                    return@launch
-                }
-                Result.Loading -> emptyList()
-            }
-            val listingsById = listings.associateBy { it.listingId }
-
             val requestSyncError = (orderRequestRepository.syncRequestsForUser(farmerId) as? Result.Error)?.message
-            orderRequestRepository.getRequestsForFarmer(farmerId).collect { result ->
-                when (result) {
+            val syncError = requestSyncError ?: listingSyncError
+
+            // Observe both flows reactively so that when the Firestore transaction
+            // updates a listing's stock in Room (after accepting a request), the
+            // new availableQuantity/soldQuantity immediately propagates to the UI.
+            combine(
+                listingRepository.getListingsByFarmer(farmerId),
+                orderRequestRepository.getRequestsForFarmer(farmerId)
+            ) { listingsResult, requestsResult ->
+                listingsResult to requestsResult
+            }.collect { (listingsResult, requestsResult) ->
+                val listings = when (listingsResult) {
+                    is Result.Success -> listingsResult.data.filter { it.farmerId == farmerId && !it.isDraft }
+                    is Result.Error -> {
+                        _uiState.update {
+                            it.copy(isLoading = false, error = listingsResult.message ?: syncError)
+                        }
+                        return@collect
+                    }
+                    Result.Loading -> {
+                        _uiState.update { it.copy(isLoading = true) }
+                        return@collect
+                    }
+                }
+                val listingsById = listings.associateBy { it.listingId }
+
+                when (requestsResult) {
                     is Result.Loading -> _uiState.update { it.copy(isLoading = true) }
                     is Result.Success -> _uiState.update {
                         it.copy(
                             isLoading = false,
-                            requests = result.data.sortedByDescending { r -> r.createdAt },
+                            requests = requestsResult.data.sortedByDescending { r -> r.createdAt },
                             listingsById = listingsById,
-                            error = requestSyncError ?: listingSyncError
+                            error = syncError
                         )
                     }
-                    is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                    is Result.Error -> _uiState.update { it.copy(isLoading = false, error = requestsResult.message) }
                 }
             }
         }

@@ -1,6 +1,7 @@
 package com.agroroute.features.orderrequests
 
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderRequest
@@ -11,6 +12,8 @@ import com.agroroute.core.model.UserRole
 import com.agroroute.core.model.acceptsDirectOrders
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.markHarvestFailed
+import com.agroroute.core.model.markHarvestReady
 import com.agroroute.core.model.recordSale
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.GoogleSignInOutcome
@@ -274,6 +277,87 @@ class OrderRequestFlowTest {
         }
     }
 
+    // ── Future-harvest guards ─────────────────────────────────────────
+
+    @Test
+    fun farmerCannotAcceptPreHarvestRequestWhileHarvestStillExpected() = runBlocking {
+        val listingRepository = FakeListingRepository(expectedHarvestListing())
+        val requests = FakeOrderRequestRepository(
+            mutableListOf(validRequest().copy(isPreHarvest = true))
+        )
+        val orders = FakeOrderRepository(listingRepository, requests)
+        val useCase = AcceptOrderRequestUseCase(
+            orders,
+            requests,
+            listingRepository,
+            FakeAuthRepository(UserRole.FARMER, "farmer-1")
+        )
+
+        val result = useCase(validRequest().copy(isPreHarvest = true))
+
+        assertTrue(result is Result.Error)
+        assertEquals(0, orders.acceptCount)
+        assertTrue(orders.acceptedOrders.isEmpty())
+        assertEquals(OrderRequestStatus.PENDING, requests.storedRequests.single().status)
+    }
+
+    @Test
+    fun farmerCannotAcceptRequestAfterHarvestMarkedFailed() = runBlocking {
+        val listingRepository = FakeListingRepository(
+            expectedHarvestListing().markHarvestFailed("Flood damage")
+        )
+        val requests = FakeOrderRequestRepository(
+            mutableListOf(validRequest().copy(isPreHarvest = true))
+        )
+        val orders = FakeOrderRepository(listingRepository, requests)
+        val useCase = AcceptOrderRequestUseCase(
+            orders,
+            requests,
+            listingRepository,
+            FakeAuthRepository(UserRole.FARMER, "farmer-1")
+        )
+
+        val result = useCase(validRequest().copy(isPreHarvest = true))
+
+        assertTrue(result is Result.Error)
+        assertEquals(0, orders.acceptCount)
+        assertTrue(orders.acceptedOrders.isEmpty())
+        assertEquals(OrderRequestStatus.PENDING, requests.storedRequests.single().status)
+    }
+
+    @Test
+    fun farmerCanAcceptPreHarvestRequestAfterHarvestConfirmedReady() = runBlocking {
+        val listingRepository = FakeListingRepository(
+            expectedHarvestListing().markHarvestReady(8.0)
+        )
+        val requests = FakeOrderRequestRepository(
+            mutableListOf(validRequest().copy(isPreHarvest = true))
+        )
+        val orders = FakeOrderRepository(listingRepository, requests)
+        val useCase = AcceptOrderRequestUseCase(
+            orders,
+            requests,
+            listingRepository,
+            FakeAuthRepository(UserRole.FARMER, "farmer-1")
+        )
+
+        val result = useCase(validRequest().copy(isPreHarvest = true))
+
+        assertTrue(result is Result.Success)
+        assertEquals(1, orders.acceptCount)
+        val order = orders.acceptedOrders.single()
+        assertEquals("request-1", order.orderId)
+        assertEquals("", order.bidId)
+        assertEquals("supplier-1", order.supplierId)
+        assertEquals(5.0, order.quantity, 0.0)
+        assertEquals(8.0, order.agreedPrice, 0.0)
+        assertEquals(OrderStatus.AWAITING_PICKUP, order.status)
+        assertEquals(HarvestStatus.READY, orders.currentListing.harvestStatus)
+        assertEquals(3.0, orders.currentListing.availableStock(), 0.0)
+        assertEquals(5.0, orders.currentListing.soldQuantity, 0.0)
+        assertEquals(OrderRequestStatus.ACCEPTED, requests.storedRequests.single().status)
+    }
+
     // ── Ownership filtering ───────────────────────────────────────────
 
     @Test
@@ -307,6 +391,21 @@ class OrderRequestFlowTest {
         biddingEnabled = false,
         quantity = 10.0,
         availableQuantity = 10.0,
+        reservePrice = 8.0
+    )
+
+    private fun expectedHarvestListing() = HarvestListing(
+        listingId = "listing-1",
+        farmerId = "farmer-1",
+        farmerName = "Farmer One",
+        cropName = "Rice",
+        status = ListingStatus.OPEN,
+        biddingEnabled = false,
+        harvestStatus = HarvestStatus.EXPECTED,
+        quantity = 20.0,
+        availableQuantity = 0.0,
+        estimatedQuantity = 20.0,
+        expectedHarvestAt = 1_800_000_000_000L,
         reservePrice = 8.0
     )
 

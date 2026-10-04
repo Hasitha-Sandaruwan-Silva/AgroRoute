@@ -109,6 +109,20 @@ class HarvestListingRepositoryImpl @Inject constructor(
         }
 
         val isExpected = existing.harvestStatus == HarvestStatus.EXPECTED
+        if (isExpected && listing.estimatedQuantity != null && listing.estimatedQuantity != existing.estimatedQuantity) {
+            val pendingRequests = firestoreService.queryFlow<OrderRequest>(
+                Constants.COLLECTION_ORDER_REQUESTS,
+                "listingId",
+                listing.listingId
+            ).first().filter {
+                it.listingId == listing.listingId && it.isPreHarvest && it.status == OrderRequestStatus.PENDING
+            }
+            val maxPending = pendingRequests.maxOfOrNull { it.requestedQuantity } ?: 0.0
+            val newEstimate = listing.estimatedQuantity ?: listing.quantity
+            check(newEstimate >= maxPending) {
+                "Estimated quantity cannot be lowered below the largest pending pre-harvest request ($maxPending)"
+            }
+        }
         val updatedAvailable = if (isExpected) {
             0.0
         } else {

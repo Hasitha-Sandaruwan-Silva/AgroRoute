@@ -14,12 +14,20 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 let testEnvironment;
 
 before(async () => {
+  const hostAndPort = process.env.FIRESTORE_EMULATOR_HOST;
+  let host = "127.0.0.1";
+  let port = 8082;
+  if (hostAndPort) {
+    const parts = hostAndPort.split(":");
+    host = parts[0];
+    port = parseInt(parts[1], 10);
+  }
   testEnvironment = await initializeTestEnvironment({
     projectId,
     firestore: {
       rules: await readFile(path.join(rootDir, "firestore.rules"), "utf8"),
-      host: "127.0.0.1",
-      port: 8081
+      host,
+      port
     }
   });
 });
@@ -43,6 +51,10 @@ beforeEach(async () => {
     await setDoc(doc(db, "users/supplier-2"), {
       userId: "supplier-2",
       role: "SUPPLIER"
+    });
+    await setDoc(doc(db, "users/user-no-role"), {
+      userId: "user-no-role",
+      role: "NONE"
     });
     await setDoc(doc(db, "listings/listing-1"), {
       listingId: "listing-1",
@@ -230,6 +242,36 @@ function preHarvestRequestDoc(requestId, overrides = {}) {
   };
 }
 
+function expectedListingDoc(listingId, overrides = {}) {
+  return {
+    listingId,
+    farmerId: "farmer-1",
+    farmerName: "Farmer One",
+    cropName: "Wheat",
+    description: "Expected harvest",
+    quantity: 20,
+    quantityUnit: "KG",
+    reservePrice: 5,
+    imageUrls: [],
+    location: "North Farm",
+    status: "OPEN",
+    biddingEnabled: false,
+    createdAt: 1,
+    expiresAt: null,
+    category: "GRAINS",
+    expectedHarvestAt: 1_800_000_000_000,
+    qualityGrade: "A",
+    availableQuantity: 0,
+    soldQuantity: 0,
+    isDraft: false,
+    harvestStatus: "EXPECTED",
+    estimatedQuantity: 20,
+    harvestFailureReason: null,
+    harvestUpdatedAt: null,
+    ...overrides
+  };
+}
+
 function listingFixedAfterSale(availableQuantity, soldQuantity) {
   return {
     listingId: "listing-fixed",
@@ -276,6 +318,11 @@ async function seedRequest(requestId, overrides = {}) {
 
 async function seedPreHarvestRequest(requestId, overrides = {}) {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    // Ensure the expected listing exists
+    await setDoc(
+      doc(context.firestore(), "listings/listing-expected"),
+      expectedListingDoc("listing-expected")
+    );
     await setDoc(
       doc(context.firestore(), "order_requests", requestId),
       preHarvestRequestDoc(requestId, overrides)
@@ -629,11 +676,21 @@ test("farmer can cancel a pending pre-harvest request when marking harvest faile
   await seedPreHarvestRequest("pre-req-1");
   const db = testEnvironment.authenticatedContext("farmer-1").firestore();
 
-  // Simulate the harvest-failure cancellation (farmer cancels their own pre-harvest request).
+  // First mark the harvest as failed
+  await assertSucceeds(
+    updateDoc(doc(db, "listings/listing-expected"), {
+      harvestStatus: "FAILED",
+      biddingEnabled: false,
+      harvestFailureReason: "Flood damage",
+      harvestUpdatedAt: 2
+    })
+  );
+
+  // Then cancel the pre-harvest request (allowed because listing is now FAILED)
   await assertSucceeds(
     updateDoc(doc(db, "order_requests/pre-req-1"), {
       status: "CANCELLED",
-      updatedAt: 2
+      updatedAt: 3
     })
   );
 });
@@ -694,6 +751,336 @@ test("farmer cannot accept a pre-harvest request on an expected listing (harvest
   });
   // listing stays as EXPECTED (harvest not ready) — the order create rule must reject this.
   await assertFails(batch.commit());
+});
+
+// ── Harvest status transitions ─────────────────────────────────────────────
+
+test("farmer can mark expected harvest ready with actual quantity", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-expected"),
+      expectedListingDoc("listing-expected")
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "listings/listing-expected"), {
+      harvestStatus: "READY",
+      quantity: 15,
+      availableQuantity: 15,
+      soldQuantity: 0,
+      harvestFailureReason: null,
+      harvestUpdatedAt: 2
+    })
+  );
+});
+
+test("farmer cannot mark ready harvest back to expected", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-ready"),
+      fullListingDoc("listing-ready", {
+        listingId: "listing-ready",
+        harvestStatus: "READY",
+        quantity: 15,
+        availableQuantity: 15,
+        estimatedQuantity: null
+      })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "listings/listing-ready"), {
+      harvestStatus: "EXPECTED",
+      estimatedQuantity: 20,
+      quantity: 20,
+      availableQuantity: 0,
+      harvestUpdatedAt: 2
+    })
+  );
+});
+
+test("farmer can mark expected harvest failed", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-expected"),
+      expectedListingDoc("listing-expected")
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "listings/listing-expected"), {
+      harvestStatus: "FAILED",
+      biddingEnabled: false,
+      harvestFailureReason: "Flood damage",
+      harvestUpdatedAt: 2
+    })
+  );
+});
+
+test("farmer cannot transition failed harvest to ready", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-failed"),
+      fullListingDoc("listing-failed", {
+        listingId: "listing-failed",
+        harvestStatus: "FAILED",
+        harvestFailureReason: "Flood damage"
+      })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "listings/listing-failed"), {
+      harvestStatus: "READY",
+      quantity: 10,
+      availableQuantity: 10,
+      harvestFailureReason: null,
+      harvestUpdatedAt: 2
+    })
+  );
+});
+
+test("farmer cannot transition failed harvest to expected", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-failed"),
+      fullListingDoc("listing-failed", {
+        listingId: "listing-failed",
+        harvestStatus: "FAILED",
+        harvestFailureReason: "Flood damage"
+      })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "listings/listing-failed"), {
+      harvestStatus: "EXPECTED",
+      estimatedQuantity: 20,
+      harvestFailureReason: null,
+      harvestUpdatedAt: 2
+    })
+  );
+});
+
+test("non-owner cannot change harvest status", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-expected"),
+      expectedListingDoc("listing-expected")
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-2").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "listings/listing-expected"), {
+      harvestStatus: "READY",
+      quantity: 15,
+      availableQuantity: 15,
+      harvestUpdatedAt: 2
+    })
+  );
+});
+
+test("farmer can mark harvest ready and accept pre-harvest request in sequential steps", async () => {
+  await seedPreHarvestRequest("pre-req-1", { requestedQuantity: 5 });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  // Step 1: Mark harvest ready with actual quantity 15
+  await assertSucceeds(
+    updateDoc(doc(db, "listings/listing-expected"), {
+      harvestStatus: "READY",
+      quantity: 15,
+      availableQuantity: 15,
+      soldQuantity: 0,
+      harvestFailureReason: null,
+      harvestUpdatedAt: 2
+    })
+  );
+
+  // Step 2: Accept the pre-harvest request
+  const batch = writeBatch(db);
+  batch.set(doc(db, "order_requests/pre-req-1"), {
+    ...preHarvestRequestDoc("pre-req-1", { requestedQuantity: 5 }),
+    status: "ACCEPTED",
+    updatedAt: 2
+  });
+  batch.set(doc(db, "orders/pre-req-1"), {
+    orderId: "pre-req-1",
+    listingId: "listing-expected",
+    bidId: "",
+    farmerId: "farmer-1",
+    supplierId: "supplier-1",
+    cropName: "Wheat",
+    quantity: 5,
+    quantityUnit: "KG",
+    agreedPrice: 5,
+    status: "AWAITING_PICKUP",
+    pickupLocation: "",
+    deliveryLocation: "",
+    notes: "",
+    createdAt: 1,
+    updatedAt: 2
+  });
+  batch.set(doc(db, "listings/listing-expected"), {
+    ...expectedListingDoc("listing-expected"),
+    harvestStatus: "READY",
+    quantity: 15,
+    availableQuantity: 10,
+    soldQuantity: 5,
+    harvestFailureReason: null,
+    harvestUpdatedAt: 2
+  });
+
+  await assertSucceeds(batch.commit());
+});
+
+test("creating an order while listing is EXPECTED is REJECTED even if same batch flips listing to READY", async () => {
+  await seedPreHarvestRequest("pre-req-1", { requestedQuantity: 5 });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  const batch = writeBatch(db);
+
+  // Single batch trying to flip status to READY AND create order at the same time:
+  // get(listing).harvestStatus was EXPECTED before the write, so order creation must fail.
+  batch.set(doc(db, "listings/listing-expected"), {
+    ...expectedListingDoc("listing-expected"),
+    harvestStatus: "READY",
+    quantity: 15,
+    availableQuantity: 10,
+    soldQuantity: 5,
+    harvestFailureReason: null,
+    harvestUpdatedAt: 2
+  });
+  batch.set(doc(db, "order_requests/pre-req-1"), {
+    ...preHarvestRequestDoc("pre-req-1", { requestedQuantity: 5 }),
+    status: "ACCEPTED",
+    updatedAt: 2
+  });
+  batch.set(doc(db, "orders/pre-req-1"), {
+    orderId: "pre-req-1",
+    listingId: "listing-expected",
+    bidId: "",
+    farmerId: "farmer-1",
+    supplierId: "supplier-1",
+    cropName: "Wheat",
+    quantity: 5,
+    quantityUnit: "KG",
+    agreedPrice: 5,
+    status: "AWAITING_PICKUP",
+    pickupLocation: "",
+    deliveryLocation: "",
+    notes: "",
+    createdAt: 1,
+    updatedAt: 2
+  });
+
+  await assertFails(batch.commit());
+});
+
+// ── Multiple pre-harvest requests exceeding real stock ─────────────────────
+
+test("multiple pre-harvest requests cannot all be accepted if they exceed real stock", async () => {
+  // Listing estimate: 20, but actual yield only 10
+  // Request 1: 6 units, Request 2: 6 units (total 12 > 10)
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-expected"),
+      expectedListingDoc("listing-expected", { estimatedQuantity: 20 })
+    );
+    await setDoc(
+      doc(context.firestore(), "order_requests/pre-req-1"),
+      preHarvestRequestDoc("pre-req-1", { requestedQuantity: 6 })
+    );
+    await setDoc(
+      doc(context.firestore(), "order_requests/pre-req-2"),
+      preHarvestRequestDoc("pre-req-2", { requestedQuantity: 6 })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  // Mark harvest ready with only 10 units
+  await assertSucceeds(
+    updateDoc(doc(db, "listings/listing-expected"), {
+      harvestStatus: "READY",
+      quantity: 10,
+      availableQuantity: 10,
+      soldQuantity: 0,
+      harvestUpdatedAt: 2
+    })
+  );
+
+  // Accept first request (6 units) - should succeed
+  const batch1 = writeBatch(db);
+  batch1.set(doc(db, "order_requests/pre-req-1"), {
+    ...preHarvestRequestDoc("pre-req-1", { requestedQuantity: 6 }),
+    status: "ACCEPTED",
+    updatedAt: 2
+  });
+  batch1.set(doc(db, "orders/pre-req-1"), {
+    orderId: "pre-req-1",
+    listingId: "listing-expected",
+    bidId: "",
+    farmerId: "farmer-1",
+    supplierId: "supplier-1",
+    cropName: "Wheat",
+    quantity: 6,
+    quantityUnit: "KG",
+    agreedPrice: 5,
+    status: "AWAITING_PICKUP",
+    pickupLocation: "",
+    deliveryLocation: "",
+    notes: "",
+    createdAt: 1,
+    updatedAt: 2
+  });
+  batch1.set(doc(db, "listings/listing-expected"), {
+    ...expectedListingDoc("listing-expected", { estimatedQuantity: 20, harvestStatus: "READY" }),
+    harvestStatus: "READY",
+    quantity: 10,
+    availableQuantity: 4,
+    soldQuantity: 6,
+    harvestUpdatedAt: 2
+  });
+  await assertSucceeds(batch1.commit());
+
+  // Try to accept second request (6 units, but only 4 left) - should fail
+  const batch2 = writeBatch(db);
+  batch2.set(doc(db, "order_requests/pre-req-2"), {
+    ...preHarvestRequestDoc("pre-req-2", { requestedQuantity: 6 }),
+    status: "ACCEPTED",
+    updatedAt: 3
+  });
+  batch2.set(doc(db, "orders/pre-req-2"), {
+    orderId: "pre-req-2",
+    listingId: "listing-expected",
+    bidId: "",
+    farmerId: "farmer-1",
+    supplierId: "supplier-1",
+    cropName: "Wheat",
+    quantity: 6,
+    quantityUnit: "KG",
+    agreedPrice: 5,
+    status: "AWAITING_PICKUP",
+    pickupLocation: "",
+    deliveryLocation: "",
+    notes: "",
+    createdAt: 1,
+    updatedAt: 3
+  });
+  batch2.set(doc(db, "listings/listing-expected"), {
+    ...expectedListingDoc("listing-expected", { estimatedQuantity: 20, harvestStatus: "READY" }),
+    harvestStatus: "READY",
+    quantity: 10,
+    availableQuantity: -2,
+    soldQuantity: 12,
+    harvestUpdatedAt: 2
+  });
+  await assertFails(batch2.commit());
 });
 
 // ── Order status transitions ───────────────────────────────────────────────────
@@ -868,6 +1255,81 @@ test("cannot skip status from AWAITING_PICKUP to CANCELLED for wrong role", asyn
     updateDoc(doc(db, "orders/order-1"), {
       status: "CANCELLED",
       updatedAt: 2
+    })
+  );
+});
+
+// ── Security regression tests: participant enforcement ───────────────────────
+
+test("non-participant farmer cannot perform same-status update", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-2").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "AWAITING_PICKUP",
+      updatedAt: 2
+    })
+  );
+});
+
+test("non-participant supplier cannot perform same-status update", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("supplier-2").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "AWAITING_PICKUP",
+      updatedAt: 2
+    })
+  );
+});
+
+test("user with no role cannot perform same-status update", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("user-no-role").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "AWAITING_PICKUP",
+      updatedAt: 2
+    })
+  );
+});
+
+test("non-participant farmer cannot change order status", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-2").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "IN_TRANSIT",
+      updatedAt: 2
+    })
+  );
+});
+
+test("non-participant supplier cannot change order status", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("supplier-2").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "CANCELLED",
+      updatedAt: 2
+    })
+  );
+});
+
+test("participant same-status update touching extra fields fails", async () => {
+  await seedOrder("order-1");
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertFails(
+    updateDoc(doc(db, "orders/order-1"), {
+      status: "AWAITING_PICKUP",
+      updatedAt: 2,
+      quantity: 100 // Extra field not allowed
     })
   );
 });

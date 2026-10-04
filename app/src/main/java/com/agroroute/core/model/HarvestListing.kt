@@ -98,12 +98,18 @@ fun HarvestListing.markHarvestFailed(reason: String?): HarvestListing {
 /** Updates the estimated harvest date and/or estimated quantity for an EXPECTED listing. */
 fun HarvestListing.updateHarvestEstimate(
     expectedHarvestAt: Long?,
-    estimatedQuantity: Double?
+    estimatedQuantity: Double?,
+    maxPendingRequestQuantity: Double = 0.0
 ): HarvestListing {
     require(harvestStatus == HarvestStatus.EXPECTED) { "Only an expected harvest can have its estimate updated" }
     require(expectedHarvestAt != null) { "An estimated harvest date is required" }
     require(estimatedQuantity == null || estimatedQuantity > 0.0) {
         "Estimated quantity must be greater than zero"
+    }
+    if (estimatedQuantity != null && maxPendingRequestQuantity > 0.0) {
+        require(estimatedQuantity >= maxPendingRequestQuantity) {
+            "Estimated quantity cannot be less than the largest pending pre-harvest request ($maxPendingRequestQuantity)"
+        }
     }
     return copy(
         expectedHarvestAt = expectedHarvestAt,

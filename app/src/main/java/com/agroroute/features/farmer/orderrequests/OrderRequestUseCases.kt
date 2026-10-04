@@ -8,6 +8,7 @@ import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.HarvestListingRepository
 import com.agroroute.core.repository.OrderRepository
 import com.agroroute.core.repository.OrderRequestRepository
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.util.Result
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -58,6 +59,9 @@ class AcceptOrderRequestUseCase @Inject constructor(
                     "Mark this harvest ready and enter the actual quantity before accepting requests"
                 }
             )
+        }
+        if (request.requestedQuantity > listing.availableStock()) {
+            return Result.Error("Insufficient listing stock for this order request")
         }
 
         return orderRepository.acceptOrderRequestAndCreateOrder(request.requestId)
