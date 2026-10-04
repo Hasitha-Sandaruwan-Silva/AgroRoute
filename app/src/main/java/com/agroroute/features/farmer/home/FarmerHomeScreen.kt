@@ -124,7 +124,7 @@ fun FarmerHomeScreen(
                 color = AgroMuted
             )
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
 
             // ── Overview Section ──────────────────────────────────────
             SectionLabel("Overview")
@@ -220,7 +220,7 @@ fun FarmerHomeScreen(
                                     modifier = Modifier.size(26.dp)
                                 )
                             }
-                            Spacer(Modifier.width(14.dp))
+                            Spacer(Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Create New Listing",
@@ -444,7 +444,7 @@ private fun ShortcutCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -170,6 +171,22 @@ fun PlaceBidScreen(
                     color = MaterialTheme.colorScheme.error
                 )
             }
+
+            if (bidAmount.isNotBlank() && bidAmount.toDoubleOrNull() == null) {
+                Text(
+                    text = "Enter a valid bid amount, e.g. 150",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Text(
+                text = "Placing a request or bid is not a payment.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
         }
 
         AgroSnackbarHost(

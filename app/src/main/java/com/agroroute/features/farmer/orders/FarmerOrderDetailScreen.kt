@@ -70,6 +70,12 @@ fun FarmerOrderDetailScreen(
                     OrderDetailCard(order = uiState.selectedOrder!!)
                     OrderStatusTimeline(currentStatus = uiState.selectedOrder!!.status)
 
+                    Text(
+                        text = "Orders are not payments. No payment is processed in this app.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     when (uiState.selectedOrder!!.status) {
                         OrderStatus.AWAITING_PICKUP -> LoadingButton(
                             text = "Mark as In Transit",

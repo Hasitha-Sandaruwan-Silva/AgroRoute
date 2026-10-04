@@ -33,15 +33,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
+import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
 import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.OrderRequestStatusChip
+import com.agroroute.core.widgets.StatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -188,7 +191,12 @@ private fun FarmerOrderRequestCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            OrderRequestStatusChip(request.status)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (request.isPreHarvest) {
+                    StatusChip(label = "Pre-harvest", tone = ChipTone.Tertiary)
+                }
+                OrderRequestStatusChip(request.status)
+            }
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -208,9 +216,18 @@ private fun FarmerOrderRequestCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (request.status == OrderRequestStatus.PENDING) {
+            if (listing?.harvestStatus == HarvestStatus.EXPECTED) {
+                Text(
+                    text = "Mark the harvest ready first",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
             Row(
                 modifier = Modifier.padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 LoadingButton(
                     text = "Accept",
@@ -218,7 +235,11 @@ private fun FarmerOrderRequestCard(
                     onClick = onAccept,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = onReject, enabled = !isLoading) {
+                TextButton(
+                    onClick = onReject,
+                    enabled = !isLoading,
+                    modifier = Modifier.height(48.dp)
+                ) {
                     Text("Reject")
                 }
             }

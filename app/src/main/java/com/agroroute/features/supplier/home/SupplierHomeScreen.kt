@@ -89,7 +89,7 @@ fun SupplierHomeScreen(
                 modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
             SectionTitle(title = "Overview")
             if (isLoading) {
                 StatCardsSkeleton()
@@ -154,7 +154,9 @@ fun SupplierHomeScreen(
                     Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = { navController.navigate(Screen.SupplierMarketplace.route) },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
@@ -169,7 +171,9 @@ fun SupplierHomeScreen(
             Spacer(Modifier.height(16.dp))
             OutlinedButton(
                 onClick = { navController.navigate(Screen.SupplierOrders.route) },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(Lucide.Receipt, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -181,7 +185,9 @@ fun SupplierHomeScreen(
 
             OutlinedButton(
                 onClick = { navController.navigate(Screen.SupplierBids.route) },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(Lucide.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))

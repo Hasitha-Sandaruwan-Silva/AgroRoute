@@ -316,7 +316,7 @@ private fun PremiumBidCard(
                 BidStatusChip(bid.status)
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
 
             // ─── Center: Price & Best Offer Badge ───
             Row(
@@ -393,7 +393,7 @@ private fun PremiumBidCard(
 
 
             if (bid.status == BidStatus.PENDING) {
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
                 LoadingButton(
                     text = "Accept This Bid",
                     isLoading = isAccepting,
@@ -405,7 +405,9 @@ private fun PremiumBidCard(
                 TextButton(
                     onClick = onRejectClick,
                     enabled = !isAccepting,
-                    modifier = Modifier.align(Alignment.End)
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .height(48.dp)
                 ) {
                     Text("Reject bid")
                 }

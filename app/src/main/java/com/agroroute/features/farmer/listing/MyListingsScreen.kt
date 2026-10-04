@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -27,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,8 +40,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,6 +55,8 @@ import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.theme.GreenDeep
+import com.agroroute.core.theme.MintContainer
 import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
@@ -379,7 +386,7 @@ private fun ListingCard(
                     listing.harvestFailureReason?.takeIf(String::isNotBlank)?.let { append(": $it") }
                 },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
         } else {
@@ -454,21 +461,21 @@ private fun ListingCard(
                 )
             }
         }
-        TextButton(
-            onClick = onCardClick,
-            modifier = Modifier.align(Alignment.End)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Lucide.Gavel, contentDescription = null)
-            Spacer(Modifier.width(6.dp))
-            Text("View details & bids")
-        }
-        TextButton(
-            onClick = onEditClick,
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Icon(Lucide.FileText, contentDescription = null)
-            Spacer(Modifier.width(6.dp))
-            Text("Edit listing")
+            TextButton(onClick = onEditClick, modifier = Modifier.height(48.dp)) {
+                Icon(Lucide.FileText, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Edit listing")
+            }
+            TextButton(onClick = onCardClick, modifier = Modifier.height(48.dp)) {
+                Icon(Lucide.Gavel, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("View details & bids")
+            }
         }
         if (listing.harvestStatus == HarvestStatus.EXPECTED) {
             Row(
@@ -540,9 +547,52 @@ private fun StockValue(label: String, quantity: Double, unit: String) {
 @Composable
 private fun HarvestStatusChip(harvestStatus: HarvestStatus) {
     when (harvestStatus) {
-        HarvestStatus.EXPECTED -> StatusChip(label = "Expected harvest", tone = ChipTone.Tertiary)
-        HarvestStatus.FAILED -> StatusChip(label = "Harvest failed", tone = ChipTone.Error)
-        HarvestStatus.READY -> Unit
+        HarvestStatus.EXPECTED -> HarvestStatusBadge(
+            label = "Expected harvest",
+            icon = Lucide.CalendarDays,
+            container = MaterialTheme.colorScheme.tertiaryContainer,
+            content = MaterialTheme.colorScheme.onTertiaryContainer
+        )
+        HarvestStatus.FAILED -> HarvestStatusBadge(
+            label = "Harvest failed",
+            icon = Lucide.AlertCircle,
+            container = MaterialTheme.colorScheme.errorContainer,
+            content = MaterialTheme.colorScheme.onErrorContainer
+        )
+        HarvestStatus.READY -> HarvestStatusBadge(
+            label = "Ready",
+            icon = Lucide.Sprout,
+            container = MintContainer,
+            content = GreenDeep
+        )
+    }
+}
+
+@Composable
+private fun HarvestStatusBadge(
+    label: String,
+    icon: ImageVector,
+    container: Color,
+    content: Color
+) {
+    Surface(color = container, shape = MaterialTheme.shapes.small) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = content,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = content
+            )
+        }
     }
 }
 
@@ -577,7 +627,13 @@ private fun MarkHarvestReadyDialog(
                         if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantityText = it
                     },
                     label = { Text("Actual available quantity") },
-                    supportingText = { Text("In ${listing.quantityUnit.name}.") },
+                    supportingText = {
+                        if (quantityText.isNotEmpty() && !isValid) {
+                            Text("Enter a quantity greater than 0")
+                        } else {
+                            Text("In ${listing.quantityUnit.name}.")
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     isError = quantityText.isNotEmpty() && !isValid,
@@ -641,6 +697,33 @@ private fun MarkHarvestFailedDialog(
             }
         }
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HarvestStatusBadgesPreview() {
+    MaterialTheme {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HarvestStatusBadge(
+                label = "Expected harvest",
+                icon = Lucide.CalendarDays,
+                container = MaterialTheme.colorScheme.tertiaryContainer,
+                content = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            HarvestStatusBadge(
+                label = "Harvest failed",
+                icon = Lucide.AlertCircle,
+                container = MaterialTheme.colorScheme.errorContainer,
+                content = MaterialTheme.colorScheme.onErrorContainer
+            )
+            HarvestStatusBadge(
+                label = "Ready",
+                icon = Lucide.Sprout,
+                container = MintContainer,
+                content = GreenDeep
+            )
+        }
+    }
 }
 
 private fun ListingStatus.displayLabel(): String = when (this) {

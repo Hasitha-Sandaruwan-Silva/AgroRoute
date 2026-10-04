@@ -68,6 +68,12 @@ fun SupplierOrdersScreen(
     val isEmpty = uiState.requests.isEmpty() && uiState.orders.isEmpty()
 
     Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "Orders are not payments. No payment is processed in this app.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        )
         Box(modifier = Modifier.fillMaxSize()) {
             when {
                 uiState.isLoading && isEmpty -> ListSkeleton()

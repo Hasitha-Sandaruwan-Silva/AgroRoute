@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -349,18 +350,22 @@ private fun MarketplaceListingCard(
             modifier = Modifier.padding(top = 8.dp)
         )
         if (canPlaceBid) {
-            TextButton(
+            Button(
                 onClick = onCardClick,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
-                Text("View listing and place bid")
+                Text("Place Bid", style = MaterialTheme.typography.labelLarge)
             }
         } else if (canRequestOrder) {
-            TextButton(
+            Button(
                 onClick = onCardClick,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
-                Text("View listing and request order")
+                Text("Place Order Request", style = MaterialTheme.typography.labelLarge)
             }
         }
     }

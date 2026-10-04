@@ -115,8 +115,14 @@ fun SupplierProfileScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Role: ${role.name.lowercase().replaceFirstChar { it.uppercase() }}",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "Role",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = role.name.lowercase().replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
 

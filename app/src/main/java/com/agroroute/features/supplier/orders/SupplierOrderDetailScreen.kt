@@ -74,6 +74,12 @@ fun SupplierOrderDetailScreen(
                     OrderDetailCard(order = uiState.selectedOrder!!)
                     OrderStatusTimeline(currentStatus = uiState.selectedOrder!!.status)
 
+                    Text(
+                        text = "Orders are not payments. No payment is processed in this app.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     when (uiState.selectedOrder!!.status) {
                         OrderStatus.IN_TRANSIT -> LoadingButton(
                             text = "Mark as Delivered",

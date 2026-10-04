@@ -94,6 +94,11 @@ fun FarmerOrdersScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Order history", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Orders are not payments. No payment is processed in this app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(OrderRange.entries.size) { index ->
                     val range = OrderRange.entries[index]

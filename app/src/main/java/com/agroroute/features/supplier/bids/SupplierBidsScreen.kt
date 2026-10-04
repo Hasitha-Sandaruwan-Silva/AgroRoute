@@ -67,6 +67,16 @@ fun SupplierBidsScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             when {
                 uiState.isLoading && isEmpty -> ListSkeleton()
+                isEmpty && uiState.error != null -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        icon = Lucide.ShoppingCart,
+                        title = "Bids couldn't be loaded",
+                        subtitle = "Check your connection and try again"
+                    )
+                }
                 isEmpty -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -194,7 +204,9 @@ private fun BidCard(
         ) {
             OutlinedButton(
                 onClick = { navController.navigate(Screen.PlaceBid.createRoute(bid.listingId)) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
             ) {
                 Text("View listing")
             }
@@ -202,7 +214,9 @@ private fun BidCard(
                 Spacer(Modifier.width(8.dp))
                 OutlinedButton(
                     onClick = onWithdraw,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
                 ) {
                     Text("Withdraw")
                 }

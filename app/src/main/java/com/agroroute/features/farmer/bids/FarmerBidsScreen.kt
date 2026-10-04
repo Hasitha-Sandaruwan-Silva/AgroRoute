@@ -221,7 +221,7 @@ private fun FarmerBidCard(
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
-        TextButton(onClick = onOpen, modifier = Modifier.align(Alignment.End)) {
+        TextButton(onClick = onOpen, modifier = Modifier.align(Alignment.End).height(48.dp)) {
             Text("View listing and bids")
         }
         if (bid.status == BidStatus.PENDING) {
@@ -232,7 +232,11 @@ private fun FarmerBidCard(
                     onClick = onAccept,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = onReject, enabled = !isLoading) {
+                TextButton(
+                    onClick = onReject,
+                    enabled = !isLoading,
+                    modifier = Modifier.height(48.dp)
+                ) {
                     Text("Reject")
                 }
             }

@@ -179,7 +179,7 @@ fun LoginScreen(
                     .verticalScroll(rememberScrollState())
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = 22.dp),
+                    .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(Modifier.height(28.dp))
@@ -229,7 +229,7 @@ fun LoginScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(22.dp)
+                            .padding(24.dp)
                     ) {
                         Text(
                             text = "Sign In",
@@ -443,7 +443,7 @@ fun LoginScreen(
                             text = "Send Reset Link",
                             isLoading = uiState.isLoading,
                             onClick = { viewModel.sendPasswordResetEmail(resetEmail) },
-                            modifier = Modifier.height(40.dp)
+                            modifier = Modifier.height(48.dp)
                         )
                     }
                 }
