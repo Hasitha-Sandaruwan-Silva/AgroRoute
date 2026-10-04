@@ -47,6 +47,7 @@ import com.agroroute.features.supplier.orderrequest.PlaceOrderRequestScreen
 import com.agroroute.features.supplier.orders.SupplierOrderDetailScreen
 import com.agroroute.features.supplier.orders.SupplierOrdersScreen
 import com.agroroute.features.supplier.profile.SupplierProfileScreen
+import com.agroroute.features.supplier.bids.SupplierBidsScreen
 import com.agroroute.features.supplier.shell.SupplierScaffold
 import com.agroroute.features.supplier.shell.supplierRoutes
 
@@ -235,6 +236,10 @@ fun NavGraph(
 
                 composable(Screen.SupplierOrders.route) {
                     SupplierOrdersScreen(navController = navController)
+                }
+
+                composable(Screen.SupplierBids.route) {
+                    SupplierBidsScreen(navController = navController)
                 }
 
                 composable(

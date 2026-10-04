@@ -22,13 +22,15 @@ data class AuthUiState(
     val user: UserProfile? = null,
     val requiresGoogleRole: Boolean = false,
     val sessionResolved: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val passwordResetSent: Boolean = false
 )
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase,
+    private val sendPasswordResetEmailUseCase: SendPasswordResetEmailUseCase,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
@@ -140,7 +142,24 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun sendPasswordResetEmail(email: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null, passwordResetSent = false) }
+            when (val result = sendPasswordResetEmailUseCase(email)) {
+                is Result.Success -> _uiState.update {
+                    it.copy(isLoading = false, passwordResetSent = true)
+                }
+                is Result.Error -> _uiState.update {
+                    it.copy(isLoading = false, error = result.message, passwordResetSent = false)
+                }
+                is Result.Loading -> Unit
+            }
+        }
+    }
+
     fun clearError() = _uiState.update { it.copy(error = null) }
 
     fun consumeUser() = _uiState.update { it.copy(user = null, requiresGoogleRole = false) }
+
+    fun consumePasswordResetSent() = _uiState.update { it.copy(passwordResetSent = false) }
 }

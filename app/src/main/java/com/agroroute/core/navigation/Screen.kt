@@ -37,6 +37,7 @@ sealed class Screen(val route: String) {
 
     // ── Supplier flow ──────────────────────────────────────────────────────────
     data object SupplierMarketplace: Screen("supplier_marketplace")
+    data object SupplierBids: Screen("supplier_bids")
 
     /** Requires [listingId] argument. */
     data object PlaceBid : Screen("place_bid/{${Constants.ARG_LISTING_ID}}") {

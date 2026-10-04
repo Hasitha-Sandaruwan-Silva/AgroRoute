@@ -12,7 +12,7 @@ The AgroRoute Supplier Module enables registered buyers and suppliers to browse 
 
 ## 📱 Screen-by-Screen Specifications
 
-### 1. Authentication Screen (`AuthScreen`)
+### 1. Authentication Screen (`LoginScreen`)
 Handles user authentication and role onboarding.
 
 * **Supported Methods:**
@@ -20,8 +20,12 @@ Handles user authentication and role onboarding.
   * Google OAuth Sign-In.
 * **Features & Actions:**
   * Login / Registration toggle.
-  * Password reset ("Forgot Password") workflow.
+  * **Password reset** ("Forgot Password" dialog with email input).
   * Real-time validation, error handling, and loading state indicators.
+* **Password Reset:**
+  * Validates email format client-side before sending.
+  * Shows generic success message to prevent account enumeration.
+  * Calls AuthService.sendPasswordResetEmail().
 * **Role Assignment Logic:**
   * On initial Google Sign-In, first-time users must select their role (**Farmer** or **Supplier**).
   * Returning users previously registered as **Supplier** bypass role selection and route directly to the **Supplier Home Screen**.
@@ -149,10 +153,15 @@ User profile management and session control.
 * **Bottom Navigation Bar Tabs:**
   1. 🏠 **Home**
   2. 🛒 **Marketplace**
-  3. 🏷️ **Bids**
-  4. 📦 **Orders**
+  3. 📦 **Orders**
+  4. � **Bids** (added - shows supplier's bid history with withdraw action for pending bids)
   5. 👤 **Profile**
+* **Supplier Routes (with top bar, no bottom bar):**
+  * Place Bid (when placing a bid on a listing)
+  * Place Order Request (when requesting a fixed-price listing)
+  * Order Details (viewing order specifics)
 * **System Principles:**
   * Predictable back-stack navigation handling across all screens.
   * Unified design language (typography, colors, loading shimmers, offline alerts) matching the Farmer module.
   * Clear operational separation: Placing bids is a **Supplier** action; accepting/rejecting bids is a **Farmer** action.
+  * Role-based route guards redirect non-suppliers from supplier-specific routes.

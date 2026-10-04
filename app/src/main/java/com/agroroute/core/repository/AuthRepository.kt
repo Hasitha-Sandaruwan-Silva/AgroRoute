@@ -29,6 +29,8 @@ interface AuthRepository {
     suspend fun logout(): Result<Unit>
 
     suspend fun updateProfile(profile: UserProfile): Result<Unit>
+
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit>
 }
 
 sealed interface GoogleSignInOutcome {

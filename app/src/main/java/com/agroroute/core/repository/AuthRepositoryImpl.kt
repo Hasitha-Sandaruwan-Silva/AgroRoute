@@ -143,6 +143,10 @@ class AuthRepositoryImpl @Inject constructor(
         userProfileDao.upsertUserProfile(profile)
     })
 
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = mapFirebaseFailure(safeCall {
+        authService.sendPasswordResetEmail(email)
+    })
+
     private fun <T> mapFirebaseFailure(result: Result<T>): Result<T> = when (result) {
         is Result.Error -> Result.Error(result.cause?.toUserMessage() ?: result.message, result.cause)
         else -> result

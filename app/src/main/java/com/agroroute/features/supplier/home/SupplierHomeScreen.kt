@@ -176,6 +176,18 @@ fun SupplierHomeScreen(
                 Spacer(Modifier.width(8.dp))
                 Text("View My Orders")
             }
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = { navController.navigate(Screen.SupplierBids.route) },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(Lucide.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("View My Bids")
+            }
             Spacer(Modifier.height(20.dp))
         }
         AgroSnackbarHost(
