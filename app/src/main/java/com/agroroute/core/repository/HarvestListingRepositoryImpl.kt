@@ -180,6 +180,8 @@ class HarvestListingRepositoryImpl @Inject constructor(
 
     // ── Sync (Firestore → Room cache refresh) ──────────────────────────────────
 
+
+
     override suspend fun syncListings(): Result<Unit> = safeCall {
         val userId = authRepository.currentUserId ?: error("Sign in to sync listings")
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()

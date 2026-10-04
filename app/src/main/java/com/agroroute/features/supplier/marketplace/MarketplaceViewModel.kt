@@ -32,9 +32,16 @@ class MarketplaceViewModel @Inject constructor(
 ) : ViewModel() {
 
     init {
+        // Keep connectivity sync as the primary sync mechanism
         networkConnectivityMonitor.isOnline
             .onEach { online -> if (online) getListingsUseCase.syncListings() }
             .launchIn(viewModelScope)
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            getListingsUseCase.syncListings()
+        }
     }
 
     val uiState: StateFlow<MarketplaceUiState> =
