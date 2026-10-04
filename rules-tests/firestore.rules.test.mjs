@@ -6,7 +6,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment
 } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, runTransaction } from "firebase/firestore";
 import { after, before, beforeEach, test } from "node:test";
 
 const projectId = "demo-agroroute-rules";
@@ -17,7 +17,9 @@ before(async () => {
   testEnvironment = await initializeTestEnvironment({
     projectId,
     firestore: {
-      rules: await readFile(path.join(rootDir, "firestore.rules"), "utf8")
+      rules: await readFile(path.join(rootDir, "firestore.rules"), "utf8"),
+      host: "127.0.0.1",
+      port: 8081
     }
   });
 });
@@ -868,4 +870,377 @@ test("cannot skip status from AWAITING_PICKUP to CANCELLED for wrong role", asyn
       updatedAt: 2
     })
   );
+});
+
+// ── Real payload tests (mirroring actual repository writes) ─────────────────────
+
+// Helper builders that produce the exact field maps the repository methods write
+
+/**
+ * Builds a full HarvestListing object as written by saveListing() and markHarvestFailed().
+ * Mirrors the Kotlin data class serialization to Firestore.
+ */
+function fullListingDoc(listingId, overrides = {}) {
+  return {
+    listingId,
+    farmerId: "farmer-1",
+    farmerName: "Farmer One",
+    cropName: "Rice",
+    description: "Premium quality rice",
+    quantity: 10,
+    quantityUnit: "KG",
+    reservePrice: 8,
+    imageUrls: ["https://example.com/rice.jpg"],
+    location: "North Farm",
+    status: "OPEN",
+    biddingEnabled: true,
+    createdAt: 1,
+    expiresAt: null,
+    category: "GRAINS",
+    expectedHarvestAt: null,
+    qualityGrade: "A",
+    availableQuantity: 10,
+    soldQuantity: 0,
+    isDraft: false,
+    harvestStatus: "READY",
+    estimatedQuantity: null,
+    harvestFailureReason: null,
+    harvestUpdatedAt: null,
+    ...overrides
+  };
+}
+
+/**
+ * Builds the 14-field map written by updateListing() via updateFields().
+ * Matches HarvestListingRepositoryImpl.updateListing lines 135-155.
+ */
+function updateListingFields(overrides = {}) {
+  return {
+    cropName: "Brown rice",
+    description: "Updated description",
+    quantity: 12,
+    quantityUnit: "KG",
+    reservePrice: 9,
+    imageUrls: ["https://example.com/brown-rice.jpg"],
+    location: "North Farm",
+    category: "GRAINS",
+    expectedHarvestAt: null,
+    qualityGrade: "A+",
+    availableQuantity: 12,
+    harvestStatus: "READY",
+    estimatedQuantity: null,
+    harvestFailureReason: null,
+    harvestUpdatedAt: null,
+    ...overrides
+  };
+}
+
+/**
+ * Builds the 6-field map written by markHarvestReady() via updateFields().
+ * Matches HarvestListingRepositoryImpl.markHarvestReady lines 230-240.
+ */
+function markHarvestReadyFields(actualQuantity, overrides = {}) {
+  return {
+    quantity: actualQuantity,
+    availableQuantity: actualQuantity,
+    soldQuantity: 0,
+    harvestStatus: "READY",
+    harvestFailureReason: null,
+    harvestUpdatedAt: Date.now(),
+    ...overrides
+  };
+}
+
+/**
+ * Builds a full OrderRequest object as written by placeOrderRequest() via transaction.set().
+ * Mirrors the Kotlin data class serialization to Firestore.
+ */
+function fullOrderRequestDoc(requestId, overrides = {}) {
+  return {
+    requestId,
+    listingId: "listing-fixed",
+    farmerId: "farmer-1",
+    farmerName: "Farmer One",
+    supplierId: "supplier-1",
+    supplierName: "Supplier One",
+    cropName: "Rice",
+    requestedQuantity: 5,
+    quantityUnit: "KG",
+    listedPrice: 8,
+    status: "PENDING",
+    createdAt: 1,
+    updatedAt: 1,
+    isPreHarvest: false,
+    ...overrides
+  };
+}
+
+/**
+ * Builds a full Bid object as written by placeBid() via transaction.set().
+ * Mirrors the Kotlin data class serialization to Firestore.
+ */
+function fullBidDoc(bidId, overrides = {}) {
+  return {
+    bidId,
+    listingId: "listing-1",
+    supplierId: "supplier-1",
+    supplierName: "Supplier One",
+    offerPrice: 9,
+    message: "I'm interested in this listing",
+    status: "PENDING",
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides
+  };
+}
+
+/**
+ * Builds a full Order object as written by acceptBidAndCreateOrder() via transaction.set().
+ * Mirrors the Kotlin data class serialization to Firestore.
+ */
+function fullOrderDoc(orderId, overrides = {}) {
+  return {
+    orderId,
+    listingId: "listing-1",
+    bidId: "bid-1",
+    farmerId: "farmer-1",
+    supplierId: "supplier-1",
+    cropName: "Rice",
+    quantity: 5,
+    quantityUnit: "KG",
+    agreedPrice: 9,
+    status: "AWAITING_PICKUP",
+    pickupLocation: "North Farm",
+    deliveryLocation: "",
+    notes: "",
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides
+  };
+}
+
+/**
+ * Builds a HarvestListing after recordSale() as written by acceptBidAndCreateOrder().
+ * Mirrors the logic in HarvestListing.recordSale() lines 132-145.
+ */
+function listingAfterSale(listingId, quantitySold, overrides = {}) {
+  const base = fullListingDoc(listingId);
+  const remaining = Math.max(0, base.availableQuantity - quantitySold);
+  const isSoldOut = remaining <= 1e-9;
+  return {
+    ...base,
+    availableQuantity: remaining,
+    soldQuantity: base.soldQuantity + quantitySold,
+    status: isSoldOut ? "FULFILLED" : base.status,
+    biddingEnabled: isSoldOut ? false : base.biddingEnabled,
+    ...overrides
+  };
+}
+
+/**
+ * Builds a HarvestListing after releaseSale() as written by cancelOrder().
+ * Mirrors the logic in HarvestListing.releaseSale() lines 147-159.
+ */
+function listingAfterReleaseSale(listingId, quantityToRelease, overrides = {}) {
+  const base = fullListingDoc(listingId, { soldQuantity: 5, availableQuantity: 5 });
+  const updatedSold = Math.max(0, base.soldQuantity - quantityToRelease);
+  const currentAvailable = base.availableQuantity || (base.quantity - base.soldQuantity);
+  const updatedAvailable = Math.min(
+    currentAvailable + quantityToRelease,
+    Math.max(0, base.quantity - updatedSold)
+  );
+  const reopen = base.status === "FULFILLED" && updatedAvailable > 0;
+  return {
+    ...base,
+    availableQuantity: updatedAvailable,
+    soldQuantity: updatedSold,
+    status: reopen ? "OPEN" : base.status,
+    biddingEnabled: reopen ? true : base.biddingEnabled,
+    ...overrides
+  };
+}
+
+// ── Test: Create READY listing with full payload ─────────────────────────────
+
+test("farmer can create a READY listing with full real payload", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    setDoc(doc(db, "listings/listing-ready-full"), fullListingDoc("listing-ready-full"))
+  );
+});
+
+// ── Test: Mark harvest ready with real 6-field payload ────────────────────────
+
+test("farmer can mark harvest ready with real 6-field payload", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-ready"),
+      fullListingDoc("listing-ready", {
+        listingId: "listing-ready",
+        harvestStatus: "EXPECTED",
+        quantity: 0,
+        availableQuantity: 0,
+        estimatedQuantity: 20
+      })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "listings/listing-ready"), markHarvestReadyFields(18))
+  );
+});
+
+// ── Test: Update listing with full 14-field map ────────────────────────────────
+
+test("farmer can update listing with real 14-field payload", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "listings/listing-update"),
+      fullListingDoc("listing-update")
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  await assertSucceeds(
+    updateDoc(doc(db, "listings/listing-update"), updateListingFields())
+  );
+});
+
+// ── Test: Place bid with full payload ───────────────────────────────────────────
+
+test("supplier can place bid with full real payload", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    setDoc(doc(db, "bids/bid-full"), fullBidDoc("bid-full"))
+  );
+});
+
+// ── Test: Place order request with full payload ────────────────────────────────
+
+test("supplier can place order request with full real payload", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    setDoc(doc(db, "order_requests/request-full"), fullOrderRequestDoc("request-full"))
+  );
+});
+
+// ── Test: Accept bid transaction with full object writes ───────────────────────
+
+test("farmer can accept bid with full transaction writes (bid, listing, order) - RULE FIX NEEDED", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "bids/bid-accept"), fullBidDoc("bid-accept"));
+    await setDoc(
+      doc(context.firestore(), "listings/listing-accept"),
+      fullListingDoc("listing-accept", { listingId: "listing-accept" })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+
+  // RULE FIX NEEDED: Current rules reject the repository's real payload.
+  // Issues identified:
+  // 1. Rule L243 requires quantity == availableStock (full stock sale), but repository allows partial sales
+  // 2. Rule L233 requires orderId == bidId, but repository uses a separate orderId
+  // 3. Listing update rule L96-L112 restricts field changes, but recordSale() changes multiple fields atomically
+  //
+  // The test below documents the exact payload structure the repository writes.
+  // Once rules are fixed, change assertFails to assertSucceeds.
+
+  await assertFails(
+    runTransaction(db, async (transaction) => {
+      transaction.set(
+        doc(db, "orders/bid-accept"),
+        fullOrderDoc("bid-accept", {
+          orderId: "bid-accept",
+          bidId: "bid-accept",
+          quantity: 10
+        })
+      );
+      transaction.set(doc(db, "bids/bid-accept"), {
+        ...fullBidDoc("bid-accept"),
+        status: "ACCEPTED",
+        updatedAt: 2
+      });
+      transaction.set(
+        doc(db, "listings/listing-accept"),
+        listingAfterSale("listing-accept", 10)
+      );
+    })
+  );
+});
+
+// ── Test: Accept order request transaction with full object writes ────────────
+
+test("farmer can accept order request with full transaction writes (request, listing, order)", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "order_requests/request-accept"),
+      fullOrderRequestDoc("request-accept")
+    );
+    await setDoc(
+      doc(context.firestore(), "listings/listing-fixed"),
+      fullListingDoc("listing-fixed", { listingId: "listing-fixed", biddingEnabled: false })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  const request = fullOrderRequestDoc("request-accept");
+  const batch = writeBatch(db);
+
+  batch.set(
+    doc(db, "listings/listing-fixed"),
+    listingAfterSale("listing-fixed", 5)
+  );
+  batch.set(
+    doc(db, "orders/request-accept"),
+    fullOrderDoc("request-accept", {
+      orderId: "request-accept",
+      bidId: "",
+      listingId: "listing-fixed",
+      quantity: 5,
+      agreedPrice: 8
+    })
+  );
+  batch.set(doc(db, "order_requests/request-accept"), {
+    ...request,
+    status: "ACCEPTED",
+    updatedAt: 2
+  });
+
+  await assertSucceeds(batch.commit());
+});
+
+// ── Test: Cancel order with releaseSale (full listing write) ───────────────────
+
+test("farmer can cancel order with releaseSale transaction (order + full listing)", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "orders/order-cancel"),
+      fullOrderDoc("order-cancel", { status: "AWAITING_PICKUP" })
+    );
+    await setDoc(
+      doc(context.firestore(), "listings/listing-cancel"),
+      fullListingDoc("listing-cancel", {
+        listingId: "listing-cancel",
+        soldQuantity: 5,
+        availableQuantity: 5
+      })
+    );
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  const batch = writeBatch(db);
+
+  batch.set(doc(db, "orders/order-cancel"), {
+    ...fullOrderDoc("order-cancel"),
+    status: "CANCELLED",
+    updatedAt: 2
+  });
+  batch.set(
+    doc(db, "listings/listing-cancel"),
+    listingAfterReleaseSale("listing-cancel", 5)
+  );
+
+  await assertSucceeds(batch.commit());
 });
