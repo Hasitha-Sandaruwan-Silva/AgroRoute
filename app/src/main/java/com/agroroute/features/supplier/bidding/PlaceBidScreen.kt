@@ -91,8 +91,8 @@ fun PlaceBidScreen(
     }
 
     val listingError = (listingState as? Result.Error)?.message
-    ErrorSnackbarEffect(listingError, snackbarHostState) { }
-    ErrorSnackbarEffect(uiState.error, snackbarHostState) { }
+    ErrorSnackbarEffect(listingError, snackbarHostState) { viewModel.clearError() }
+    ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
     var bidAmount by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
@@ -338,4 +338,6 @@ class PlaceBidViewModel @Inject constructor(
             }
         }
     }
+
+    fun clearError() = _uiState.update { it.copy(error = null) }
 }

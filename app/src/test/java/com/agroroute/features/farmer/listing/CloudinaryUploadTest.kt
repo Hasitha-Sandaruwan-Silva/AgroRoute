@@ -288,6 +288,7 @@ private class FakeAuthRepository(
 
     override suspend fun logout() = Result.Success(Unit)
     override suspend fun updateProfile(profile: com.agroroute.core.model.UserProfile) = Result.Success(Unit)
+    override suspend fun sendPasswordResetEmail(email: String) = Result.Success(Unit)
 }
 
 private class FakeListingRepository(var listing: HarvestListing) : com.agroroute.core.repository.HarvestListingRepository {

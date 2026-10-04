@@ -93,8 +93,8 @@ fun PlaceOrderRequestScreen(
     }
 
     val listingError = (listingState as? Result.Error)?.message
-    ErrorSnackbarEffect(listingError, snackbarHostState) { }
-    ErrorSnackbarEffect(uiState.error, snackbarHostState) { }
+    ErrorSnackbarEffect(listingError, snackbarHostState) { viewModel.clearError() }
+    ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
     var quantityText by remember { mutableStateOf("") }
     val submissionRequestId = remember(listingId) { UUID.randomUUID().toString() }
@@ -390,4 +390,6 @@ class PlaceOrderRequestViewModel @Inject constructor(
             }
         }
     }
+
+    fun clearError() = _uiState.update { it.copy(error = null) }
 }

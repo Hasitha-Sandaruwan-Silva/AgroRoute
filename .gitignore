@@ -4,3 +4,5 @@ build/
 local.properties
 *.hprof
 *.iml
+*.log
+firestore-debug.log

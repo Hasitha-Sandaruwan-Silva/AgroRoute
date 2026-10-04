@@ -5,7 +5,7 @@ import com.agroroute.core.model.BidStatus
 import com.agroroute.core.repository.BidRepository
 import com.agroroute.core.util.Result
 import io.mockk.every
-import io.mockk.mock
+import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -17,7 +17,7 @@ class GetBidsBySupplierUseCaseTest {
 
     @Test
     fun returnsBidsForSupplier() = runBlocking {
-        val repository = mock<BidRepository>()
+        val repository = mockk<BidRepository>()
         val expectedBids = listOf(
             Bid(bidId = "bid-1", supplierId = "supplier-1", status = BidStatus.PENDING),
             Bid(bidId = "bid-2", supplierId = "supplier-1", status = BidStatus.ACCEPTED)
@@ -35,7 +35,7 @@ class GetBidsBySupplierUseCaseTest {
 
     @Test
     fun propagatesRepositoryError() = runBlocking {
-        val repository = mock<BidRepository>()
+        val repository = mockk<BidRepository>()
         every { repository.getBidsBySupplier(any()) } returns flowOf(Result.Error("Network error"))
 
         val useCase = GetBidsBySupplierUseCase(repository)
