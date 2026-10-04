@@ -1,13 +1,18 @@
 package com.agroroute.core.theme
 
+import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
     primary = GreenEmerald,
@@ -36,7 +41,7 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant = OutlineGreen
 )
 
-// Kept in place but unused when forcing light theme
+// Applied whenever the system (or caller) asks for dark mode
 private val DarkColorScheme = darkColorScheme(
     primary = MintAccent,
     onPrimary = DarkBg,
@@ -64,6 +69,21 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = DarkOutline
 )
 
+/**
+ * Keeps the system status-bar icons legible on whichever scheme is active.
+ * Purely presentational — no app logic lives here.
+ */
+@Composable
+private fun UpdateStatusBarAppearance(darkTheme: Boolean) {
+    val view = LocalView.current
+    if (view.isInEditMode) return
+    SideEffect {
+        val activity = view.context as? Activity ?: return@SideEffect
+        WindowCompat.getInsetsController(activity.window, view)
+            .isAppearanceLightStatusBars = !darkTheme
+    }
+}
+
 val AgroShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(12.dp),
@@ -74,10 +94,11 @@ val AgroShapes = Shapes(
 
 @Composable
 fun AgroRouteTheme(
-    darkTheme: Boolean = false,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) LightColorScheme else LightColorScheme
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    UpdateStatusBarAppearance(darkTheme)
 
     MaterialTheme(
         colorScheme = colorScheme,

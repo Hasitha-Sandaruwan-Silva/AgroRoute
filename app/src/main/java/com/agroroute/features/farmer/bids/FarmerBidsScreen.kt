@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -27,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -98,7 +101,8 @@ fun FarmerBidsScreen(
                         FilterChip(
                             selected = selectedStatus == status,
                             onClick = { selectedStatus = status },
-                            label = { Text("${status.label()} ($count)") }
+                            label = { Text("${status.label()} ($count)") },
+                            modifier = Modifier.heightIn(min = 48.dp)
                         )
                     }
                 }
@@ -187,52 +191,96 @@ private fun FarmerBidCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(listing.cropName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    listing.cropName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Text(
                     text = "Supplier: ${bid.supplierName.ifBlank { "Name unavailable" }}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
+            Spacer(Modifier.width(8.dp))
             BidStatusChip(bid.status)
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Offer: Rs. ${bid.offerPrice} per ${listing.quantityUnit.name}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = "Listing quantity: ${listing.quantity} ${listing.quantityUnit.name}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "Offer",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Rs. ${bid.offerPrice} / ${listing.quantityUnit.name}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Listing quantity",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${listing.quantity} ${listing.quantityUnit.name}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
         Text(
             text = "Bid date: ${formatBidDate(bid.createdAt)}",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp)
         )
         if (bid.message.isNotBlank()) {
             Text(
                 text = "Supplier message: ${bid.message}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
-        TextButton(onClick = onOpen, modifier = Modifier.align(Alignment.End)) {
+        TextButton(
+            onClick = onOpen,
+            modifier = Modifier
+                .align(Alignment.End)
+                .heightIn(min = 48.dp)
+        ) {
             Text("View listing and bids")
         }
         if (bid.status == BidStatus.PENDING) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 LoadingButton(
                     text = "Accept",
                     isLoading = isLoading,
                     onClick = onAccept,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = onReject, enabled = !isLoading) {
+                TextButton(
+                    onClick = onReject,
+                    enabled = !isLoading,
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
                     Text("Reject")
                 }
             }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -70,6 +71,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -83,6 +85,7 @@ import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.QuantityUnit
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.theme.AgroRouteTheme
 import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
@@ -420,14 +423,14 @@ fun CreateListingScreen(
                     existingStatus = uiState.editingListing?.harvestStatus,
                     onSelect = { harvestStatus = it }
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(8.dp))
                 if (harvestStatus == HarvestStatus.EXPECTED) {
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 10.dp)
+                            .padding(bottom = 12.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(10.dp),
@@ -450,7 +453,7 @@ fun CreateListingScreen(
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
                         value = quantity,
@@ -507,7 +510,7 @@ fun CreateListingScreen(
                         }
                     }
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(8.dp))
                 // Harvest date row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -520,7 +523,11 @@ fun CreateListingScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    TextButton(onClick = ::requestHarvestDatePicker, contentPadding = PaddingValues(0.dp)) {
+                    TextButton(
+                        onClick = ::requestHarvestDatePicker,
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.heightIn(min = 48.dp)
+                    ) {
                         Text(
                             text = expectedHarvestAt?.let {
                                 if (harvestStatus == HarvestStatus.EXPECTED) {
@@ -666,21 +673,29 @@ fun CreateListingScreen(
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(top = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp)
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            "Uploading to Cloudinary…",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                "Uploading to Cloudinary…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
                 // Photo upload error
@@ -717,7 +732,8 @@ fun CreateListingScreen(
                                     onClick = ::publishListing,
                                     modifier = Modifier
                                         .align(Alignment.End)
-                                        .padding(top = 8.dp),
+                                        .padding(top = 8.dp)
+                                        .heightIn(min = 48.dp),
                                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                                 ) {
                                     Icon(Lucide.RefreshCw, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -799,14 +815,14 @@ private fun CreateListingHeroHeader(isEditing: Boolean) {
             // Icon badge
             Surface(
                 shape = CircleShape,
-                color = Color.White.copy(alpha = 0.18f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Lucide.Sprout,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -816,20 +832,20 @@ private fun CreateListingHeroHeader(isEditing: Boolean) {
                 Text(
                     text = if (isEditing) "UPDATE HARVEST" else "NEW HARVEST",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.80f),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.5.sp
                 )
                 Text(
                     text = if (isEditing) "Edit your listing" else "Create a listing",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = if (isEditing) "Update your harvest details for buyers." else "Share your harvest with potential buyers.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.88f),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f),
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -901,12 +917,12 @@ private fun HarvestStatusChoiceRow(
     val options = listOf(
         HarvestStatusOption(
             HarvestStatus.READY,
-            "Already harvested",
-            "Ready to sell now"
+            "Ready now",
+            "Harvested and ready to sell today"
         ),
         HarvestStatusOption(
             HarvestStatus.EXPECTED,
-            "Expected in the future",
+            "Expected harvest",
             "Harvest date & quantity are estimates"
         )
     )
@@ -917,7 +933,7 @@ private fun HarvestStatusChoiceRow(
             color = MaterialTheme.colorScheme.onBackground
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             options.forEach { option ->
@@ -1031,9 +1047,9 @@ private fun PhotoPickerCard(
             .fillMaxWidth()
             .height(200.dp)
     ) {
+        var imageFailed by remember(selectedUri) { mutableStateOf(false) }
         Box(contentAlignment = Alignment.Center) {
-            if (selectedUri != null) {
-                var imageFailed by remember(selectedUri) { mutableStateOf(false) }
+            if (selectedUri != null && !imageFailed) {
                 AsyncImage(
                     model = selectedUri,
                     contentDescription = "Selected listing photo",
@@ -1042,23 +1058,49 @@ private fun PhotoPickerCard(
                     onError = { imageFailed = true }
                 )
                 // Darken overlay so the action button is readable
-                if (!imageFailed) {
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .background(Color.Black.copy(alpha = 0.28f))
-                            .clip(MaterialTheme.shapes.large)
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black.copy(alpha = 0.28f))
+                        .clip(MaterialTheme.shapes.large)
+                )
             }
-            // Empty-state or change-photo prompt
+            // Empty, failed or change-photo prompt
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                if (selectedUri == null || imageFailed) {
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (selectedUri == null) Lucide.ImagePlus else Lucide.AlertCircle,
+                                contentDescription = if (selectedUri == null) "Pick a photo" else "Selected photo unavailable",
+                                tint = if (selectedUri == null) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    if (imageFailed) {
+                        Text(
+                            text = "This photo could not be loaded.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
                 Button(
                     onClick = { if (enabled) launcher.launch(arrayOf("image/*")) },
                     enabled = enabled,
+                    modifier = Modifier.heightIn(min = 48.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (selectedUri != null) Color.White.copy(alpha = 0.22f)
@@ -1072,7 +1114,7 @@ private fun PhotoPickerCard(
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     } else {
                         Icon(
-                            imageVector = if (selectedUri == null) Lucide.ImagePlus else Lucide.ImagePlus,
+                            imageVector = Lucide.ImagePlus,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -1150,13 +1192,37 @@ private fun CreateListingBottomBar(
                 TextButton(
                     onClick = onSaveDraft,
                     enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
                 ) {
                     Icon(Lucide.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Save draft on this device")
                 }
             }
+        }
+    }
+}
+
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun HarvestStatusSelectorPreview() {
+    AgroRouteTheme {
+        Column(modifier = Modifier.padding(16.dp)) {
+            HarvestStatusChoiceRow(
+                selected = HarvestStatus.READY,
+                isEditing = false,
+                existingStatus = null,
+                onSelect = {}
+            )
+            HarvestStatusChoiceRow(
+                selected = HarvestStatus.EXPECTED,
+                isEditing = false,
+                existingStatus = null,
+                onSelect = {}
+            )
         }
     }
 }

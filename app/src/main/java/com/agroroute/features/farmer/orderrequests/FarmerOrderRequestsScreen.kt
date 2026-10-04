@@ -9,12 +9,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -33,15 +38,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
+import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
 import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.OrderRequestStatusChip
+import com.agroroute.core.widgets.StatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -97,7 +105,8 @@ fun FarmerOrderRequestsScreen(
                         FilterChip(
                             selected = selectedStatus == status,
                             onClick = { selectedStatus = status },
-                            label = { Text("${status.label()} ($count)") }
+                            label = { Text("${status.label()} ($count)") },
+                            modifier = Modifier.heightIn(min = 48.dp)
                         )
                     }
                 }
@@ -170,6 +179,16 @@ private fun FarmerOrderRequestCard(
     onAccept: () -> Unit,
     onReject: () -> Unit
 ) {
+    // The accept flow blocks requests whose harvest is not READY yet, so the
+    // button is shown disabled with a short hint instead of failing on tap.
+    val harvestStatus = listing?.harvestStatus
+    val acceptBlockedReason = when (harvestStatus) {
+        HarvestStatus.EXPECTED -> "Mark the harvest ready first"
+        HarvestStatus.FAILED -> "This harvest failed and can no longer be sold"
+        else -> null
+    }
+    val isPreHarvest = request.isPreHarvest || harvestStatus == HarvestStatus.EXPECTED
+
     AppCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -180,46 +199,101 @@ private fun FarmerOrderRequestCard(
                 Text(
                     request.cropName.ifBlank { listing?.cropName.orEmpty() }.ifBlank { "Crop" },
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Text(
                     text = "Supplier: ${request.supplierName.ifBlank { "Name unavailable" }}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
+            Spacer(Modifier.width(8.dp))
             OrderRequestStatusChip(request.status)
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Quantity: ${request.requestedQuantity} ${request.quantityUnit.name}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = "Listed price: Rs. ${request.listedPrice} per ${request.quantityUnit.name}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        if (isPreHarvest) {
+            Spacer(Modifier.height(8.dp))
+            StatusChip(label = "Pre-harvest", tone = ChipTone.Tertiary)
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "Quantity",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${request.requestedQuantity} ${request.quantityUnit.name}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Listed price",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Rs. ${request.listedPrice} / ${request.quantityUnit.name}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
         Text(
             text = "Requested: ${formatRequestDate(request.createdAt)}",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp)
         )
         if (request.status == OrderRequestStatus.PENDING) {
+            Spacer(Modifier.height(12.dp))
             Row(
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LoadingButton(
                     text = "Accept",
                     isLoading = isLoading,
                     onClick = onAccept,
+                    enabled = acceptBlockedReason == null,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = onReject, enabled = !isLoading) {
+                TextButton(
+                    onClick = onReject,
+                    enabled = !isLoading,
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
                     Text("Reject")
+                }
+            }
+            if (acceptBlockedReason != null) {
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Lucide.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = acceptBlockedReason,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -245,12 +319,18 @@ private fun AcceptRequestConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
                 Text("Accept and create order")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
                 Text("Cancel")
             }
         }

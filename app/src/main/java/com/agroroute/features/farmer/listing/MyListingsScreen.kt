@@ -9,21 +9,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -38,24 +43,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
+import com.agroroute.core.model.ListingCategory
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.theme.AgroRouteTheme
 import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
+import com.agroroute.core.widgets.BiddingChip
 import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
+import com.agroroute.core.widgets.HarvestStatusBadge
 import com.agroroute.core.widgets.ListSkeleton
 import com.agroroute.core.widgets.ListingImage
 import com.agroroute.core.widgets.ListingStatusChip
@@ -121,15 +133,21 @@ fun MyListingsScreen(
             title = { Text("Close this listing?") },
             text = { Text("Suppliers will no longer be able to bid. Existing bids and orders will be preserved.") },
             confirmButton = {
-                TextButton(onClick = {
-                    listingPendingClosure = null
-                    viewModel.closeListing(listing)
-                }) {
+                TextButton(
+                    onClick = {
+                        listingPendingClosure = null
+                        viewModel.closeListing(listing)
+                    },
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
                     Text("Close listing")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { listingPendingClosure = null }) {
+                TextButton(
+                    onClick = { listingPendingClosure = null },
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
                     Text("Cancel")
                 }
             }
@@ -198,7 +216,10 @@ fun MyListingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        TextButton(onClick = { navController.navigate(Screen.CreateListing.route) }) {
+                        TextButton(
+                            onClick = { navController.navigate(Screen.CreateListing.route) },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        ) {
                             Text("Resume")
                         }
                     }
@@ -244,19 +265,24 @@ fun MyListingsScreen(
                                 FilterChip(
                                     selected = selectedStatus == null,
                                     onClick = { selectedStatus = null },
-                                    label = { Text("All") }
+                                    label = { Text("All") },
+                                    modifier = Modifier.heightIn(min = 48.dp)
                                 )
                             }
                             items(ListingStatus.entries) { status ->
                                 FilterChip(
                                     selected = selectedStatus == status,
                                     onClick = { selectedStatus = status },
-                                    label = { Text(status.displayLabel()) }
+                                    label = { Text(status.displayLabel()) },
+                                    modifier = Modifier.heightIn(min = 48.dp)
                                 )
                             }
                         }
                         Box {
-                            TextButton(onClick = { sortMenuExpanded = true }) {
+                            TextButton(
+                                onClick = { sortMenuExpanded = true },
+                                modifier = Modifier.heightIn(min = 48.dp)
+                            ) {
                                 Text("Sort: ${selectedSort.label}")
                             }
                             DropdownMenu(
@@ -286,10 +312,13 @@ fun MyListingsScreen(
                                     title = "No matching listings",
                                     subtitle = "Try another crop, location, or status"
                                 )
-                                TextButton(onClick = {
-                                    searchQuery = ""
-                                    selectedStatus = null
-                                }) {
+                                TextButton(
+                                    onClick = {
+                                        searchQuery = ""
+                                        selectedStatus = null
+                                    },
+                                    modifier = Modifier.heightIn(min = 48.dp)
+                                ) {
                                     Text("Clear search and filters")
                                 }
                             }
@@ -337,158 +366,211 @@ private fun ListingCard(
     onMarkReadyClick: () -> Unit,
     onMarkFailedClick: () -> Unit
 ) {
+    val isFailed = listing.harvestStatus == HarvestStatus.FAILED
     AppCard(onClick = onCardClick) {
-        ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 176.dp)
-        Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = listing.cropName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                HarvestStatusChip(listing.harvestStatus)
+        // ── Information block — visibly muted once the harvest has failed ──
+        Column(modifier = Modifier.alpha(if (isFailed) 0.55f else 1f)) {
+            ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 176.dp)
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = listing.cropName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                HarvestStatusBadge(listing.harvestStatus)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 ListingStatusChip(listing.status)
-                if (listing.status == ListingStatus.OPEN && !listing.biddingEnabled) {
-                    StatusChip(label = "Paused", tone = ChipTone.Warning)
+                if (listing.status == ListingStatus.OPEN) {
+                    BiddingChip(listing.biddingEnabled)
+                }
+            }
+            listing.category?.let { category ->
+                Spacer(Modifier.height(8.dp))
+                StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
+            }
+            when (listing.harvestStatus) {
+                HarvestStatus.EXPECTED -> {
+                    Spacer(Modifier.height(12.dp))
+                    StockValue(
+                        label = "Estimated quantity (estimate)",
+                        quantity = listing.estimatedAvailable(),
+                        unit = listing.quantityUnit.name
+                    )
+                    Text(
+                        text = "Estimates only — the actual quantity is confirmed when you mark the harvest ready.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+                HarvestStatus.FAILED -> {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = buildString {
+                            append("This harvest is unavailable")
+                            listing.harvestFailureReason?.takeIf(String::isNotBlank)?.let { append(": $it") }
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                HarvestStatus.READY -> {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        StockValue("Original", listing.quantity, listing.quantityUnit.name)
+                        StockValue("Available", listing.availableStock(), listing.quantityUnit.name)
+                        StockValue("Sold / reserved", listing.soldQuantity, listing.quantityUnit.name)
+                    }
+                }
+            }
+            Text(
+                text = "Reserve: Rs. ${listing.reservePrice} / ${listing.quantityUnit.name}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            listing.expectedHarvestAt?.let { harvestAt ->
+                Text(
+                    text = if (listing.harvestStatus == HarvestStatus.EXPECTED) {
+                        "Estimated harvest date: ${HarvestAvailabilityDate.format(harvestAt)} (estimate)"
+                    } else {
+                        HarvestAvailabilityDate.label(harvestAt)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
+                Text(
+                    text = "Quality: $grade",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            listing.harvestUpdatedAt?.let { updatedAt ->
+                Text(
+                    text = "Harvest details last updated ${formatDate(updatedAt)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            listing.description.takeIf(String::isNotBlank)?.let { notes ->
+                Text(
+                    text = notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            if (listing.location.isNotBlank()) {
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Location",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = listing.location,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .weight(1f, fill = false)
+                    )
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        listing.category?.let { category ->
-            StatusChip(label = "${category.displayName} (farmer-provided)", tone = ChipTone.Secondary)
-            Spacer(Modifier.height(8.dp))
-        }
+
+        // ── Harvest actions — only offered where the app already offers them ──
         if (listing.harvestStatus == HarvestStatus.EXPECTED) {
-            StockValue("Estimated quantity (estimate)", listing.estimatedAvailable(), listing.quantityUnit.name)
-            Text(
-                text = "Estimates only — the actual quantity is confirmed when you mark the harvest ready.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp)
-            )
-        } else if (listing.harvestStatus == HarvestStatus.FAILED) {
-            Text(
-                text = buildString {
-                    append("This harvest is unavailable")
-                    listing.harvestFailureReason?.takeIf(String::isNotBlank)?.let { append(": $it") }
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        } else {
+            Spacer(Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StockValue("Original", listing.quantity, listing.quantityUnit.name)
-                StockValue("Available", listing.availableStock(), listing.quantityUnit.name)
-                StockValue("Sold / reserved", listing.soldQuantity, listing.quantityUnit.name)
-            }
-        }
-        Text(
-            text = "Reserve: Rs. ${listing.reservePrice} / ${listing.quantityUnit.name}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-        listing.expectedHarvestAt?.let { harvestAt ->
-            Text(
-                text = if (listing.harvestStatus == HarvestStatus.EXPECTED) {
-                    "Estimated harvest date: ${HarvestAvailabilityDate.format(harvestAt)} (estimate)"
-                } else {
-                    HarvestAvailabilityDate.label(harvestAt)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 6.dp)
-            )
-        }
-        listing.qualityGrade?.takeIf(String::isNotBlank)?.let { grade ->
-            Text(
-                text = "Quality: $grade",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        listing.harvestUpdatedAt?.let { updatedAt ->
-            Text(
-                text = "Harvest details last updated ${formatDate(updatedAt)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        listing.description.takeIf(String::isNotBlank)?.let { notes ->
-            Text(
-                text = notes,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        if (listing.location.isNotBlank()) {
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Location",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = listing.location,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-        }
-        TextButton(
-            onClick = onCardClick,
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Icon(Lucide.Gavel, contentDescription = null)
-            Spacer(Modifier.width(6.dp))
-            Text("View details & bids")
-        }
-        TextButton(
-            onClick = onEditClick,
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Icon(Lucide.FileText, contentDescription = null)
-            Spacer(Modifier.width(6.dp))
-            Text("Edit listing")
-        }
-        if (listing.harvestStatus == HarvestStatus.EXPECTED) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = onMarkFailedClick) {
+                TextButton(
+                    onClick = onMarkFailedClick,
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
                     Text("Mark harvest failed", color = MaterialTheme.colorScheme.error)
                 }
-                Spacer(Modifier.width(4.dp))
-                TextButton(onClick = onMarkReadyClick) {
+                Button(
+                    onClick = onMarkReadyClick,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    shape = MaterialTheme.shapes.large
+                ) {
                     Text("Mark ready")
                 }
             }
         }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(
+                onClick = onEditClick,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Icon(
+                    Lucide.FileText,
+                    contentDescription = "Edit listing",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Edit listing")
+            }
+            TextButton(
+                onClick = onCardClick,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Icon(
+                    Lucide.Gavel,
+                    contentDescription = "View details and bids",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("View details & bids")
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+                .heightIn(min = 48.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -497,31 +579,38 @@ private fun ListingCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (listing.biddingEnabled) "Bidding on" else "Paused",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                if (isBiddingUpdating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.width(24.dp).height(24.dp),
-                        strokeWidth = 2.dp
+            // A failed harvest can no longer accept bids, so no toggle is shown.
+            if (!isFailed) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Bidding",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(end = 8.dp)
                     )
-                } else {
-                    Switch(
-                        checked = listing.biddingEnabled,
-                        onCheckedChange = onToggleBidding,
-                        enabled = listing.status == ListingStatus.OPEN &&
-                            (listing.biddingEnabled || listing.availableStock() > 0.0)
-                    )
+                    if (isBiddingUpdating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Switch(
+                            checked = listing.biddingEnabled,
+                            onCheckedChange = onToggleBidding,
+                            enabled = listing.status == ListingStatus.OPEN &&
+                                (listing.biddingEnabled || listing.availableStock() > 0.0)
+                        )
+                    }
                 }
             }
         }
         if (listing.status == ListingStatus.OPEN) {
             TextButton(
                 onClick = onCloseClick,
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .heightIn(min = 48.dp)
             ) {
                 Text("Close listing")
             }
@@ -534,15 +623,6 @@ private fun StockValue(label: String, quantity: Double, unit: String) {
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("$quantity $unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun HarvestStatusChip(harvestStatus: HarvestStatus) {
-    when (harvestStatus) {
-        HarvestStatus.EXPECTED -> StatusChip(label = "Expected harvest", tone = ChipTone.Tertiary)
-        HarvestStatus.FAILED -> StatusChip(label = "Harvest failed", tone = ChipTone.Error)
-        HarvestStatus.READY -> Unit
     }
 }
 
@@ -561,41 +641,74 @@ private fun MarkHarvestReadyDialog(
     }
     val quantity = quantityText.toDoubleOrNull()
     val isValid = quantity != null && quantity > 0.0
+    val hasError = quantityText.isNotEmpty() && !isValid
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Mark harvest ready?") },
+        icon = {
+            Icon(
+                imageVector = Lucide.Sprout,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        title = { Text("Mark harvest ready") },
         text = {
             Column {
                 Text(
                     text = "Enter the actual quantity available from the “${listing.cropName}” harvest. " +
-                        "The listing will sell from this amount, replacing the earlier estimate."
+                        "The listing will sell from this amount, replacing the earlier estimate.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = quantityText,
                     onValueChange = {
                         if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantityText = it
                     },
-                    label = { Text("Actual available quantity") },
-                    supportingText = { Text("In ${listing.quantityUnit.name}.") },
+                    label = { Text("Actual quantity") },
+                    suffix = {
+                        Text(
+                            text = listing.quantityUnit.name,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (hasError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    supportingText = {
+                        Text(
+                            text = if (hasError) {
+                                "Enter a quantity greater than zero."
+                            } else {
+                                "Measured in ${listing.quantityUnit.name}."
+                            },
+                            color = if (hasError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    isError = quantityText.isNotEmpty() && !isValid,
+                    isError = hasError,
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 enabled = isValid,
-                onClick = { quantity?.let(onConfirm) }
+                onClick = { quantity?.let(onConfirm) },
+                modifier = Modifier.heightIn(min = 48.dp),
+                shape = MaterialTheme.shapes.large
             ) {
                 Text("Mark ready")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
                 Text("Cancel")
             }
         }
@@ -611,14 +724,23 @@ private fun MarkHarvestFailedDialog(
     var reason by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Lucide.AlertCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
         title = { Text("Mark harvest as failed?") },
         text = {
             Column {
                 Text(
                     text = "Suppliers will see the “$cropName” harvest as unavailable and pending " +
-                        "pre-harvest requests will be cancelled. No orders are created and no stock changes."
+                        "pre-harvest requests will be cancelled. No orders are created and no stock changes.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = reason,
                     onValueChange = { reason = it },
@@ -631,12 +753,23 @@ private fun MarkHarvestFailedDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(reason.trim().ifBlank { null }) }) {
-                Text("Mark failed", color = MaterialTheme.colorScheme.error)
+            Button(
+                onClick = { onConfirm(reason.trim().ifBlank { null }) },
+                modifier = Modifier.heightIn(min = 48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text("Mark failed")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
                 Text("Cancel")
             }
         }
@@ -652,4 +785,49 @@ private fun ListingStatus.displayLabel(): String = when (this) {
 private fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+private fun previewListing(harvestStatus: HarvestStatus) = HarvestListing(
+    listingId = "preview-$harvestStatus",
+    farmerId = "farmer-preview",
+    farmerName = "Preview Farmer",
+    cropName = "Tomatoes — vine ripened, farm grade A",
+    description = "Picked daily, cool storage, ready for bulk orders.",
+    quantity = 250.0,
+    reservePrice = 180.0,
+    imageUrls = emptyList(),
+    location = "Kandy Central Farm",
+    status = ListingStatus.OPEN,
+    biddingEnabled = harvestStatus != HarvestStatus.FAILED,
+    category = ListingCategory.ORGANIC,
+    expectedHarvestAt = 1_796_000_000_000L,
+    harvestStatus = harvestStatus,
+    estimatedQuantity = 200.0,
+    harvestFailureReason = if (harvestStatus == HarvestStatus.FAILED) "Destroyed by late blight" else null,
+    harvestUpdatedAt = 1_795_000_000_000L
+)
+
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6, heightDp = 1600)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, heightDp = 1600)
+@Composable
+private fun ListingCardsPreview() {
+    AgroRouteTheme {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            HarvestStatus.entries.forEach { status ->
+                ListingCard(
+                    listing = previewListing(status),
+                    onEditClick = {},
+                    onCardClick = {},
+                    onToggleBidding = {},
+                    isBiddingUpdating = false,
+                    onCloseClick = {},
+                    onMarkReadyClick = {},
+                    onMarkFailedClick = {}
+                )
+            }
+        }
+    }
 }

@@ -1,5 +1,7 @@
 package com.agroroute.core.widgets
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -7,12 +9,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.theme.AccentAmber
+import com.agroroute.core.theme.AgroRouteTheme
 import com.agroroute.core.theme.GreenDeep
 import com.agroroute.core.theme.MintContainer
 import com.agroroute.core.theme.TextDarkGreen
@@ -85,6 +90,33 @@ fun OrderRequestStatusChip(status: OrderRequestStatus, modifier: Modifier = Modi
     StatusChip(label = label, tone = tone, modifier = modifier)
 }
 
+/** Pure display mapping for a harvest-status badge (label, tone). */
+fun harvestStatusBadge(harvestStatus: HarvestStatus): Pair<String, ChipTone> =
+    when (harvestStatus) {
+        HarvestStatus.EXPECTED -> "Expected harvest" to ChipTone.Warning
+        HarvestStatus.READY -> "Ready" to ChipTone.Success
+        HarvestStatus.FAILED -> "Failed" to ChipTone.Error
+    }
+
+/**
+ * Clear, colour-coded harvest badge: amber = expected, green = ready, red = failed.
+ */
+@Composable
+fun HarvestStatusBadge(harvestStatus: HarvestStatus, modifier: Modifier = Modifier) {
+    val (label, tone) = harvestStatusBadge(harvestStatus)
+    StatusChip(label = label, tone = tone, modifier = modifier)
+}
+
+/** Bidding on/off chip — green when suppliers can bid, neutral when paused. */
+@Composable
+fun BiddingChip(biddingEnabled: Boolean, modifier: Modifier = Modifier) {
+    StatusChip(
+        label = if (biddingEnabled) "Bidding on" else "Bidding off",
+        tone = if (biddingEnabled) ChipTone.Success else ChipTone.Neutral,
+        modifier = modifier
+    )
+}
+
 @Composable
 private fun chipColors(tone: ChipTone): Pair<Color, Color> = when (tone) {
     ChipTone.Primary -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
@@ -94,4 +126,22 @@ private fun chipColors(tone: ChipTone): Pair<Color, Color> = when (tone) {
     ChipTone.Warning -> AccentAmber to TextDarkGreen
     ChipTone.Error -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
     ChipTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun HarvestStatusBadgePreview() {
+    AgroRouteTheme {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            HarvestStatusBadge(HarvestStatus.EXPECTED)
+            HarvestStatusBadge(HarvestStatus.READY)
+            HarvestStatusBadge(HarvestStatus.FAILED)
+            BiddingChip(biddingEnabled = true)
+            BiddingChip(biddingEnabled = false)
+        }
+    }
 }

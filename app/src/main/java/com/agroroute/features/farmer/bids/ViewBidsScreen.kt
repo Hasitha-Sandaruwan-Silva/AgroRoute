@@ -11,13 +11,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.rounded.FormatQuote
@@ -38,12 +38,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +51,7 @@ import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.theme.AccentAmber
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.BidStatusChip
 import com.agroroute.core.widgets.EmptyState
@@ -66,17 +65,6 @@ import com.agroroute.core.util.HarvestAvailabilityDate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-// Premium Fresh Green Theme Palette
-private val PrimaryGreen = Color(0xFF2E7D32)
-private val DarkGreenText = Color(0xFF14532D)
-private val AgroLeaf = Color(0xFF43A047)
-private val SoftMint = Color(0xFFE8F5E9)
-private val AgroBg = Color(0xFFF6FAF6)
-private val TextSecondary = Color(0xFF64748B)
-private val BorderGray = Color(0xFFE2E8F0)
-private val GoldAccent = Color(0xFFF59E0B)
-private val GoldSoft = Color(0xFFFEF3C7)
 
 internal fun highestPendingOffer(bids: List<Bid>): Bid? =
     bids.filter { it.status == BidStatus.PENDING }.maxByOrNull { it.offerPrice }
@@ -109,7 +97,7 @@ fun ViewBidsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AgroBg) // Soft white-green background
+            .background(MaterialTheme.colorScheme.background)
     ) {
         when {
             uiState.isLoading && uiState.bids.isEmpty() -> ListSkeleton()
@@ -121,7 +109,6 @@ fun ViewBidsScreen(
             ) {
                 uiState.listing?.let { listing ->
                     item {
-                        // Beautiful Listing Header
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -135,15 +122,16 @@ fun ViewBidsScreen(
                             Text(
                                 text = "Bids for",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = TextSecondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = listing.cropName,
                                 style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    letterSpacing = 0.5.sp
+                                    fontWeight = FontWeight.ExtraBold
                                 ),
-                                color = DarkGreenText
+                                color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                             listing.category?.let { category ->
                                 Spacer(Modifier.height(8.dp))
@@ -154,20 +142,20 @@ fun ViewBidsScreen(
                                 Text(
                                     text = "Quality: $grade (farmer-provided)",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Text(
                                 text = "${listing.quantity} ${listing.quantityUnit.name} · Rs. ${listing.reservePrice} per ${listing.quantityUnit.name}",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = TextSecondary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                             listing.expectedHarvestAt?.let { harvestAt ->
                                 Text(
                                     text = HarvestAvailabilityDate.label(harvestAt),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
@@ -175,7 +163,7 @@ fun ViewBidsScreen(
                                 Text(
                                     text = "Location: $location",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
@@ -183,7 +171,7 @@ fun ViewBidsScreen(
                                 Text(
                                     text = notes,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
@@ -237,7 +225,6 @@ fun ViewBidsScreen(
     }
 }
 
-
 @Composable
 private fun PremiumBidCard(
     bid: Bid,
@@ -247,78 +234,76 @@ private fun PremiumBidCard(
     isAccepting: Boolean
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = if (isBestOffer) 12.dp else 4.dp,
-                shape = RoundedCornerShape(22.dp),
-                ambientColor = if (isBestOffer) PrimaryGreen.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.05f),
-                spotColor = if (isBestOffer) PrimaryGreen.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.05f)
-            ),
-        shape = RoundedCornerShape(22.dp),
-        color = Color.White,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
         border = if (isBestOffer) {
-            androidx.compose.foundation.BorderStroke(2.dp, PrimaryGreen)
+            androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
         } else {
-            androidx.compose.foundation.BorderStroke(1.dp, BorderGray)
-        }
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        },
+        shadowElevation = 2.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    if (isBestOffer) Brush.verticalGradient(
-                        listOf(SoftMint.copy(alpha = 0.4f), Color.White)
-                    ) else Brush.verticalGradient(
-                        listOf(Color.White, Color.White)
-                    )
+                .then(
+                    if (isBestOffer) {
+                        Modifier.background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        )
+                    } else Modifier
                 )
-                .padding(20.dp)
+                .padding(16.dp)
         ) {
-            // ─── Header: Supplier Name & Status ───
+            // ─── Header: supplier name & status ───
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Supplier Avatar Placeholder
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(if (isBestOffer) PrimaryGreen else SoftMint),
+                            .background(
+                                if (isBestOffer) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.primaryContainer
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = bid.supplierName.take(1).uppercase(),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (isBestOffer) Color.White else PrimaryGreen
+                            color = if (isBestOffer) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
                             text = bid.supplierName,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = DarkGreenText
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = formatDate(bid.createdAt),
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
+                Spacer(Modifier.width(8.dp))
                 BidStatusChip(bid.status)
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // ─── Center: Price & Best Offer Badge ───
+            // ─── Price & best-offer badge ───
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -326,71 +311,87 @@ private fun PremiumBidCard(
             ) {
                 Text(
                     text = buildAnnotatedString {
-                        withStyle(style = SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)) {
+                        withStyle(
+                            style = SpanStyle(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
                             append("Rs. ")
                         }
-                        withStyle(style = SpanStyle(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryGreen)) {
+                        withStyle(
+                            style = SpanStyle(
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
                             append(bid.offerPrice.toString())
                         }
-                        withStyle(style = SpanStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextSecondary)) {
+                        withStyle(
+                            style = SpanStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
                             append(" / unit")
                         }
                     }
                 )
 
                 if (isBestOffer) {
-                    // Unique Top Bid Badge
                     Row(
                         modifier = Modifier
-                            .background(GoldSoft, RoundedCornerShape(12.dp))
-                            .border(1.dp, GoldAccent.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .background(AccentAmber.copy(alpha = 0.18f), MaterialTheme.shapes.small)
+                            .border(1.dp, AccentAmber.copy(alpha = 0.6f), MaterialTheme.shapes.small)
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.Star,
-                            contentDescription = "Best Offer",
-                            tint = GoldAccent,
+                            contentDescription = "Best offer",
+                            tint = AccentAmber,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = "Top Bid",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFFB45309) // Dark Gold
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
 
-            // ─── Message Quote Box ───
+            // ─── Supplier message ───
             if (bid.message.isNotBlank()) {
                 Spacer(Modifier.height(16.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFF8FAFC))
-                        .border(1.dp, BorderGray, RoundedCornerShape(12.dp))
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                         .padding(12.dp),
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.FormatQuote,
                         contentDescription = null,
-                        tint = PrimaryGreen.copy(alpha = 0.5f),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = bid.message,
                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
             }
-
 
             if (bid.status == BidStatus.PENDING) {
                 Spacer(Modifier.height(20.dp))
@@ -405,7 +406,9 @@ private fun PremiumBidCard(
                 TextButton(
                     onClick = onRejectClick,
                     enabled = !isAccepting,
-                    modifier = Modifier.align(Alignment.End)
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .heightIn(min = 48.dp)
                 ) {
                     Text("Reject bid")
                 }
@@ -439,12 +442,18 @@ internal fun AcceptBidConfirmationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
                 Text("Accept and create order")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
                 Text("Cancel")
             }
         }

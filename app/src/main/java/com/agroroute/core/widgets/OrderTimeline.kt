@@ -1,6 +1,7 @@
 package com.agroroute.core.widgets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,53 +13,83 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.model.OrderStatus
+import com.agroroute.core.theme.AgroRouteTheme
+
+/** The fulfilment path every order travels (cancelled orders never start it). */
+private val orderSteps = listOf(
+    OrderStatus.AWAITING_PICKUP to "Awaiting pickup",
+    OrderStatus.IN_TRANSIT to "In transit",
+    OrderStatus.DELIVERED to "Delivered"
+)
+
+/** Index of the furthest step reached; -1 when the order was cancelled. */
+private fun currentIndexFor(status: OrderStatus): Int = when (status) {
+    OrderStatus.CANCELLED -> -1
+    OrderStatus.AWAITING_PICKUP -> 0
+    OrderStatus.IN_TRANSIT -> 1
+    OrderStatus.DELIVERED -> 2
+}
 
 @Composable
 fun OrderStatusTimeline(
     currentStatus: OrderStatus,
     modifier: Modifier = Modifier
 ) {
-    val steps = listOf(
-        OrderStatus.AWAITING_PICKUP to "Awaiting Pickup",
-        OrderStatus.IN_TRANSIT to "In Transit",
-        OrderStatus.DELIVERED to "Delivered"
-    )
-    val currentIndex = when (currentStatus) {
-        OrderStatus.CANCELLED -> -1
-        OrderStatus.AWAITING_PICKUP -> 0
-        OrderStatus.IN_TRANSIT -> 1
-        OrderStatus.DELIVERED -> 2
-    }
+    val currentIndex = currentIndexFor(currentStatus)
 
     AppCard(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Order Progress",
+            text = "Order progress",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(16.dp))
 
         if (currentStatus == OrderStatus.CANCELLED) {
-            OrderStatusChip(status = OrderStatus.CANCELLED)
-            return@AppCard
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.error)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "Cancelled — this order stopped before pickup.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
         }
 
-        steps.forEachIndexed { index, (status, label) ->
-            val completed = index <= currentIndex
-            val active = index == currentIndex
+        orderSteps.forEachIndexed { index, (status, label) ->
             TimelineStep(
                 label = label,
-                completed = completed,
-                active = active,
-                isLast = index == steps.lastIndex
+                completed = index <= currentIndex,
+                active = index == currentIndex,
+                isLast = index == orderSteps.lastIndex
             )
         }
     }
@@ -80,7 +111,7 @@ private fun TimelineStep(
                     .background(
                         when {
                             active -> MaterialTheme.colorScheme.primary
-                            completed -> MaterialTheme.colorScheme.tertiary
+                            completed -> MaterialTheme.colorScheme.secondary
                             else -> MaterialTheme.colorScheme.outline
                         }
                     )
@@ -89,9 +120,9 @@ private fun TimelineStep(
                 Box(
                     modifier = Modifier
                         .width(2.dp)
-                        .height(32.dp)
+                        .height(28.dp)
                         .background(
-                            if (completed) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                            if (completed) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
                             else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
                         )
                 )
@@ -102,10 +133,104 @@ private fun TimelineStep(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                color = if (completed || active) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                color = when {
+                    active -> MaterialTheme.colorScheme.primary
+                    completed -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
             )
+            if (active) {
+                Text(
+                    text = "Current step",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Compact three-dot progress strip used inside order list cards, so the
+ * fulfilment stage is scannable without opening the order.
+ */
+@Composable
+fun OrderProgressStrip(
+    currentStatus: OrderStatus,
+    modifier: Modifier = Modifier
+) {
+    val currentIndex = currentIndexFor(currentStatus)
+    val cancelled = currentStatus == OrderStatus.CANCELLED
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            orderSteps.forEachIndexed { index, _ ->
+                val reached = index <= currentIndex
+                Box(
+                    modifier = Modifier
+                        .size(if (index == currentIndex) 10.dp else 8.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                cancelled -> MaterialTheme.colorScheme.outline
+                                reached -> MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+                            }
+                        )
+                )
+                if (index != orderSteps.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(2.dp)
+                            .background(
+                                if (!cancelled && index < currentIndex) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                                } else {
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                }
+                            )
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = if (cancelled) "Cancelled" else orderSteps[currentIndex].second,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (cancelled) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun OrderStatusTimelinePreview() {
+    AgroRouteTheme {
+        Column(modifier = Modifier.padding(16.dp)) {
+            OrderStatusTimeline(currentStatus = OrderStatus.IN_TRANSIT)
+            Spacer(Modifier.height(12.dp))
+            OrderStatusTimeline(currentStatus = OrderStatus.CANCELLED)
+        }
+    }
+}
+
+@Preview(name = "Strips", showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun OrderProgressStripPreview() {
+    AgroRouteTheme {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OrderProgressStrip(currentStatus = OrderStatus.AWAITING_PICKUP)
+            OrderProgressStrip(currentStatus = OrderStatus.IN_TRANSIT)
+            OrderProgressStrip(currentStatus = OrderStatus.DELIVERED)
+            OrderProgressStrip(currentStatus = OrderStatus.CANCELLED)
         }
     }
 }

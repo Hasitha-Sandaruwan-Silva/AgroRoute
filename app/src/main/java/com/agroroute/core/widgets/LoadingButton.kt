@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,7 +26,10 @@ fun LoadingButton(
     Button(
         onClick = onClick,
         enabled = enabled && !isLoading,
-        modifier = modifier.animateContentSize(spring(stiffness = Spring.StiffnessMedium)),
+        // Keep every primary action at the 48dp minimum touch target.
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .animateContentSize(spring(stiffness = Spring.StiffnessMedium)),
         shape = MaterialTheme.shapes.large,
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp),
         colors = ButtonDefaults.buttonColors(
