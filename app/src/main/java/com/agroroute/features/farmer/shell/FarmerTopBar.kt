@@ -1,11 +1,11 @@
 package com.agroroute.features.farmer.shell
 
 import android.app.Activity
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,18 +37,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -57,20 +52,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
 import com.agroroute.features.auth.AuthViewModel
-
-// Premium Fresh Green Theme Palette
-private val PrimaryGreen = Color(0xFF2E7D32)
-private val DarkGreenText = Color(0xFF14532D)
-private val AgroLeaf = Color(0xFF43A047)
-private val SoftMint = Color(0xFFE8F5E9)
-private val OrangeBadge = Color(0xFFF97316)
-private val BorderColor = Color(0xFFE2E8F0)
-private val TextSecondary = Color(0xFF64748B)
 
 @Composable
 fun FarmerTopBar(
@@ -84,12 +71,15 @@ fun FarmerTopBar(
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
 
-    // ─── STATUS BAR ICONS කළු පැහැයට හැරවීම ───
+    // ─── STATUS BAR ICONS DYNAMIC COLOR ───
     val view = LocalView.current
+    val isDarkTheme = isSystemInDarkTheme()
+
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            // Light theme = dark icons, Dark theme = light icons
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkTheme
         }
     }
 
@@ -97,13 +87,12 @@ fun FarmerTopBar(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = Color.White,
-        shadowElevation = 4.dp
+        color = MaterialTheme.colorScheme.surface, // Automatically adapts to Dark/Light mode
+        shadowElevation = if (isTab) 2.dp else 4.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
                 .statusBarsPadding()
         ) {
             Row(
@@ -114,7 +103,7 @@ fun FarmerTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // ─── Left Section: Logo + Green Title / Back Button ───
+                // ─── Left Section: Logo + Title / Back Button ───
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
@@ -123,44 +112,38 @@ fun FarmerTopBar(
                         IconButton(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
-                                .background(SoftMint)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = PrimaryGreen,
-                                modifier = Modifier.size(20.dp)
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                         Spacer(Modifier.width(12.dp))
                     } else {
-                        // App Logo Branding
+                        // App Logo
                         Image(
                             painter = painterResource(id = R.drawable.logo),
                             contentDescription = "AgroRoute Logo",
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(38.dp)
                         )
-                        Spacer(Modifier.width(10.dp))
+                        Spacer(Modifier.width(12.dp))
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
                         if (isTab) {
-                            // Fresh Green Brand Title Text
+                            // Brand Title
                             Text(
                                 text = "AgroRoute",
                                 style = TextStyle(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            DarkGreenText,
-                                            PrimaryGreen,
-                                            AgroLeaf
-                                        )
-                                    ),
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 22.sp,
-                                    letterSpacing = (-0.3).sp
+                                    letterSpacing = (-0.3).sp,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             )
                         } else {
@@ -170,15 +153,15 @@ fun FarmerTopBar(
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.2.sp
                                 ),
-                                color = DarkGreenText,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (subtitle != null) {
                                 Text(
                                     text = subtitle,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -187,43 +170,32 @@ fun FarmerTopBar(
                     }
                 }
 
-                // ─── Right Section: Profile Icon ───
+                // ─── Right Section: Beautiful Profile Icon ───
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Profile Icon Avatar Menu Button
                     Box {
-                        Surface(
-                            onClick = { showAvatarMenu = true },
-                            shape = CircleShape,
+                        // Premium Profile Avatar
+                        Box(
                             modifier = Modifier
-                                .size(40.dp)
-                                .shadow(2.dp, CircleShape),
-                            color = Color.White,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.5.dp,
-                                Brush.linearGradient(
-                                    listOf(
-                                        PrimaryGreen,
-                                        AgroLeaf
-                                    )
-                                )
-                            )
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable { showAvatarMenu = true }
+                                .border(
+                                    width = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(SoftMint)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Profile",
-                                    tint = PrimaryGreen,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
 
                         // Avatar Popup Dropdown Menu
@@ -231,15 +203,27 @@ fun FarmerTopBar(
                             expanded = showAvatarMenu,
                             onDismissRequest = { showAvatarMenu = false },
                             modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(16.dp))
-                                .border(1.dp, BorderColor, RoundedCornerShape(16.dp))
+                                .background(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(vertical = 4.dp)
                         ) {
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
                                         Spacer(Modifier.width(12.dp))
-                                        Text("Profile", fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            text = "Profile",
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
                                 },
                                 onClick = {
@@ -247,13 +231,27 @@ fun FarmerTopBar(
                                     navController.navigate(Screen.FarmerProfile.route)
                                 }
                             )
-                            HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Logout, contentDescription = null, tint = Color.Red, modifier = Modifier.size(18.dp))
+                                        Icon(
+                                            Icons.Default.Logout,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(20.dp)
+                                        )
                                         Spacer(Modifier.width(12.dp))
-                                        Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = "Logout",
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 },
                                 onClick = {
@@ -270,7 +268,11 @@ fun FarmerTopBar(
                 }
             }
 
-            HorizontalDivider(color = BorderColor.copy(alpha = 0.5f), thickness = 0.8.dp)
+            // Subtle divider at the bottom
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                thickness = 1.dp
+            )
         }
     }
 
@@ -288,7 +290,8 @@ fun FarmerTopBar(
     }
 }
 
-// Preserved internal route logic & functions
+// ─── Preserved internal route logic & functions (No Changes Here) ───
+
 internal val farmerTabRoutes = setOf(
     Screen.FarmerHome.route,
     Screen.MyListings.route,

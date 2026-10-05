@@ -1,7 +1,9 @@
 package com.agroroute.features.farmer.home
 
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.navigation.sharedSettingsRoutes
 import com.agroroute.features.farmer.shell.farmerRoutes
+import com.agroroute.features.farmer.shell.farmerTabRoutes
 import com.agroroute.features.supplier.shell.supplierRoutes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,5 +42,31 @@ class FarmerNavigationTest {
         assertTrue(Screen.ViewBids.route in farmerRoutes)
         assertFalse(farmerRoute == Screen.PlaceBid.createRoute(listingId))
         assertTrue(Screen.PlaceBid.route in supplierRoutes)
+    }
+
+    @Test
+    fun farmerDetailRoutesStayReachableWithRequiredParameters() {
+        val listingId = "listing-1"
+        val orderId = "order-1"
+
+        assertEquals("edit_listing/$listingId", Screen.EditListing.createRoute(listingId))
+        assertEquals("farmer_order_detail/$orderId", Screen.FarmerOrderDetail.createRoute(orderId))
+
+        assertTrue(Screen.EditListing.route in farmerRoutes)
+        assertTrue(Screen.FarmerOrderDetail.route in farmerRoutes)
+        assertTrue(Screen.FarmerOrderRequests.route in farmerRoutes)
+        assertTrue(farmerTabRoutes.all { it in farmerRoutes })
+    }
+
+    @Test
+    fun farmerCanOpenSharedSettingsWithoutBeingBouncedHome() {
+        val settingsRoutes = setOf(
+            Screen.HelpSupport.route,
+            Screen.About.route,
+            Screen.Privacy.route
+        )
+        assertTrue(settingsRoutes.all { it in farmerRoutes })
+        assertTrue(settingsRoutes.all { it in sharedSettingsRoutes })
+        assertFalse(Screen.SupplierMarketplace.route in sharedSettingsRoutes)
     }
 }

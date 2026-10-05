@@ -1,6 +1,8 @@
 package com.agroroute.features.farmer.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -26,21 +32,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ShimmerBox
 import com.agroroute.features.farmer.listing.ListingViewModel
 import com.agroroute.features.farmer.orders.FarmerOrderViewModel
+import com.github.thelacspace.icons.Lucide
 
 internal enum class FarmerHomeDestination(val route: String) {
     CREATE_LISTING(Screen.CreateListing.route),
@@ -49,6 +58,14 @@ internal enum class FarmerHomeDestination(val route: String) {
     ORDER_REQUESTS(Screen.FarmerOrderRequests.route),
     HARVEST_CALENDAR(Screen.HarvestCalendar.route)
 }
+
+// Custom Colors matching the UI design
+private val DarkGreenBg = Color(0xFF2C4C3B)
+private val CardGreen = Color(0xFF3F634B)
+private val CardGreenLight = Color(0xFF4C7559)
+private val AccentGreen = Color(0xFF86B956)
+private val LightBg = Color(0xFFF2F5F2)
+private val TextGray = Color(0xFF8A9D8F)
 
 @Composable
 fun FarmerHomeScreen(
@@ -78,204 +95,156 @@ fun FarmerHomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(LightBg)
     ) {
+        // Top Dark Green Background Shape
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                .background(DarkGreenBg)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            // ── Welcome greeting ─────────────────────────────────────
-            Text(
-                text = "Good day, Farmer 👋",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Here's what's happening on your farm today.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── Overview ─────────────────────────────────────────────
-            SectionLabel("Overview")
-
-            if (isLoading) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // ── Header Section ─────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                    .padding(top = 16.dp), // Extra top padding for status bar if needed
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Dummy Profile Picture
+                Surface(
+                    shape = CircleShape,
+                    color = AccentGreen,
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    HomeStatCardSkeleton(modifier = Modifier.weight(1f))
-                    HomeStatCardSkeleton(modifier = Modifier.weight(1f))
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Lucide.User, contentDescription = null, tint = Color.White)
+                    }
                 }
-                Spacer(Modifier.height(12.dp))
-                HomeStatCardSkeleton(modifier = Modifier.fillMaxWidth())
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    HomeStatCard(
-                        label = "My Listings",
-                        value = totalListings.toString(),
-                        icon = Lucide.FileText,
-                        modifier = Modifier.weight(1f)
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Hi, Farmer",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f)
                     )
-                    HomeStatCard(
-                        label = "Orders",
-                        value = totalOrders.toString(),
-                        icon = Lucide.Receipt,
-                        modifier = Modifier.weight(1f)
+                    Text(
+                        text = "Welcome back!",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
 
-                Spacer(Modifier.height(12.dp))
-
-                HomeStatCard(
-                    label = "Open for Bids",
-                    value = openListings.toString(),
-                    icon = Lucide.Gavel,
-                    modifier = Modifier.fillMaxWidth(),
-                    wide = true
-                )
+                // Notification Bell
+                Surface(
+                    shape = CircleShape,
+                    color = CardGreen,
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Lucide.Bell,
+                            contentDescription = "Notifications",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            // ── Quick action ─────────────────────────────────────────
-            SectionLabel("Quick Action")
-
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconBadge(
-                            icon = Lucide.Plus,
-                            contentDescription = "Create listing",
-                            modifier = Modifier.size(46.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Create New Listing",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = "Post fresh harvest & get competitive bids",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(16.dp))
-
-                    Surface(
-                        onClick = { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) },
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.primary,
+            // ── Hero Overview Card (Weather Style) ─────────────────────────────────────────────
+            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                if (isLoading) {
+                    ShimmerBox(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "New Listing",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
+                            .height(180.dp),
+                        cornerRadius = 24.dp
+                    )
+                } else {
+                    HeroStatCard(
+                        openListings = openListings.toString(),
+                        totalListings = totalListings.toString(),
+                        totalOrders = totalOrders.toString()
+                    )
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
 
-            // ── Navigation shortcuts ─────────────────────────────────
-            SectionLabel("Go to")
+            // ── Navigation Shortcuts (Pill Filter Style) ─────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Quick Menu",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ShortcutCard(
-                    title = "My Listings",
-                    subtitle = "View & manage",
-                    icon = Lucide.FileText,
-                    onClick = { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
-                    modifier = Modifier.weight(1f)
-                )
-                ShortcutCard(
-                    title = "Orders",
-                    subtitle = "Track status",
-                    icon = Lucide.Receipt,
-                    onClick = { navController.navigate(FarmerHomeDestination.ORDERS.route) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            ShortcutCard(
-                title = "Order Requests",
-                subtitle = "Review direct order requests",
-                icon = Lucide.ShoppingCart,
-                onClick = { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            ShortcutCard(
-                title = "Harvest Calendar",
-                subtitle = "Upcoming dates and reminders",
-                icon = Lucide.CalendarDays,
-                onClick = { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── Tip banner ───────────────────────────────────────────
-            AppCard(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconBadge(
-                        icon = Lucide.TrendingUp,
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Pro tip",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Open bidding on listings to attract more suppliers and better prices.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
+                ChipItem("My Listings", isActive = true) { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) }
+                ChipItem("Orders", isActive = false) { navController.navigate(FarmerHomeDestination.ORDERS.route) }
+                ChipItem("Requests", isActive = false) { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) }
+                ChipItem("Calendar", isActive = false) { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) }
             }
 
             Spacer(Modifier.height(24.dp))
+
+            // ── Action Cards (Large Card Style) ─────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Card 1: Create Listing
+                ActionLargeCard(
+                    modifier = Modifier.weight(1f),
+                    title = "New Listing",
+                    subtitle = "Post fresh harvest for bids",
+                    icon = Lucide.Plus,
+                    iconBgColor = AccentGreen,
+                    onClick = { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) }
+                )
+
+                // Card 2: Pro Tip
+                ActionLargeCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Pro Tip",
+                    subtitle = "Open bids attract better prices",
+                    icon = Lucide.TrendingUp,
+                    iconBgColor = Color(0xFFE5A83B), // A nice warm yellow/orange for the tip
+                    onClick = { /* Expand tip or do nothing */ }
+                )
+            }
+
+            Spacer(Modifier.height(40.dp))
         }
 
         AgroSnackbarHost(
@@ -285,159 +254,218 @@ fun FarmerHomeScreen(
     }
 }
 
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(bottom = 10.dp)
-    )
-}
+// ──────────────────────────────────────────────────────────────────────────
+// Custom UI Components matching the design
+// ──────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun IconBadge(
-    icon: ImageVector,
-    contentDescription: String?,
-    modifier: Modifier = Modifier
+private fun HeroStatCard(
+    openListings: String,
+    totalListings: String,
+    totalOrders: String
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = modifier
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardGreen),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeStatCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    wide: Boolean = false
-) {
-    AppCard(modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(24.dp)
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(if (wide) 44.dp else 40.dp)
+            // Top Row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = icon,
+                        imageVector = Lucide.MapPin,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp)
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Farm Overview",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                }
+                Icon(
+                    imageVector = Lucide.Leaf, // Changed from Sprout to Leaf to prevent errors
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Middle Row (Big Stat)
+            Row(
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = openListings,
+                    fontSize = 56.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.alignByBaseline()
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.alignByBaseline()) {
+                    Text(
+                        text = "Open",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = "For Bids",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White
                     )
                 }
             }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+
+            Spacer(Modifier.height(24.dp))
+            Divider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+            Spacer(Modifier.height(16.dp))
+
+            // Bottom Row (Small Stats)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                StatItem(label = "Total Listings", value = totalListings)
+                StatItem(label = "Total Orders", value = totalOrders)
+                StatItem(label = "Status", value = "Active")
             }
         }
     }
 }
 
 @Composable
-private fun HomeStatCardSkeleton(modifier: Modifier = Modifier) {
-    AppCard(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ShimmerBox(
-                modifier = Modifier.size(40.dp),
-                height = 40.dp,
-                cornerRadius = 12.dp
-            )
-            Spacer(Modifier.width(12.dp))
-            Column {
-                ShimmerBox(modifier = Modifier.width(64.dp), height = 22.dp)
-                ShimmerBox(
-                    modifier = Modifier
-                        .width(88.dp)
-                        .padding(top = 6.dp),
-                    height = 12.dp
-                )
-            }
-        }
+private fun StatItem(label: String, value: String) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextGray
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }
 
 @Composable
-private fun ShortcutCard(
+private fun ChipItem(
+    text: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = if (isActive) AccentGreen else Color.White,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+            color = if (isActive) Color.White else Color.Black,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
+        )
+    }
+}
+
+@Composable
+private fun ActionLargeCard(
+    modifier: Modifier = Modifier,
     title: String,
     subtitle: String,
     icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    iconBgColor: Color,
+    onClick: () -> Unit
 ) {
-    AppCard(modifier = modifier, onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(42.dp)
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Column {
+            // Image/Graphic placeholder area
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .background(LightBg), // Acts as the placeholder for the image
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp)
-                    )
+                Surface(
+                    shape = CircleShape,
+                    color = iconBgColor,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                // Little icon in top right to match reference
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.3f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(28.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Lucide.Heart, // Changed from Bookmark to Heart
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+
+            // Text Area
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    color = Color.Gray,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Icon(
-                imageVector = Lucide.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
         }
     }
 }

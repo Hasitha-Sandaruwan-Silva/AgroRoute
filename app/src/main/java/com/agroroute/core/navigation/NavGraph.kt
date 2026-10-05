@@ -58,6 +58,17 @@ private val authRoutes = setOf(
     Screen.RoleSelection.route
 )
 
+/**
+ * Routes reachable by both roles (from either profile screen). They appear in
+ * [farmerRoutes] and [supplierRoutes] for shell/title purposes only, so the
+ * role guard must skip them or every visit would bounce back to role home.
+ */
+internal val sharedSettingsRoutes = setOf(
+    Screen.HelpSupport.route,
+    Screen.About.route,
+    Screen.Privacy.route
+)
+
 internal fun roleHomeDestination(role: UserRole?): String? = when (role) {
     UserRole.FARMER -> Screen.FarmerHome.route
     UserRole.SUPPLIER -> Screen.SupplierHome.route
@@ -90,10 +101,12 @@ fun NavGraph(
                     launchSingleTop = true
                 }
             }
-            destination != null && role == UserRole.FARMER && currentRoute in supplierRoutes -> {
+            destination != null && role == UserRole.FARMER &&
+                currentRoute in supplierRoutes && currentRoute !in sharedSettingsRoutes -> {
                 navController.navigate(destination) { popUpTo(0) { inclusive = true } }
             }
-            destination != null && role == UserRole.SUPPLIER && currentRoute in farmerRoutes -> {
+            destination != null && role == UserRole.SUPPLIER &&
+                currentRoute in farmerRoutes && currentRoute !in sharedSettingsRoutes -> {
                 navController.navigate(destination) { popUpTo(0) { inclusive = true } }
             }
             authState.sessionResolved && destination == null && currentRoute !in authRoutes -> {
@@ -266,7 +279,21 @@ fun NavGraph(
         }
     }
 
+    val shellRole = if (authState.sessionResolved) authState.user?.role else currentUserRole
+
     when {
+        currentRoute in sharedSettingsRoutes && shellRole == UserRole.SUPPLIER -> SupplierScaffold(
+            currentRoute = currentRoute.orEmpty(),
+            navController = navController,
+            onNavigate = { route ->
+                navController.navigate(route) {
+                    popUpTo(Screen.SupplierHome.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
+            content = hostContent
+        )
         currentRoute in farmerRoutes -> FarmerScaffold(
             currentRoute = currentRoute.orEmpty(),
             navController = navController,

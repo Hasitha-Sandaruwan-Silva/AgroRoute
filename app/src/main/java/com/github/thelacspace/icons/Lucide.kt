@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.Home
@@ -44,6 +45,7 @@ object Lucide {
     val AlertCircle: ImageVector get() = Icons.Default.ErrorOutline
     val ArrowLeft: ImageVector get() = Icons.AutoMirrored.Filled.ArrowBack
     val Bell: ImageVector get() = Icons.Default.Notifications
+    val Bookmark: ImageVector get() = Icons.Default.Bookmark
     val CalendarDays: ImageVector get() = Icons.Default.CalendarToday
     val Camera: ImageVector get() = Icons.Default.CameraAlt
     val ChevronRight: ImageVector get() = Icons.Default.ChevronRight
@@ -51,11 +53,13 @@ object Lucide {
     val DollarSign: ImageVector get() = Icons.Default.AttachMoney
     val FileText: ImageVector get() = Icons.Default.Description
     val Gavel: ImageVector get() = Icons.Default.Gavel
+    val Heart: ImageVector get() = Icons.Default.Favorite
     val Home: ImageVector get() = Icons.Default.Home
     val Image: ImageVector get() = Icons.Default.Image
     val ImagePlus: ImageVector get() = Icons.Default.AddPhotoAlternate
     val Info: ImageVector get() = Icons.Default.Info
     val Label: ImageVector get() = Icons.Default.Label
+    val Leaf: ImageVector get() = Icons.Default.Eco
     val Lock: ImageVector get() = Icons.Default.Lock
     val Mail: ImageVector get() = Icons.Default.Mail
     val MapPin: ImageVector get() = Icons.Default.Place
