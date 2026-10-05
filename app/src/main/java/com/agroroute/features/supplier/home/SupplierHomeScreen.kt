@@ -160,18 +160,21 @@ fun SupplierHomeScreen(
                             HeroStatItem(
                                 label = "Open listings",
                                 value = marketState.listings.size.toString(),
-                                icon = Lucide.ShoppingBag
+                                icon = Lucide.ShoppingBag,
+                                modifier = Modifier.weight(1f)
                             )
                             HeroStatItem(
                                 label = "My orders",
                                 value = orderState.orders.size.toString(),
-                                icon = Lucide.Receipt
+                                icon = Lucide.Receipt,
+                                modifier = Modifier.weight(1f)
                             )
                             HeroStatItem(
                                 label = "Bidding open",
                                 value = biddingOpen.toString(),
                                 icon = Lucide.ShoppingCart,
-                                highlight = true
+                                highlight = true,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
@@ -219,9 +222,10 @@ private fun HeroStatItem(
     label: String,
     value: String,
     icon: ImageVector,
-    highlight: Boolean = false
+    highlight: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = Modifier.weight(1f)) {
+    Column(modifier = modifier) {
         Icon(
             imageVector = icon,
             contentDescription = null,

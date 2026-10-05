@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -198,8 +199,9 @@ private fun FarmerOrderRequestCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     request.cropName.ifBlank { listing?.cropName.orEmpty() }.ifBlank { "Crop" },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -222,45 +224,54 @@ private fun FarmerOrderRequestCard(
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
         ) {
             Column {
                 Text(
                     text = "Quantity",
                     style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "${request.requestedQuantity} ${request.quantityUnit.name}",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "Listed price",
                     style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "Rs. ${request.listedPrice} / ${request.quantityUnit.name}",
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 12.dp),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
         Text(
             text = "Requested: ${formatRequestDate(request.createdAt)}",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (request.status == OrderRequestStatus.PENDING) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 LoadingButton(
                     text = "Accept",
@@ -274,7 +285,12 @@ private fun FarmerOrderRequestCard(
                     enabled = !isLoading,
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {
-                    Text("Reject")
+                    Text(
+                        text = "Reject",
+                        color = if (isLoading) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        else MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
             if (acceptBlockedReason != null) {

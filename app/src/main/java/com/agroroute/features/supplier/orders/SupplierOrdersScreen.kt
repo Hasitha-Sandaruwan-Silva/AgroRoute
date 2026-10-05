@@ -1,5 +1,6 @@
 package com.agroroute.features.supplier.orders
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,11 +11,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import com.github.thelacspace.icons.Lucide
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,9 +46,11 @@ import com.agroroute.core.widgets.ChipTone
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
+import com.agroroute.core.widgets.OrderProgressStrip
 import com.agroroute.core.widgets.OrderRequestStatusChip
 import com.agroroute.core.widgets.OrderStatusChip
 import com.agroroute.core.widgets.StatusChip
+import com.github.thelacspace.icons.Lucide
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,7 +77,11 @@ fun SupplierOrdersScreen(
     val rejectedRequests = uiState.requests.filter { it.status == OrderRequestStatus.REJECTED }
     val isEmpty = uiState.requests.isEmpty() && uiState.orders.isEmpty()
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Text(
             text = "Orders are not payments. No payment is processed in this app.",
             style = MaterialTheme.typography.bodySmall,
@@ -97,7 +111,8 @@ fun SupplierOrdersScreen(
                                 Text(
                                     text = "Order requests",
                                     style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Text(
                                     text = "${pendingRequests.size} pending",
@@ -119,6 +134,7 @@ fun SupplierOrdersScreen(
                                     text = "Rejected requests",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.padding(top = 8.dp)
                                 )
                             }
@@ -136,6 +152,7 @@ fun SupplierOrdersScreen(
                                 text = "Your orders",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.padding(top = if (uiState.requests.isEmpty()) 0.dp else 8.dp)
                             )
                             Text(
@@ -175,11 +192,38 @@ private fun OrderRequestCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = request.cropName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Lucide.Receipt,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = request.cropName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(Modifier.width(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (request.isPreHarvest) {
                     StatusChip(label = "Pre-harvest", tone = ChipTone.Tertiary)
@@ -187,22 +231,33 @@ private fun OrderRequestCard(
                 OrderRequestStatusChip(request.status)
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Quantity: ${request.requestedQuantity} ${request.quantityUnit.name}",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = "Listed price: Rs. ${request.listedPrice}/${request.quantityUnit.name}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
+        Spacer(Modifier.height(12.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Quantity: ${request.requestedQuantity} ${request.quantityUnit.name}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = "Listed price: Rs. ${request.listedPrice}/${request.quantityUnit.name}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         Text(
             text = "Farmer: ${request.farmerName.ifBlank { "Name unavailable" }}",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp)
         )
         Text(
             text = "Requested ${formatDate(request.createdAt)}",
@@ -210,25 +265,48 @@ private fun OrderRequestCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (request.isPreHarvest && request.status == OrderRequestStatus.PENDING) {
-            Text(
-                text = "Waiting for harvest confirmation — the farmer can confirm only after " +
-                    "the crop is harvested and the actual quantity is known.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Text(
+                    text = "Waiting for harvest confirmation — the farmer can confirm only after " +
+                        "the crop is harvested and the actual quantity is known.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+            }
         }
         if (request.isPreHarvest && request.status == OrderRequestStatus.CANCELLED) {
-            Text(
-                text = "Cancelled — the farmer marked this harvest as unavailable.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Text(
+                    text = "Cancelled — the farmer marked this harvest as unavailable.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+            }
         }
         if (request.status == OrderRequestStatus.PENDING && onCancel != null) {
-            TextButton(onClick = onCancel, modifier = Modifier.align(Alignment.End)) {
-                Text("Cancel request")
+            TextButton(
+                onClick = onCancel,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(top = 4.dp)
+                    .height(48.dp)
+            ) {
+                Text("Cancel request", fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -248,57 +326,101 @@ private fun OrderCard(
             Text(
                 text = order.cropName,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
+            Spacer(Modifier.width(8.dp))
             OrderStatusChip(order.status)
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(14.dp))
+        OrderProgressStrip(currentStatus = order.status)
+        Spacer(Modifier.height(14.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Quantity", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     "${order.quantity} ${order.quantityUnit.name}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text("Agreed price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     "Rs. ${order.agreedPrice}/${order.quantityUnit.name}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
         if (order.pickupLocation.isNotBlank()) {
-            Text(
-                text = "Pickup: ${order.pickupLocation}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Lucide.Store,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Pickup: ${order.pickupLocation}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
         if (order.deliveryLocation.isNotBlank()) {
-            Text(
-                text = "Delivery: ${order.deliveryLocation}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = 4.dp)
-            )
+            ) {
+                Icon(
+                    imageVector = Lucide.Truck,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Delivery: ${order.deliveryLocation}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
         Text(
             text = "Created ${formatDate(order.createdAt)}",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
         )
         TextButton(
             onClick = onCardClick,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
         ) {
-            Text("View order details")
+            Text("View order details", fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                imageVector = Lucide.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
