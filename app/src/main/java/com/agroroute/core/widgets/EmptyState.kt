@@ -3,6 +3,7 @@ package com.agroroute.core.widgets
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,19 +54,34 @@ fun EmptyState(
     ) {
         Box(
             modifier = Modifier
-                .size(96.dp)
+                .size(104.dp)
                 .background(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-                    shape = MaterialTheme.shapes.extraLarge
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    shape = CircleShape
+                )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                    shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(44.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
         }
         Spacer(Modifier.height(20.dp))
         Text(

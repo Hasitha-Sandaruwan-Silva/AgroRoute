@@ -1,14 +1,17 @@
 package com.agroroute.core.widgets
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.model.BidStatus
@@ -16,11 +19,18 @@ import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.OrderStatus
-import com.agroroute.core.theme.AccentAmber
 import com.agroroute.core.theme.AgroRouteTheme
+import com.agroroute.core.theme.AmberDeepText
+import com.agroroute.core.theme.AmberSoftBg
+import com.agroroute.core.theme.DarkSurface2
+import com.agroroute.core.theme.DarkTextSecondary
 import com.agroroute.core.theme.GreenDeep
+import com.agroroute.core.theme.MintAccent
 import com.agroroute.core.theme.MintContainer
-import com.agroroute.core.theme.TextDarkGreen
+import com.agroroute.core.theme.NeutralDeepText
+import com.agroroute.core.theme.NeutralSoftBg
+import com.agroroute.core.theme.RedDeepText
+import com.agroroute.core.theme.RedSoftBg
 
 enum class ChipTone {
     Primary, Secondary, Tertiary, Success, Warning, Error, Neutral
@@ -36,13 +46,15 @@ fun StatusChip(
     Surface(
         modifier = modifier,
         color = container,
-        shape = MaterialTheme.shapes.small
+        shape = RoundedCornerShape(percent = 50)
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
             color = content,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
 }
@@ -118,14 +130,18 @@ fun BiddingChip(biddingEnabled: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun chipColors(tone: ChipTone): Pair<Color, Color> = when (tone) {
-    ChipTone.Primary -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-    ChipTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-    ChipTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-    ChipTone.Success -> MintContainer to GreenDeep
-    ChipTone.Warning -> AccentAmber to TextDarkGreen
-    ChipTone.Error -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-    ChipTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+private fun chipColors(tone: ChipTone): Pair<Color, Color> {
+    val dark = isSystemInDarkTheme()
+    return when (tone) {
+        ChipTone.Primary -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        ChipTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        ChipTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        ChipTone.Success -> if (dark) Color(0xFF1E3A2A) to MintAccent else MintContainer to GreenDeep
+        ChipTone.Warning -> if (dark) Color(0xFF3A321B) to Color(0xFFFFD580) else AmberSoftBg to AmberDeepText
+        ChipTone.Error -> if (dark) MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+            else RedSoftBg to RedDeepText
+        ChipTone.Neutral -> if (dark) DarkSurface2 to DarkTextSecondary else NeutralSoftBg to NeutralDeepText
+    }
 }
 
 @Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6)

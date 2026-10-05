@@ -1,5 +1,6 @@
 package com.agroroute.features.farmer.listing
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.AlertDialog
@@ -26,10 +28,12 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -45,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -209,6 +214,21 @@ fun MyListingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Lucide.FileText,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Saved drafts (${uiState.drafts.size})",
@@ -225,7 +245,7 @@ fun MyListingsScreen(
                             onClick = { navController.navigate(Screen.CreateListing.route) },
                             modifier = Modifier.heightIn(min = 48.dp)
                         ) {
-                            Text("Resume")
+                            Text("Resume", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -262,6 +282,12 @@ fun MyListingsScreen(
                             leadingIcon = { Icon(Lucide.Search, contentDescription = null) },
                             singleLine = true,
                             shape = MaterialTheme.shapes.medium,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(Modifier.height(8.dp))
@@ -435,22 +461,30 @@ private fun ListingCard(
                 }
                 HarvestStatus.READY -> {
                     Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        StockValue("Original", listing.quantity, listing.quantityUnit.name)
-                        StockValue("Available", listing.availableStock(), listing.quantityUnit.name)
-                        StockValue("Sold / reserved", listing.soldQuantity, listing.quantityUnit.name)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            StockValue("Original", listing.quantity, listing.quantityUnit.name)
+                            StockValue("Available", listing.availableStock(), listing.quantityUnit.name)
+                            StockValue("Sold / reserved", listing.soldQuantity, listing.quantityUnit.name)
+                        }
                     }
                 }
             }
             Text(
                 text = "Reserve: Rs. ${listing.reservePrice} / ${listing.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 8.dp)
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 10.dp)
             )
             listing.expectedHarvestAt?.let { harvestAt ->
                 Text(
@@ -537,6 +571,12 @@ private fun ListingCard(
                 }
             }
         }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 12.dp),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
 
         Row(
             modifier = Modifier
@@ -626,8 +666,19 @@ private fun ListingCard(
 @Composable
 private fun StockValue(label: String, quantity: Double, unit: String) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("$quantity $unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            "$quantity $unit",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
     }
 }
 

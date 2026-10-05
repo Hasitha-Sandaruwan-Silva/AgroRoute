@@ -1,5 +1,6 @@
 package com.agroroute.features.farmer.orders
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +16,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +34,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +49,9 @@ import com.agroroute.R
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.theme.ForestDeep
+import com.agroroute.core.theme.ForestMid
+import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.EmptyState
@@ -117,40 +128,66 @@ fun FarmerOrdersScreen(
                     )
                 }
             }
-            AppCard(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Delivered order value - ${selectedRange.label}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        SummaryValue("All orders", rangedOrders.size.toString())
-                        SummaryValue("Delivered", deliveredOrders.size.toString())
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(
+                        Brush.linearGradient(listOf(ForestDeep, ForestMid, ForestSoft))
+                    )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        text = "Delivered order value - ${selectedRange.label}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White.copy(alpha = 0.72f)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            SummaryValue("All orders", rangedOrders.size.toString())
+                            SummaryValue("Delivered", deliveredOrders.size.toString())
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            SummaryValue("Delivered quantity", deliveredQuantity.toString())
+                            SummaryValue("Order value", "Rs. $deliveredValue")
+                        }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        SummaryValue("Delivered quantity", deliveredQuantity.toString())
-                        SummaryValue("Order value", "Rs. $deliveredValue")
-                    }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 14.dp),
+                        thickness = 1.dp,
+                        color = Color.White.copy(alpha = 0.14f)
+                    )
+                    Text(
+                        text = "Based on delivered orders; this does not indicate payment status.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.72f)
+                    )
                 }
-                Text(
-                    text = "Based on delivered orders; this does not indicate payment status.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
             }
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text("Search crop, supplier, or pickup") },
+                leadingIcon = { Icon(Lucide.Search, contentDescription = null) },
                 singleLine = true,
+                shape = MaterialTheme.shapes.medium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -262,17 +299,21 @@ private fun OrderCard(
             )
             Spacer(Modifier.height(4.dp))
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
             Text(
                 text = "${order.quantity} ${order.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "Rs. ${order.agreedPrice}/${order.quantityUnit.name}",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
         }
         if (order.pickupLocation.isNotBlank()) {
@@ -285,7 +326,11 @@ private fun OrderCard(
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
-        Spacer(Modifier.height(12.dp))
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 12.dp),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
         OrderProgressStrip(currentStatus = order.status)
         Text(
             text = "Created ${formatDate(order.createdAt)}",
@@ -299,8 +344,13 @@ private fun OrderCard(
 @Composable
 private fun SummaryValue(label: String, value: String) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.66f))
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }
 

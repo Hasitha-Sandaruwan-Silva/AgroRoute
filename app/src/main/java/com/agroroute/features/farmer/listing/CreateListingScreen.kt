@@ -86,6 +86,10 @@ import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.QuantityUnit
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.theme.AgroRouteTheme
+import com.agroroute.core.theme.ForestDeep
+import com.agroroute.core.theme.ForestMid
+import com.agroroute.core.theme.ForestSoft
+import com.agroroute.core.theme.LeafAccent
 import com.agroroute.core.util.HarvestAvailabilityDate
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
@@ -804,48 +808,49 @@ private fun CreateListingHeroHeader(isEditing: Boolean) {
             .background(
                 Brush.linearGradient(
                     listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.tertiary
+                        ForestDeep,
+                        ForestMid,
+                        ForestSoft
                     )
                 )
             )
-            .padding(horizontal = 20.dp, vertical = 24.dp)
+            .padding(horizontal = 20.dp, vertical = 28.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Icon badge
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
-                modifier = Modifier.size(48.dp)
+                color = Color.White.copy(alpha = 0.14f),
+                modifier = Modifier.size(52.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Lucide.Sprout,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = LeafAccent,
                         modifier = Modifier.size(26.dp)
                     )
                 }
             }
             Spacer(Modifier.width(16.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = if (isEditing) "UPDATE HARVEST" else "NEW HARVEST",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f),
+                    color = LeafAccent,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.5.sp
                 )
                 Text(
                     text = if (isEditing) "Edit your listing" else "Create a listing",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = if (isEditing) "Update your harvest details for buyers." else "Share your harvest with potential buyers.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f),
+                    color = Color.White.copy(alpha = 0.82f),
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -1185,7 +1190,9 @@ private fun CreateListingBottomBar(
                 },
                 isLoading = isLoading,
                 onClick = onPublish,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
                 enabled = canSubmit
             )
             if (!isEditing) {

@@ -1,5 +1,6 @@
 package com.agroroute.features.supplier.marketplace
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,14 +11,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,8 +43,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
-import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.acceptsDirectOrders
+import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.navigation.Screen
@@ -56,6 +57,7 @@ import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ListSkeleton
 import com.agroroute.core.widgets.ListingImage
 import com.agroroute.core.widgets.StatusChip
+import com.github.thelacspace.icons.Lucide
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -111,7 +113,7 @@ fun BrowseListingsScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text("Search crops or location") },
-                leadingIcon = { androidx.compose.material3.Icon(Lucide.Search, contentDescription = null) },
+                leadingIcon = { Icon(Lucide.Search, contentDescription = null) },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
@@ -150,6 +152,7 @@ fun BrowseListingsScreen(
                 Text(
                     text = if (filtered.size == 1) "1 listing" else "${filtered.size} listings",
                     style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -244,24 +247,60 @@ private fun MarketplaceListingCard(
                 text = listing.cropName,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            Spacer(Modifier.padding(horizontal = 4.dp))
+            Spacer(Modifier.width(8.dp))
             when {
                 canPlaceBid -> StatusChip(label = "Bidding open", tone = ChipTone.Success)
                 canRequestOrder -> StatusChip(label = "Fixed price", tone = ChipTone.Success)
                 else -> StatusChip(label = "Unavailable", tone = ChipTone.Neutral)
             }
         }
-        Text(
-            text = "by ${listing.farmerName}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 3.dp)
-        )
-        Spacer(Modifier.height(12.dp))
+        // Farmer + location metadata row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Lucide.User,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(5.dp))
+            Text(
+                text = "by ${listing.farmerName}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            if (listing.location.isNotBlank()) {
+                Spacer(Modifier.width(10.dp))
+                Icon(
+                    imageVector = Lucide.MapPin,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = "Location: ${listing.location}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (isExpected) {
                 StatusChip(label = "Expected harvest", tone = ChipTone.Tertiary)
@@ -274,15 +313,27 @@ private fun MarketplaceListingCard(
             }
         }
         listing.expectedHarvestAt?.let { harvestAt ->
-            Text(
-                text = if (isExpected) {
-                    "Expected harvest: ${HarvestAvailabilityDate.format(harvestAt)} (estimate)"
-                } else {
-                    "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Lucide.CalendarDays,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    text = if (isExpected) {
+                        "Expected harvest: ${HarvestAvailabilityDate.format(harvestAt)} (estimate)"
+                    } else {
+                        "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -305,6 +356,7 @@ private fun MarketplaceListingCard(
                         },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2
                     )
                 }
@@ -318,21 +370,13 @@ private fun MarketplaceListingCard(
                     Text("Reserve price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 2
                     )
                 }
             }
-        }
-        if (listing.location.isNotBlank()) {
-            Text(
-                text = "Location: ${listing.location}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
         }
         if (listing.description.isNotBlank()) {
             Text(
@@ -340,7 +384,8 @@ private fun MarketplaceListingCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
-                modifier = Modifier.padding(top = 4.dp)
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
         Text(
@@ -350,22 +395,30 @@ private fun MarketplaceListingCard(
             modifier = Modifier.padding(top = 8.dp)
         )
         if (canPlaceBid) {
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(12.dp))
             Button(
                 onClick = onCardClick,
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text("Place Bid", style = MaterialTheme.typography.labelLarge)
+                Text("Place Bid", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         } else if (canRequestOrder) {
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(12.dp))
             Button(
                 onClick = onCardClick,
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text("Place Order Request", style = MaterialTheme.typography.labelLarge)
+                Text("Place Order Request", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }

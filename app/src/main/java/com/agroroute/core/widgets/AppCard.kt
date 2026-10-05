@@ -3,6 +3,7 @@ package com.agroroute.core.widgets
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -26,7 +27,7 @@ fun AppCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.surface,
-    elevation: Dp = 2.dp,
+    elevation: Dp = 1.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -53,7 +54,11 @@ fun AppCard(
         modifier = cardModifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation)
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp), content = content)
     }

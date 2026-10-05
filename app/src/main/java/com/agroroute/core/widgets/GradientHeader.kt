@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.agroroute.core.theme.ForestDeep
+import com.agroroute.core.theme.ForestMid
 
 @Composable
 fun GradientHeader(
@@ -23,10 +25,7 @@ fun GradientHeader(
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
     val gradient = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.85f)
-        )
+        colors = listOf(ForestDeep, ForestMid)
     )
     Box(
         modifier = modifier

@@ -53,6 +53,7 @@ import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.theme.AccentAmber
 import com.agroroute.core.widgets.AgroSnackbarHost
+import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.BidStatusChip
 import com.agroroute.core.widgets.EmptyState
 import com.agroroute.core.widgets.ErrorSnackbarEffect
@@ -109,7 +110,7 @@ fun ViewBidsScreen(
             ) {
                 uiState.listing?.let { listing ->
                     item {
-                        Column(
+                        AppCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
@@ -122,6 +123,7 @@ fun ViewBidsScreen(
                             Text(
                                 text = "Bids for",
                                 style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
@@ -148,7 +150,8 @@ fun ViewBidsScreen(
                             Text(
                                 text = "${listing.quantity} ${listing.quantityUnit.name} · Rs. ${listing.reservePrice} per ${listing.quantityUnit.name}",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                             listing.expectedHarvestAt?.let { harvestAt ->
@@ -410,7 +413,12 @@ private fun PremiumBidCard(
                         .align(Alignment.End)
                         .heightIn(min = 48.dp)
                 ) {
-                    Text("Reject bid")
+                    Text(
+                        text = "Reject bid",
+                        color = if (isAccepting) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        else MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

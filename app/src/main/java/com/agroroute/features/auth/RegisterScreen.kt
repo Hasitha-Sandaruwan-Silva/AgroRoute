@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -50,18 +51,14 @@ import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.theme.ForestDeep
+import com.agroroute.core.theme.ForestMid
+import com.agroroute.core.theme.LeafAccent
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.AgroTextField
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.LoadingButton
 import com.agroroute.core.widgets.RoleSelectCard
-
-private val PrimaryGreen = Color(0xFF2E7D32)
-private val DarkGreenText = Color(0xFF14532D)
-private val SoftMint = Color(0xFFE8F5E9)
-private val PageBg = Color(0xFFF6FAF6)
-private val BodyTextCharcoal = Color(0xFF4B5563)
-private val LineGray = Color(0xFFE5E7EB)
 
 @Composable
 fun RegisterScreen(
@@ -102,212 +99,214 @@ fun RegisterScreen(
 
     Scaffold(
         snackbarHost = { AgroSnackbarHost(snackbarHostState) },
-        containerColor = PageBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.White,
-                            SoftMint.copy(alpha = 0.6f),
-                            PageBg
-                        )
-                    )
-                )
+                .verticalScroll(rememberScrollState())
         ) {
-            // Ambient background circles
+            // ── Compact forest gradient brand header ───────────────────────
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 30.dp, y = 20.dp)
-                    .size(160.dp)
-                    .clip(CircleShape)
-                    .background(SoftMint.copy(alpha = 0.8f))
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(x = (-30).dp, y = (-50).dp)
-                    .size(180.dp)
-                    .clip(CircleShape)
-                    .background(PrimaryGreen.copy(alpha = 0.05f))
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 22.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                    .background(Brush.linearGradient(listOf(ForestDeep, ForestMid)))
             ) {
-                Spacer(Modifier.height(24.dp))
-
-                // Brand Header with App Logo
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "AgroRoute Logo",
-                    modifier = Modifier.size(72.dp)
+                Icon(
+                    imageVector = Lucide.Leaf,
+                    contentDescription = null,
+                    tint = LeafAccent.copy(alpha = 0.12f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 18.dp, y = (-12).dp)
+                        .size(110.dp)
                 )
-
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    text = "Create Account 🌱",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.3.sp
-                    ),
-                    color = DarkGreenText
-                )
-
-                Text(
-                    text = "Join the fair harvest marketplace",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = PrimaryGreen,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
-                )
-
-                // Main Form Card
-                Surface(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(
-                            elevation = 10.dp,
-                            shape = RoundedCornerShape(26.dp),
-                            ambientColor = PrimaryGreen.copy(alpha = 0.12f),
-                            spotColor = PrimaryGreen.copy(alpha = 0.12f)
-                        ),
-                    shape = RoundedCornerShape(26.dp),
-                    color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LineGray.copy(alpha = 0.7f))
+                        .statusBarsPadding()
+                        .padding(top = 24.dp, bottom = 52.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.10f),
+                        modifier = Modifier.size(84.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painterResource(id = R.drawable.logo),
+                                contentDescription = "AgroRoute Logo",
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = "Create Account 🌱",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp
+                        ),
+                        color = Color.White
+                    )
+
+                    Spacer(Modifier.height(4.dp))
+
+                    Text(
+                        text = "Join the fair harvest marketplace",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = LeafAccent,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // ── Main Form Card (overlaps the hero) ─────────────────────────
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = (-28).dp)
+                    .padding(horizontal = 20.dp)
+                    .shadow(
+                        elevation = 10.dp,
+                        shape = RoundedCornerShape(26.dp),
+                        ambientColor = ForestDeep.copy(alpha = 0.18f),
+                        spotColor = ForestDeep.copy(alpha = 0.18f)
+                    ),
+                shape = RoundedCornerShape(26.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(22.dp)
+                ) {
+                    Text(
+                        text = "Register Details",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    AgroTextField(
+                        value = displayName,
+                        onValueChange = { displayName = it },
+                        label = "Full Name",
+                        leadingIcon = Lucide.User
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    AgroTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = "Email",
+                        leadingIcon = Lucide.Mail
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    AgroTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = "Password",
+                        leadingIcon = Lucide.Lock,
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    AgroTextField(
+                        value = confirmPass,
+                        onValueChange = { confirmPass = it },
+                        label = "Confirm Password",
+                        leadingIcon = Lucide.Lock,
+                        visualTransformation = PasswordVisualTransformation(),
+                        isError = confirmPass.isNotEmpty() && password != confirmPass,
+                        supportingText = if (confirmPass.isNotEmpty() && password != confirmPass) {
+                            { Text("Passwords do not match") }
+                        } else null
+                    )
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Text(
+                        text = "I am a…",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        UserRole.entries.forEach { role ->
+                            RoleSelectCard(
+                                role = role,
+                                selected = selectedRole == role,
+                                onClick = { selectedRole = role }
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    LoadingButton(
+                        text = "Create Account",
+                        isLoading = uiState.isLoading,
+                        onClick = {
+                            if (password != confirmPass) {
+                                localError = "Passwords do not match"
+                                return@LoadingButton
+                            }
+                            localError = null
+                            viewModel.register(email, password, displayName, selectedRole)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(22.dp)
+                            .height(52.dp)
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    TextButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
                     ) {
-                        Text(
-                            text = "Register Details",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = DarkGreenText,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-
-                        AgroTextField(
-                            value = displayName,
-                            onValueChange = { displayName = it },
-                            label = "Full Name",
-                            leadingIcon = Lucide.User
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        AgroTextField(
-                            value = email,
-                            onValueChange = { email = it },
-                            label = "Email",
-                            leadingIcon = Lucide.Mail
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        AgroTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = "Password",
-                            leadingIcon = Lucide.Lock,
-                            visualTransformation = PasswordVisualTransformation()
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        AgroTextField(
-                            value = confirmPass,
-                            onValueChange = { confirmPass = it },
-                            label = "Confirm Password",
-                            leadingIcon = Lucide.Lock,
-                            visualTransformation = PasswordVisualTransformation(),
-                            isError = confirmPass.isNotEmpty() && password != confirmPass,
-                            supportingText = if (confirmPass.isNotEmpty() && password != confirmPass) {
-                                { Text("Passwords do not match") }
-                            } else null
-                        )
-
-                        Spacer(Modifier.height(20.dp))
-
-                        Text(
-                            text = "I am a…",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = DarkGreenText,
-                            modifier = Modifier.padding(bottom = 10.dp)
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            UserRole.entries.forEach { role ->
-                                RoleSelectCard(
-                                    role = role,
-                                    selected = selectedRole == role,
-                                    onClick = { selectedRole = role }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Already have an account? ",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Sign In",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Bold
                                 )
-                            }
-                        }
-
-                        Spacer(Modifier.height(24.dp))
-
-                        LoadingButton(
-                            text = "Create Account",
-                            isLoading = uiState.isLoading,
-                            onClick = {
-                                if (password != confirmPass) {
-                                    localError = "Passwords do not match"
-                                    return@LoadingButton
-                                }
-                                localError = null
-                                viewModel.register(email, password, displayName, selectedRole)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp)
-                        )
-
-                        Spacer(Modifier.height(10.dp))
-
-                        TextButton(
-                            onClick = { navController.popBackStack() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Already have an account? ",
-                                    color = BodyTextCharcoal,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = "Sign In",
-                                    color = PrimaryGreen,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
-                            }
+                            )
                         }
                     }
                 }
-
-                Spacer(Modifier.height(28.dp))
             }
+
+            Spacer(Modifier.navigationBarsPadding())
         }
     }
 }

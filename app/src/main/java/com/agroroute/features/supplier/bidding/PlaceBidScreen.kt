@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.github.thelacspace.icons.Lucide
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -161,7 +165,9 @@ fun PlaceBidScreen(
                         )
                         viewModel.placeBid(bid)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
                     enabled = bidAmount.isNotBlank()
                 )
             } else {
@@ -210,18 +216,31 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                 text = listing.cropName,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
             if (listing.biddingEnabled) {
+                Spacer(modifier = Modifier.width(8.dp))
                 StatusChip(label = "Bidding open", tone = ChipTone.Success)
             }
         }
-        Text(
-            text = "by ${listing.farmerName}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 3.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 4.dp)
+        ) {
+            Icon(
+                imageVector = Lucide.User,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "by ${listing.farmerName}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         listing.category?.let { category ->
             Spacer(modifier = Modifier.height(12.dp))
             StatusChip(label = category.displayName, tone = ChipTone.Secondary)
@@ -246,7 +265,8 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                     Text(
                         "${listing.availableStock()} ${listing.quantityUnit.name}",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -259,32 +279,61 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                     Text("Reserve price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
         }
         listing.expectedHarvestAt?.let { harvestAt ->
-            Text(
-                text = "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Lucide.CalendarDays,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "Harvest: ${HarvestAvailabilityDate.label(harvestAt)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         if (listing.location.isNotBlank()) {
-            Text(
-                text = "Location: ${listing.location}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Lucide.MapPin,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = "Location: ${listing.location}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         if (listing.description.isNotBlank()) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(top = 12.dp)
+            )
             Text(
                 text = listing.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 10.dp)
             )
         }
     }

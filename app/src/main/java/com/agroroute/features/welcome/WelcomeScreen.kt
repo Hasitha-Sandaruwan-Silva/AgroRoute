@@ -26,6 +26,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,7 +54,12 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.theme.EarthAmber
+import com.agroroute.core.theme.ForestDeep
+import com.agroroute.core.theme.ForestMid
+import com.agroroute.core.theme.LeafAccent
 import com.agroroute.core.widgets.LoadingButton
+import com.github.thelacspace.icons.Lucide
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -80,13 +86,6 @@ private val onboardingPages = listOf(
         body = "Follow every transaction seamlessly from farm pickup to final buyer delivery."
     )
 )
-
-private val PrimaryGreen = Color(0xFF2E7D32)
-private val SoftMint = Color(0xFFE8F5E9)
-private val PageBg = Color(0xFFF6FAF6)
-private val DarkText = Color(0xFF14532D)
-private val BodyText = Color(0xFF4B5563)
-private val LineGray = Color(0xFFE5E7EB)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -131,82 +130,96 @@ fun WelcomeScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White, SoftMint.copy(alpha = 0.7f), PageBg)
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        // Decorative background blobs
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 28.dp, y = 36.dp)
-                .size(150.dp)
-                .clip(CircleShape)
-                .background(SoftMint.copy(alpha = 0.85f))
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = (-24).dp, y = (-90).dp)
-                .size(170.dp)
-                .clip(CircleShape)
-                .background(PrimaryGreen.copy(alpha = 0.06f))
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 22.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(Modifier.height(18.dp))
-
-            // 🌟 1. Animated Logo Header (First to appear)
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+        Column(modifier = Modifier.fillMaxSize()) {
+            // ── Deep forest brand hero ─────────────────────────────────────
+            Box(
                 modifier = Modifier
-                    .scale(logoScale.value)
-                    .alpha(logoAlpha.value)
-                    .padding(bottom = 14.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(ForestDeep, ForestMid)
+                        )
+                    )
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.agroroute1),
-                    contentDescription = "AgroRoute Logo",
-                    modifier = Modifier.size(92.dp)
+                // Decorative leaf watermark
+                Icon(
+                    imageVector = Lucide.Leaf,
+                    contentDescription = null,
+                    tint = LeafAccent.copy(alpha = 0.12f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 24.dp, y = (-16).dp)
+                        .size(150.dp)
+                )
+                // Small amber dot accent
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(x = 26.dp, y = (-26).dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(EarthAmber.copy(alpha = 0.85f))
                 )
 
-                Spacer(Modifier.height(6.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(top = 34.dp, bottom = 66.dp)
+                        .scale(logoScale.value)
+                        .alpha(logoAlpha.value),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.10f),
+                        modifier = Modifier.size(112.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painterResource(id = R.drawable.agroroute1),
+                                contentDescription = "AgroRoute Logo",
+                                modifier = Modifier.size(88.dp)
+                            )
+                        }
+                    }
 
-                Text(
-                    text = "AgroRoute",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.6.sp
-                    ),
-                    color = DarkText
-                )
+                    Spacer(Modifier.height(14.dp))
 
-                Text(
-                    text = "From farm to market, fairly priced",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = PrimaryGreen,
-                    textAlign = TextAlign.Center
-                )
+                    Text(
+                        text = "AgroRoute",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 0.6.sp
+                        ),
+                        color = Color.White
+                    )
+
+                    Spacer(Modifier.height(4.dp))
+
+                    Text(
+                        text = "From farm to market, fairly priced",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = LeafAccent,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
-            // 🌟 2. Animated Main Card & Buttons (Slides up smoothly after logo)
+            // 🌟 Animated Main Card & Buttons (Slides up smoothly after logo)
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .offset(y = contentOffsetY.value.dp)
-                    .alpha(contentAlpha.value),
+                    .offset(y = (contentOffsetY.value - 36).dp)
+                    .alpha(contentAlpha.value)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
@@ -214,14 +227,17 @@ fun WelcomeScreen(navController: NavController) {
                         .weight(1f)
                         .fillMaxWidth()
                         .shadow(
-                            elevation = 8.dp,
-                            shape = RoundedCornerShape(26.dp),
-                            ambientColor = PrimaryGreen.copy(alpha = 0.10f),
-                            spotColor = PrimaryGreen.copy(alpha = 0.10f)
+                            elevation = 10.dp,
+                            shape = RoundedCornerShape(28.dp),
+                            ambientColor = ForestDeep.copy(alpha = 0.18f),
+                            spotColor = ForestDeep.copy(alpha = 0.18f)
                         ),
-                    shape = RoundedCornerShape(26.dp),
-                    color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LineGray.copy(alpha = 0.65f))
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                    )
                 ) {
                     Column(
                         modifier = Modifier
@@ -246,7 +262,7 @@ fun WelcomeScreen(navController: NavController) {
                     }
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(20.dp))
 
                 LoadingButton(
                     text = "Get Started",
@@ -258,7 +274,7 @@ fun WelcomeScreen(navController: NavController) {
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp)
+                        .height(52.dp)
                 )
 
                 Spacer(Modifier.height(2.dp))
@@ -269,11 +285,13 @@ fun WelcomeScreen(navController: NavController) {
                             launchSingleTop = true
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
                 ) {
                     Text(
                         text = "I already have an account",
-                        color = PrimaryGreen,
+                        color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.3.sp
@@ -304,7 +322,7 @@ private fun OnboardingPageContent(page: OnboardingPage) {
                 .height(190.dp)
                 .shadow(5.dp, RoundedCornerShape(22.dp)),
             shape = RoundedCornerShape(22.dp),
-            color = SoftMint
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
         ) {
             SubcomposeAsyncImage(
                 model = ImageRequest.Builder(context)
@@ -323,14 +341,18 @@ private fun OnboardingPageContent(page: OnboardingPage) {
                             .fillMaxSize()
                             .background(
                                 Brush.linearGradient(
-                                    listOf(SoftMint, Color.White, SoftMint)
+                                    listOf(
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                        MaterialTheme.colorScheme.surface,
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                    )
                                 )
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(
-                                color = PrimaryGreen,
+                                color = MaterialTheme.colorScheme.primary,
                                 strokeWidth = 2.5.dp,
                                 modifier = Modifier.size(30.dp)
                             )
@@ -348,7 +370,7 @@ private fun OnboardingPageContent(page: OnboardingPage) {
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.2.sp
             ),
-            color = DarkText,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
 
@@ -357,7 +379,7 @@ private fun OnboardingPageContent(page: OnboardingPage) {
         Text(
             text = page.body,
             style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-            color = BodyText,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 8.dp)
         )
@@ -379,7 +401,10 @@ private fun PagerIndicator(pageCount: Int, currentPage: Int) {
                     .height(8.dp)
                     .width(if (selected) 26.dp else 8.dp)
                     .clip(CircleShape)
-                    .background(if (selected) PrimaryGreen else Color(0xFFCBD5E1))
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant
+                    )
             )
         }
     }

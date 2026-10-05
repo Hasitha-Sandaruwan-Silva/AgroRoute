@@ -17,7 +17,22 @@ val FreshGreen     = Color(0xFF22C55E)  // Secondary green variant
 
 // ── Tonal / Container ────────────────────────────────────────────────────────
 val MintContainer  = Color(0xFFE8F5E9)
-val SoftMintBg     = Color(0xFFF4FBF6)
+val SoftMintBg     = Color(0xFFF2F5F2)
+
+// ── Forest identity (hero surfaces, headers, snackbars) ─────────────────────
+val ForestDeep     = Color(0xFF2C4C3B)  // Hero / header background
+val ForestMid      = Color(0xFF3F634B)  // Hero card surface
+val ForestSoft     = Color(0xFF4C7559)  // Hero card highlight
+val LeafAccent     = Color(0xFF86B956)  // Fresh leaf accent on dark green
+val EarthAmber     = Color(0xFFE5A83B)  // Warm earthy accent
+
+// ── Soft status containers (light, readable text pairs) ─────────────────────
+val AmberSoftBg    = Color(0xFFFDF1D7)
+val AmberDeepText  = Color(0xFF8A5A00)
+val RedSoftBg      = Color(0xFFFBE4E4)
+val RedDeepText    = Color(0xFFA02020)
+val NeutralSoftBg  = Color(0xFFEDF0EC)
+val NeutralDeepText = Color(0xFF556052)
 
 // ── Surface / Cards ──────────────────────────────────────────────────────────
 val PureWhite      = Color(0xFFFFFFFF)
