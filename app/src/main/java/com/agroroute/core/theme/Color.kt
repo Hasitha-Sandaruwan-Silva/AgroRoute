@@ -63,6 +63,8 @@ val AccentAmber    = Color(0xFFE9A93E)
 // ── Error ────────────────────────────────────────────────────────────────────
 val ErrorRed       = Color(0xFFBA1A1A)
 val ErrorRedDark   = Color(0xFFFFB4AB)
+val ErrorSoftBg    = Color(0xFFFCE7E3)
+val ErrorDeepText  = Color(0xFFA02519)
 
 // ── Dark Theme Surfaces & Accents ────────────────────────────────────────────
 val DarkBg         = Color(0xFF0C1410)  // Green-black page
@@ -81,3 +83,24 @@ val StatusInTransit = Color(0xFF3E8E68) // Secondary green
 val StatusRejected  = Color(0xFFBA1A1A) // Red
 val StatusCancelled = Color(0xFFBA1A1A) // Red
 val StatusWithdrawn = Color(0xFF6E7B70) // Grey-green
+
+// ── Structural tokens (light) ───────────────────────────────────────────────
+// Warm off-white cards read softer than pure white against the cream page.
+val CreamCard      = Color(0xFFFFFDF7)
+val CreamBorder    = Color(0xFFE4EBE0)
+val InputFillLight = Color(0xFFFBFCF9)
+val InputLineLight = Color(0xFFD6E0D2)
+val ShimmerBaseL   = Color(0xFFE7EDE3)
+val ShimmerHighL   = Color(0xFFF8FBF6)
+val DisabledBgL    = Color(0xFFE6EAE4)
+val DisabledFgL    = Color(0xFF9AA79D)
+
+// ── Structural tokens (dark) ────────────────────────────────────────────────
+val DarkCard       = Color(0xFF16241C)
+val DarkCardBorder = Color(0xFF2B3E32)
+val InputFillDark  = Color(0xFF18271F)
+val InputLineDark  = Color(0xFF33493C)
+val ShimmerBaseD   = Color(0xFF1C2C23)
+val ShimmerHighD   = Color(0xFF2E4335)
+val DisabledBgD    = Color(0xFF24332A)
+val DisabledFgD    = Color(0xFF7C8D81)

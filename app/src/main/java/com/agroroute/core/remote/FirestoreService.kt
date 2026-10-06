@@ -3,6 +3,7 @@ package com.agroroute.core.remote
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.Transaction
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -81,6 +82,21 @@ class FirestoreService @Inject constructor(
                 trySend(items)
             }
         awaitClose { listener.remove() }
+    }
+
+    /** Reads a filtered query from the server so a cached initial snapshot cannot hide remote rows. */
+    suspend fun <T : Any> queryOnceFromServer(
+        collection: String,
+        field: String?,
+        value: Any?,
+        modelClass: Class<T>
+    ): List<T> {
+        val query = if (field != null && value != null) {
+            firestore.collection(collection).whereEqualTo(field, value)
+        } else {
+            firestore.collection(collection)
+        }
+        return query.get(Source.SERVER).await().documents.mapNotNull { it.toObject(modelClass) }
     }
 
     /** Writes (or merges) [data] to [collection]/[docId]. Suspends until acknowledged. */

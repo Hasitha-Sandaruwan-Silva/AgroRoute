@@ -149,11 +149,12 @@ class OrderRequestRepositoryImpl @Inject constructor(
             UserRole.FARMER -> "farmerId"
             UserRole.SUPPLIER -> "supplierId"
         }
-        val requests = firestoreService.queryFlow<OrderRequest>(
+        val requests = firestoreService.queryOnceFromServer(
             Constants.COLLECTION_ORDER_REQUESTS,
             ownerField,
-            userId
-        ).first()
+            userId,
+            OrderRequest::class.java
+        )
         dao.upsertRequests(requests.distinctBy { it.requestId })
     }
 }

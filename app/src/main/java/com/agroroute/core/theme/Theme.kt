@@ -97,6 +97,27 @@ val AgroShapes = Shapes(
 /** Pill shape for buttons and chips. */
 val PillShape = RoundedCornerShape(percent = 50)
 
+/** Hero surfaces bleed to the screen edges and round off at the bottom only. */
+val HeroBottomShape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
+
+/**
+ * Corner-radius scale. Every card, sheet, chip and icon container picks its
+ * radius from here so the whole app curves consistently.
+ */
+object AgroRadius {
+    val xs = 10.dp
+    val sm = 14.dp
+    val md = 18.dp
+    val lg = 24.dp
+    val xl = 28.dp
+    val hero = 30.dp
+    // Tinted icon containers scale with the icon they hold.
+    val iconSm = 12.dp
+    val iconMd = 16.dp
+    val iconLg = 20.dp
+    val iconXl = 28.dp
+}
+
 /** 4dp-base spacing scale used across every screen. */
 object AgroSpacing {
     val xs = 4.dp
@@ -106,6 +127,32 @@ object AgroSpacing {
     val xl = 20.dp
     val xxl = 24.dp
     val xxxl = 32.dp
+
+    /** Horizontal gutter applied to every scrolling screen. */
+    val gutter = 16.dp
+
+    /** Inner padding of an [com.agroroute.core.widgets.AppCard]. */
+    val cardPadding = 20.dp
+
+    /** Gap between a section header and the content it introduces. */
+    val sectionGap = 12.dp
+
+    /** Extra bottom room so nothing hides behind the bottom bar. */
+    val bottomClearance = 96.dp
+}
+
+/** Touch-target and icon-container sizes. */
+object AgroSize {
+    val touchTarget = 48.dp
+    val iconSm = 20.dp
+    val iconMd = 22.dp
+    val iconLg = 24.dp
+    val iconXl = 30.dp
+    val boxSm = 36.dp
+    val boxMd = 44.dp
+    val boxLg = 52.dp
+    val boxXl = 64.dp
+    val strokeWidth = 2.dp
 }
 
 /** Soft elevation levels — tonal surfaces instead of harsh shadows. */

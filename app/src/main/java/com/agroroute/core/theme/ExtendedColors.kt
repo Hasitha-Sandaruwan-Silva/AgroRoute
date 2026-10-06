@@ -51,7 +51,36 @@ data class AgroExtendedColors(
     val warningContainer: Color,
     val warningOnContainer: Color,
     val neutralContainer: Color,
-    val neutralOnContainer: Color
+    val neutralOnContainer: Color,
+    // ── Structural tokens consumed by the shared widgets ────────────────────
+    // Card surfaces and hairlines.
+    val cardSurface: Color = PureWhite,
+    val cardBorder: Color = CreamBorder,
+    val divider: Color = OutlineSoft,
+    // Tinted rounded containers that hold icons — green-led and amber-led.
+    val iconContainer: Color = MintContainer,
+    val iconOnContainer: Color = GreenDeep,
+    val accentIconContainer: Color = HarvestCream,
+    val accentIconOnContainer: Color = AmberDeepText,
+    // Hero / gradient surfaces.
+    val heroStart: Color = ForestDeep,
+    val heroMid: Color = ForestMid,
+    val heroEnd: Color = ForestSoft,
+    val heroContent: Color = PureWhite,
+    val heroContentMuted: Color = Color(0xCCFFFFFF),
+    val heroChip: Color = Color(0x29FFFFFF),
+    // Text fields.
+    val inputContainer: Color = InputFillLight,
+    val inputBorder: Color = InputLineLight,
+    val inputFocusedBorder: Color = GreenEmerald,
+    // Loading and disabled states.
+    val shimmerBase: Color = ShimmerBaseL,
+    val shimmerHighlight: Color = ShimmerHighL,
+    val disabledContainer: Color = DisabledBgL,
+    val disabledContent: Color = DisabledFgL,
+    // Danger container for cancellations and failures.
+    val dangerContainer: Color = ErrorSoftBg,
+    val dangerOnContainer: Color = ErrorDeepText
 )
 
 /** Light palette — fresh cream surfaces with forest and harvest accents. */
@@ -91,7 +120,29 @@ val LightExtendedColors = AgroExtendedColors(
     warningContainer = AmberSoftBg,
     warningOnContainer = AmberDeepText,
     neutralContainer = NeutralSoftBg,
-    neutralOnContainer = NeutralDeepText
+    neutralOnContainer = NeutralDeepText,
+    cardSurface = CreamCard,
+    cardBorder = CreamBorder,
+    divider = OutlineSoft,
+    iconContainer = Color(0xFFDCEEE1),
+    iconOnContainer = Color(0xFF1B5138),
+    accentIconContainer = HarvestCream,
+    accentIconOnContainer = AmberDeepText,
+    heroStart = ForestDeep,
+    heroMid = ForestMid,
+    heroEnd = ForestSoft,
+    heroContent = PureWhite,
+    heroContentMuted = Color(0xD9FFFFFF),
+    heroChip = Color(0x24FFFFFF),
+    inputContainer = InputFillLight,
+    inputBorder = InputLineLight,
+    inputFocusedBorder = GreenEmerald,
+    shimmerBase = ShimmerBaseL,
+    shimmerHighlight = ShimmerHighL,
+    disabledContainer = DisabledBgL,
+    disabledContent = DisabledFgL,
+    dangerContainer = ErrorSoftBg,
+    dangerOnContainer = ErrorDeepText
 )
 
 /** Dark palette — rich green-black surfaces with mint and amber accents. */
@@ -131,7 +182,29 @@ val DarkExtendedColors = AgroExtendedColors(
     warningContainer = Color(0xFF3A3010),
     warningOnContainer = Color(0xFFEFCF85),
     neutralContainer = Color(0xFF232E27),
-    neutralOnContainer = DarkTextSecondary
+    neutralOnContainer = DarkTextSecondary,
+    cardSurface = DarkCard,
+    cardBorder = DarkCardBorder,
+    divider = Color(0xFF24352B),
+    iconContainer = Color(0xFF1F4130),
+    iconOnContainer = Color(0xFFA9E3BD),
+    accentIconContainer = Color(0xFF4A3A11),
+    accentIconOnContainer = Color(0xFFF0CE86),
+    heroStart = Color(0xFF0B2A1C),
+    heroMid = Color(0xFF17402D),
+    heroEnd = Color(0xFF24583F),
+    heroContent = Color(0xFFF2F8F3),
+    heroContentMuted = Color(0xCCDCE7DE),
+    heroChip = Color(0x2EFFFFFF),
+    inputContainer = InputFillDark,
+    inputBorder = InputLineDark,
+    inputFocusedBorder = MintAccent,
+    shimmerBase = ShimmerBaseD,
+    shimmerHighlight = ShimmerHighD,
+    disabledContainer = DisabledBgD,
+    disabledContent = DisabledFgD,
+    dangerContainer = Color(0xFF43201E),
+    dangerOnContainer = Color(0xFFFFCFC9)
 )
 
 val LocalAgroExtendedColors = staticCompositionLocalOf { LightExtendedColors }
