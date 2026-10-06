@@ -60,7 +60,7 @@ app/src/main/java/com/agroroute/
 │   ├── service/                # Business logic per feature (Auth, Listing, Bidding, Order)
 │   ├── theme/                   # Colors, typography, app theme
 │   ├── util/                     # Result wrapper, Constants, Extensions
-│   └── widgets/                   # Reusable UI components (buttons, cards, fields, etc.)
+│   └── components/                   # Reusable UI components (buttons, cards, fields, etc.)
 │
 └── features/                 # Role-based & screen-based UI + logic
     ├── auth/                  # Login, Register, Welcome
@@ -233,7 +233,7 @@ Actively in development — base architecture, Firebase integration, and core Fa
 - `app/src/main/java/com/agroroute/core/usecase/GetOrdersUseCase.kt` — Farmer/Supplier order queries සහ single-order query සපයයි.
 - `app/src/main/java/com/agroroute/core/usecase/WithdrawBidUseCase.kt` — Supplier bid withdrawal repository වෙත යොමු කරයි.
 
-### `core/theme`, `core/util`, `core/widgets`
+### `core/theme`, `core/util`, `core/components`
 
 - `app/src/main/java/com/agroroute/core/theme/Color.kt` — light/dark theme colors නිර්වචනය කරයි.
 - `app/src/main/java/com/agroroute/core/theme/ExtendedColors.kt` — screens සඳහා අමතර light/dark colors සපයයි.
@@ -246,25 +246,25 @@ Actively in development — base architecture, Firebase integration, and core Fa
 - `app/src/main/java/com/agroroute/core/util/Extensions.kt` — date, currency, string සහ `Result` helpers සපයයි.
 - `app/src/main/java/com/agroroute/core/util/HarvestAvailabilityDate.kt` — harvest date එක පෙන්වීමට format කරයි.
 - `app/src/main/java/com/agroroute/core/util/Result.kt` — Loading, Success සහ Error result states නිර්වචනය කරයි.
-- `app/src/main/java/com/agroroute/core/widgets/AgroTextField.kt` — app එකේ භාවිත කරන පොදු text field එකයි.
-- `app/src/main/java/com/agroroute/core/widgets/AnimatedBottomBar.kt` — animated bottom navigation composable එකයි.
-- `app/src/main/java/com/agroroute/core/widgets/AppCard.kt` — click සහ non-click card composable එකයි.
-- `app/src/main/java/com/agroroute/core/widgets/EmptyState.kt` — හිස් ලැයිස්තු සඳහා message view එකයි.
-- `app/src/main/java/com/agroroute/core/widgets/GradientHeader.kt` — gradient title header එකයි.
-- `app/src/main/java/com/agroroute/core/widgets/ListingImage.kt` — listing photo, loading සහ fallback icon පෙන්වයි.
-- `app/src/main/java/com/agroroute/core/widgets/LoadingButton.kt` — loading state සහිත action button එකයි.
-- `app/src/main/java/com/agroroute/core/widgets/OrderTimeline.kt` — order status timeline සහ progress strip පෙන්වයි.
-- `app/src/main/java/com/agroroute/core/widgets/PhotoPicker.kt` — system photo picker එකෙන් image තෝරයි.
-- `app/src/main/java/com/agroroute/core/widgets/PriceInputField.kt` — decimal price input එක සීමා කරයි.
-- `app/src/main/java/com/agroroute/core/widgets/RoleBadge.kt` — Farmer/Supplier role badge පෙන්වයි.
-- `app/src/main/java/com/agroroute/core/widgets/RoleSelectCard.kt` — account role තේරීමේ card එකයි.
-- `app/src/main/java/com/agroroute/core/widgets/SectionTitle.kt` — section title සහ optional action පෙන්වයි.
-- `app/src/main/java/com/agroroute/core/widgets/SettingsSection.kt` — theme සහ profile settings actions පෙන්වයි.
-- `app/src/main/java/com/agroroute/core/widgets/Shimmer.kt` — loading skeleton composables සපයයි.
-- `app/src/main/java/com/agroroute/core/widgets/SnackbarHost.kt` — snackbar messages සහ error effects පෙන්වයි.
-- `app/src/main/java/com/agroroute/core/widgets/StatCard.kt` — dashboard count/value card පෙන්වයි.
-- `app/src/main/java/com/agroroute/core/widgets/StatusChip.kt` — listing, bid, order සහ harvest statuses සඳහා chips සපයයි.
-- `app/src/main/java/com/agroroute/core/widgets/WidgetPreviews.kt` — shared widgets සඳහා Compose previews අඩංගු කරයි.
+- `app/src/main/java/com/agroroute/core/components/AgroTextField.kt` — app එකේ භාවිත කරන පොදු text field එකයි.
+- `app/src/main/java/com/agroroute/core/components/AnimatedBottomBar.kt` — animated bottom navigation composable එකයි.
+- `app/src/main/java/com/agroroute/core/components/AppCard.kt` — click සහ non-click card composable එකයි.
+- `app/src/main/java/com/agroroute/core/components/EmptyState.kt` — හිස් ලැයිස්තු සඳහා message view එකයි.
+- `app/src/main/java/com/agroroute/core/components/GradientHeader.kt` — gradient title header එකයි.
+- `app/src/main/java/com/agroroute/core/components/ListingImage.kt` — listing photo, loading සහ fallback icon පෙන්වයි.
+- `app/src/main/java/com/agroroute/core/components/LoadingButton.kt` — loading state සහිත action button එකයි.
+- `app/src/main/java/com/agroroute/core/components/OrderTimeline.kt` — order status timeline සහ progress strip පෙන්වයි.
+- `app/src/main/java/com/agroroute/core/components/PhotoPicker.kt` — system photo picker එකෙන් image තෝරයි.
+- `app/src/main/java/com/agroroute/core/components/PriceInputField.kt` — decimal price input එක සීමා කරයි.
+- `app/src/main/java/com/agroroute/core/components/RoleBadge.kt` — Farmer/Supplier role badge පෙන්වයි.
+- `app/src/main/java/com/agroroute/core/components/RoleSelectCard.kt` — account role තේරීමේ card එකයි.
+- `app/src/main/java/com/agroroute/core/components/SectionTitle.kt` — section title සහ optional action පෙන්වයි.
+- `app/src/main/java/com/agroroute/core/components/SettingsSection.kt` — theme සහ profile settings actions පෙන්වයි.
+- `app/src/main/java/com/agroroute/core/components/Shimmer.kt` — loading skeleton composables සපයයි.
+- `app/src/main/java/com/agroroute/core/components/SnackbarHost.kt` — snackbar messages සහ error effects පෙන්වයි.
+- `app/src/main/java/com/agroroute/core/components/StatCard.kt` — dashboard count/value card පෙන්වයි.
+- `app/src/main/java/com/agroroute/core/components/StatusChip.kt` — listing, bid, order සහ harvest statuses සඳහා chips සපයයි.
+- `app/src/main/java/com/agroroute/core/components/WidgetPreviews.kt` — shared widgets සඳහා Compose previews අඩංගු කරයි.
 - `app/src/main/java/com/github/thelacspace/icons/Lucide.kt` — code එකේ icon names Material icons වෙත map කරයි.
 
 ### `features/auth`, `features/welcome`, `features/settings`

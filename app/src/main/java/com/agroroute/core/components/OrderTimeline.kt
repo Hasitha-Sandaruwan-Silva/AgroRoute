@@ -1,4 +1,4 @@
-package com.agroroute.core.widgets
+package com.agroroute.core.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

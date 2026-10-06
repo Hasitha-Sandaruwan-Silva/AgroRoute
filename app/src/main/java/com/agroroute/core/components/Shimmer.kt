@@ -1,4 +1,4 @@
-package com.agroroute.core.widgets
+package com.agroroute.core.components
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode

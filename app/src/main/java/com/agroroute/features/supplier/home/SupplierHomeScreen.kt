@@ -46,11 +46,11 @@ import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.theme.LeafAccent
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.AppCard
-import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.SectionTitle
-import com.agroroute.core.widgets.StatCardsSkeleton
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.AppCard
+import com.agroroute.core.components.ErrorSnackbarEffect
+import com.agroroute.core.components.SectionTitle
+import com.agroroute.core.components.StatCardsSkeleton
 import com.agroroute.features.supplier.marketplace.MarketplaceViewModel
 import com.agroroute.features.supplier.orders.SupplierOrderViewModel
 import com.agroroute.features.auth.AuthViewModel

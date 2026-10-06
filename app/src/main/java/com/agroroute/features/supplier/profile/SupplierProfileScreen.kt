@@ -51,10 +51,10 @@ import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.theme.LeafAccent
 import com.agroroute.core.theme.ThemeViewModel
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.AppCard
-import com.agroroute.core.widgets.RoleBadge
-import com.agroroute.core.widgets.SettingsSection
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.AppCard
+import com.agroroute.core.components.RoleBadge
+import com.agroroute.core.components.SettingsSection
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 import kotlinx.coroutines.launch

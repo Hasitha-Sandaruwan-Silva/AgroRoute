@@ -52,10 +52,10 @@ import com.agroroute.core.theme.GreenEmerald
 import com.agroroute.core.theme.PureWhite
 import com.agroroute.core.theme.SoftMintBg
 import com.agroroute.core.theme.TextSecondary
-import com.agroroute.core.widgets.AppCard
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.ShimmerBox
+import com.agroroute.core.components.AppCard
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.ErrorSnackbarEffect
+import com.agroroute.core.components.ShimmerBox
 import com.agroroute.features.auth.AuthViewModel
 import com.agroroute.features.farmer.listing.ListingViewModel
 import com.agroroute.features.farmer.orders.FarmerOrderViewModel

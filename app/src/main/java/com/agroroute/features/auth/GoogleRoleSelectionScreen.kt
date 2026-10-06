@@ -40,10 +40,10 @@ import com.agroroute.core.model.UserRole
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.LoadingButton
-import com.agroroute.core.widgets.RoleSelectCard
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.ErrorSnackbarEffect
+import com.agroroute.core.components.LoadingButton
+import com.agroroute.core.components.RoleSelectCard
 import com.github.thelacspace.icons.Lucide
 
 @Composable

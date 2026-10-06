@@ -41,10 +41,10 @@ import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.theme.LeafAccent
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.AppCard
-import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.LoadingButton
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.AppCard
+import com.agroroute.core.components.ErrorSnackbarEffect
+import com.agroroute.core.components.LoadingButton
 import com.github.thelacspace.icons.Lucide
 
 /**

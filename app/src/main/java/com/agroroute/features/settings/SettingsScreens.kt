@@ -32,7 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agroroute.R
-import com.agroroute.core.widgets.AppCard
+import com.agroroute.core.components.AppCard
 import com.github.thelacspace.icons.Lucide
 
 private data class FaqItem(val question: String, val answer: String)

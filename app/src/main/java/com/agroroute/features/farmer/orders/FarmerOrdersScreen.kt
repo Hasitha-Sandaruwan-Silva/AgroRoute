@@ -54,13 +54,13 @@ import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.AppCard
-import com.agroroute.core.widgets.EmptyState
-import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.ListSkeleton
-import com.agroroute.core.widgets.OrderProgressStrip
-import com.agroroute.core.widgets.OrderStatusChip
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.AppCard
+import com.agroroute.core.components.EmptyState
+import com.agroroute.core.components.ErrorSnackbarEffect
+import com.agroroute.core.components.ListSkeleton
+import com.agroroute.core.components.OrderProgressStrip
+import com.agroroute.core.components.OrderStatusChip
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -136,12 +136,11 @@ fun FarmerOrdersScreen(
                     )
                 }
             }
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
                     Text(
                         text = "Delivered order value - ${selectedRange.label}",
                         style = MaterialTheme.typography.labelMedium,
@@ -174,7 +173,6 @@ fun FarmerOrdersScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
             }
             OutlinedTextField(
                 value = searchQuery,

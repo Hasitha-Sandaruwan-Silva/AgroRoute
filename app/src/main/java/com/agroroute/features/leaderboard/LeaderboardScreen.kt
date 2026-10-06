@@ -38,8 +38,8 @@ import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.theme.LeafAccent
-import com.agroroute.core.widgets.EmptyState
-import com.agroroute.core.widgets.ListSkeleton
+import com.agroroute.core.components.EmptyState
+import com.agroroute.core.components.ListSkeleton
 import com.github.thelacspace.icons.Lucide
 import java.util.Locale
 

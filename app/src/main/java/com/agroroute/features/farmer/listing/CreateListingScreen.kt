@@ -91,13 +91,13 @@ import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.theme.LeafAccent
 import com.agroroute.core.util.HarvestAvailabilityDate
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.AgroTextField
-import com.agroroute.core.widgets.AppCard
-import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.LoadingButton
-import com.agroroute.core.widgets.PriceInputField
-import com.agroroute.core.widgets.SectionTitle
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.AgroTextField
+import com.agroroute.core.components.AppCard
+import com.agroroute.core.components.ErrorSnackbarEffect
+import com.agroroute.core.components.LoadingButton
+import com.agroroute.core.components.PriceInputField
+import com.agroroute.core.components.SectionTitle
 import com.github.thelacspace.icons.Lucide
 import java.util.UUID
 

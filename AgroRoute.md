@@ -62,7 +62,7 @@ app/src/main/java/com/agroroute/
 │   ├── service/                # Business logic per feature (Auth, Listing, Bidding, Order)
 │   ├── theme/                   # Colors, typography, app theme
 │   ├── util/                     # Result wrapper, Constants, Extensions
-│   └── widgets/                   # Reusable UI components (buttons, cards, fields, etc.)
+│   └── components/                   # Reusable UI components (buttons, cards, fields, etc.)
 │
 └── features/                 # Role-based & screen-based UI + logic
     ├── auth/                  # Login, Register, Welcome
@@ -335,7 +335,7 @@ This guide is based on the source files currently available. No clear implementa
 
 - `app/src/main/java/com/agroroute/core/usecase/WithdrawBidUseCase.kt` — Delegates Supplier bid withdrawal to the repository.
 
-### `core/theme`, `core/util`, and `core/widgets`
+### `core/theme`, `core/util`, and `core/components`
 
 - `app/src/main/java/com/agroroute/core/theme/Color.kt` — Defines light- and dark-theme colors.
 
@@ -359,43 +359,43 @@ This guide is based on the source files currently available. No clear implementa
 
 - `app/src/main/java/com/agroroute/core/util/Result.kt` — Defines Loading, Success, and Error result states.
 
-- `app/src/main/java/com/agroroute/core/widgets/AgroTextField.kt` — A shared text field used in the app.
+- `app/src/main/java/com/agroroute/core/components/AgroTextField.kt` — A shared text field used in the app.
 
-- `app/src/main/java/com/agroroute/core/widgets/AnimatedBottomBar.kt` — An animated bottom-navigation composable.
+- `app/src/main/java/com/agroroute/core/components/AnimatedBottomBar.kt` — An animated bottom-navigation composable.
 
-- `app/src/main/java/com/agroroute/core/widgets/AppCard.kt` — Clickable and non-clickable card composables.
+- `app/src/main/java/com/agroroute/core/components/AppCard.kt` — Clickable and non-clickable card composables.
 
-- `app/src/main/java/com/agroroute/core/widgets/EmptyState.kt` — A message view for empty lists.
+- `app/src/main/java/com/agroroute/core/components/EmptyState.kt` — A message view for empty lists.
 
-- `app/src/main/java/com/agroroute/core/widgets/GradientHeader.kt` — A gradient title header.
+- `app/src/main/java/com/agroroute/core/components/GradientHeader.kt` — A gradient title header.
 
-- `app/src/main/java/com/agroroute/core/widgets/ListingImage.kt` — Displays a listing photo, loading state, and fallback icon.
+- `app/src/main/java/com/agroroute/core/components/ListingImage.kt` — Displays a listing photo, loading state, and fallback icon.
 
-- `app/src/main/java/com/agroroute/core/widgets/LoadingButton.kt` — An action button with a loading state.
+- `app/src/main/java/com/agroroute/core/components/LoadingButton.kt` — An action button with a loading state.
 
-- `app/src/main/java/com/agroroute/core/widgets/OrderTimeline.kt` — Displays the order-status timeline and progress strip.
+- `app/src/main/java/com/agroroute/core/components/OrderTimeline.kt` — Displays the order-status timeline and progress strip.
 
-- `app/src/main/java/com/agroroute/core/widgets/PhotoPicker.kt` — Selects an image using the system photo picker.
+- `app/src/main/java/com/agroroute/core/components/PhotoPicker.kt` — Selects an image using the system photo picker.
 
-- `app/src/main/java/com/agroroute/core/widgets/PriceInputField.kt` — Restricts decimal price input.
+- `app/src/main/java/com/agroroute/core/components/PriceInputField.kt` — Restricts decimal price input.
 
-- `app/src/main/java/com/agroroute/core/widgets/RoleBadge.kt` — Displays a Farmer/Supplier role badge.
+- `app/src/main/java/com/agroroute/core/components/RoleBadge.kt` — Displays a Farmer/Supplier role badge.
 
-- `app/src/main/java/com/agroroute/core/widgets/RoleSelectCard.kt` — A card for selecting an account role.
+- `app/src/main/java/com/agroroute/core/components/RoleSelectCard.kt` — A card for selecting an account role.
 
-- `app/src/main/java/com/agroroute/core/widgets/SectionTitle.kt` — Displays a section title and an optional action.
+- `app/src/main/java/com/agroroute/core/components/SectionTitle.kt` — Displays a section title and an optional action.
 
-- `app/src/main/java/com/agroroute/core/widgets/SettingsSection.kt` — Displays theme and profile settings actions.
+- `app/src/main/java/com/agroroute/core/components/SettingsSection.kt` — Displays theme and profile settings actions.
 
-- `app/src/main/java/com/agroroute/core/widgets/Shimmer.kt` — Provides loading-skeleton composables.
+- `app/src/main/java/com/agroroute/core/components/Shimmer.kt` — Provides loading-skeleton composables.
 
-- `app/src/main/java/com/agroroute/core/widgets/SnackbarHost.kt` — Displays snackbar messages and error effects.
+- `app/src/main/java/com/agroroute/core/components/SnackbarHost.kt` — Displays snackbar messages and error effects.
 
-- `app/src/main/java/com/agroroute/core/widgets/StatCard.kt` — Displays a dashboard count/value card.
+- `app/src/main/java/com/agroroute/core/components/StatCard.kt` — Displays a dashboard count/value card.
 
-- `app/src/main/java/com/agroroute/core/widgets/StatusChip.kt` — Provides chips for listing, bid, order, and harvest statuses.
+- `app/src/main/java/com/agroroute/core/components/StatusChip.kt` — Provides chips for listing, bid, order, and harvest statuses.
 
-- `app/src/main/java/com/agroroute/core/widgets/WidgetPreviews.kt` — Contains Compose previews for shared widgets.
+- `app/src/main/java/com/agroroute/core/components/WidgetPreviews.kt` — Contains Compose previews for shared widgets.
 
 - `app/src/main/java/com/github/thelacspace/icons/Lucide.kt` — Maps icon names used in the code to Material icons.
 

@@ -38,8 +38,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
-import com.agroroute.core.widgets.shouldUseListingImageFallback
-import com.agroroute.core.widgets.shouldShowListingImageLoading
+import com.agroroute.core.components.shouldUseListingImageFallback
+import com.agroroute.core.components.shouldShowListingImageLoading
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

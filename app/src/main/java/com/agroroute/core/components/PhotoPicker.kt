@@ -1,4 +1,4 @@
-package com.agroroute.core.widgets
+package com.agroroute.core.components
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult

@@ -131,7 +131,7 @@ object AgroSpacing {
     /** Horizontal gutter applied to every scrolling screen. */
     val gutter = 16.dp
 
-    /** Inner padding of an [com.agroroute.core.widgets.AppCard]. */
+    /** Inner padding of an [com.agroroute.core.components.AppCard]. */
     val cardPadding = 20.dp
 
     /** Gap between a section header and the content it introduces. */

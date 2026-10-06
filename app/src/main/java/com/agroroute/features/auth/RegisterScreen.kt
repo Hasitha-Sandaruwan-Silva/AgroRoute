@@ -54,11 +54,11 @@ import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.LeafAccent
-import com.agroroute.core.widgets.AgroSnackbarHost
-import com.agroroute.core.widgets.AgroTextField
-import com.agroroute.core.widgets.ErrorSnackbarEffect
-import com.agroroute.core.widgets.LoadingButton
-import com.agroroute.core.widgets.RoleSelectCard
+import com.agroroute.core.components.AgroSnackbarHost
+import com.agroroute.core.components.AgroTextField
+import com.agroroute.core.components.ErrorSnackbarEffect
+import com.agroroute.core.components.LoadingButton
+import com.agroroute.core.components.RoleSelectCard
 
 @Composable
 fun RegisterScreen(
@@ -168,12 +168,11 @@ fun RegisterScreen(
                 }
             }
 
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(22.dp)
-                ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 22.dp)
+            ) {
                     Text(
                         text = "Register Details",
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -285,7 +284,6 @@ fun RegisterScreen(
                             )
                         }
                     }
-                }
             }
 
             Spacer(Modifier.navigationBarsPadding())
