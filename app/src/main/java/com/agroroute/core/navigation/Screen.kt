@@ -71,4 +71,14 @@ sealed class Screen(val route: String) {
     data object HelpSupport : Screen("help_support")
     data object About       : Screen("about")
     data object Privacy     : Screen("privacy")
+
+    // ── Leaderboard ───────────────────────────────────────────────────────────
+    data object FarmerLeaderboard : Screen("farmer_leaderboard")
+    data object SupplierLeaderboard : Screen("supplier_leaderboard")
+
+    // ── Reviews ───────────────────────────────────────────────────────────────
+    data object SubmitReview : Screen("submit_review/{${Constants.ARG_ORDER_ID}}/{${Constants.ARG_USER_ID}}/{${Constants.ARG_USER_NAME}}") {
+        fun createRoute(orderId: String, revieweeId: String, revieweeName: String) =
+            "submit_review/$orderId/$revieweeId/$revieweeName"
+    }
 }

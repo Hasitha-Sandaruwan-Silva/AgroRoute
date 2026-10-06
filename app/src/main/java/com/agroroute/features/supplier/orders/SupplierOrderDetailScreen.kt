@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
+import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
@@ -115,6 +118,28 @@ fun SupplierOrderDetailScreen(
                                 .fillMaxWidth()
                                 .height(52.dp)
                         )
+                        OrderStatus.DELIVERED -> OutlinedButton(
+                            onClick = {
+                                navController.navigate(
+                                    Screen.SubmitReview.createRoute(
+                                        orderId = orderId,
+                                        revieweeId = uiState.selectedOrder!!.farmerId,
+                                        revieweeName = "Farmer"
+                                    )
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                        ) {
+                            Icon(
+                                imageVector = Lucide.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Rate Farmer", fontWeight = FontWeight.SemiBold)
+                        }
                         else -> Unit
                     }
                     Spacer(Modifier.height(4.dp))

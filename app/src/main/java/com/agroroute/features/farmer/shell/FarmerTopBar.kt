@@ -308,6 +308,8 @@ internal val farmerRoutes = setOf(
     Screen.ViewBids.route,
     Screen.FarmerOrderDetail.route,
     Screen.FarmerOrderRequests.route,
+    Screen.FarmerLeaderboard.route,
+    Screen.SubmitReview.route,
     Screen.HelpSupport.route,
     Screen.About.route,
     Screen.Privacy.route
@@ -321,6 +323,7 @@ internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerOrders.route -> "Orders"
     route == Screen.FarmerOrderRequests.route -> "Order Requests"
     route == Screen.FarmerProfile.route -> "Profile"
+    route == Screen.FarmerLeaderboard.route -> "Farmer Leaderboard"
     route == Screen.CreateListing.route -> "Create Listing"
     route == Screen.HelpSupport.route -> "Help & Support"
     route == Screen.About.route -> "About"
@@ -328,6 +331,7 @@ internal fun farmerTitle(route: String): String = when {
     route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Edit Listing"
     route.startsWith(Screen.ViewBids.route.substringBefore("{")) -> "Bids Received"
     route.startsWith(Screen.FarmerOrderDetail.route.substringBefore("{")) -> "Order Details"
+    route.startsWith(Screen.SubmitReview.route.substringBefore("{")) -> "Submit Review"
     else -> "Farmer"
 }
 
@@ -339,9 +343,11 @@ private fun farmerSubtitle(route: String): String? = when {
     route == Screen.FarmerOrders.route -> "Pickups & deliveries"
     route == Screen.FarmerOrderRequests.route -> "Direct order requests"
     route == Screen.FarmerProfile.route -> "Account settings"
+    route == Screen.FarmerLeaderboard.route -> "Top ranked farmers by points"
     route == Screen.CreateListing.route -> "Publish produce"
     route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Update listing details"
     route.startsWith(Screen.ViewBids.route.substringBefore("{")) -> "Best offer"
     route.startsWith(Screen.FarmerOrderDetail.route.substringBefore("{")) -> "Order progress"
+    route.startsWith(Screen.SubmitReview.route.substringBefore("{")) -> "Rate transaction"
     else -> null
 }

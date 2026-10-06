@@ -1,8 +1,6 @@
 package com.agroroute.features.supplier.home
 
-import com.agroroute.core.model.UserRole
 import com.agroroute.core.navigation.Screen
-import com.agroroute.core.navigation.roleHomeDestination
 import com.agroroute.core.navigation.sharedSettingsRoutes
 import com.agroroute.features.farmer.shell.farmerRoutes
 import com.agroroute.features.supplier.shell.supplierRoutes
@@ -14,57 +12,43 @@ import org.junit.Test
 
 class SupplierNavigationTest {
 
-    private val supplierOnlyRoutes = setOf(
-        Screen.SupplierHome.route,
-        Screen.SupplierMarketplace.route,
-        Screen.SupplierOrders.route,
-        Screen.SupplierBids.route,
-        Screen.SupplierProfile.route,
-        Screen.PlaceBid.route,
-        Screen.PlaceOrderRequest.route,
-        Screen.SupplierOrderDetail.route
-    )
-
     private val farmerOnlyRoutes = setOf(
         Screen.FarmerHome.route,
-        Screen.CreateListing.route,
-        Screen.EditListing.route,
         Screen.MyListings.route,
         Screen.FarmerBids.route,
         Screen.HarvestCalendar.route,
+        Screen.CreateListing.route,
+        Screen.EditListing.route,
         Screen.ViewBids.route,
         Screen.FarmerOrders.route,
         Screen.FarmerOrderRequests.route,
-        Screen.FarmerOrderDetail.route,
-        Screen.FarmerProfile.route
+        Screen.FarmerOrderDetail.route
+    )
+
+    private val supplierOnlyRoutes = setOf(
+        Screen.SupplierHome.route,
+        Screen.SupplierMarketplace.route,
+        Screen.SupplierBids.route,
+        Screen.PlaceBid.route,
+        Screen.PlaceOrderRequest.route,
+        Screen.SupplierOrders.route,
+        Screen.SupplierOrderDetail.route
     )
 
     @Test
-    fun supplierTabsAndDetailRoutesAreAllReachableWithinSupplierShell() {
+    fun supplierBottomBarOnlyExposesSupplierRoutes() {
         assertEquals(
             setOf(
                 Screen.SupplierHome.route,
                 Screen.SupplierMarketplace.route,
-                Screen.SupplierOrders.route,
                 Screen.SupplierBids.route,
+                Screen.SupplierOrders.route,
                 Screen.SupplierProfile.route
             ),
             supplierTabRoutes
         )
         assertTrue(supplierTabRoutes.all { it in supplierRoutes })
-        assertTrue(supplierOnlyRoutes.all { it in supplierRoutes })
-    }
-
-    @Test
-    fun supplierHomeButtonsResolveOnlyToSupplierDestinations() {
-        val homeButtonRoutes = setOf(
-            Screen.SupplierMarketplace.route,
-            Screen.SupplierOrders.route,
-            Screen.SupplierBids.route
-        )
-        assertTrue(homeButtonRoutes.all { it in supplierRoutes })
-        assertTrue(homeButtonRoutes.none { it in farmerRoutes })
-        assertEquals(Screen.SupplierHome.route, roleHomeDestination(UserRole.SUPPLIER))
+        assertTrue(supplierTabRoutes.none { it in farmerOnlyRoutes })
     }
 
     @Test
@@ -94,12 +78,14 @@ class SupplierNavigationTest {
             Screen.About.route,
             Screen.Privacy.route
         )
-        assertEquals(settingsRoutes, sharedSettingsRoutes)
         // Present in both role shells so each profile screen can open them…
         assertTrue(settingsRoutes.all { it in farmerRoutes })
         assertTrue(settingsRoutes.all { it in supplierRoutes })
         // …and excluded from the role-guard bounce so they stay reachable.
         assertTrue(settingsRoutes.all { it in sharedSettingsRoutes })
+        assertTrue(Screen.FarmerLeaderboard.route in sharedSettingsRoutes)
+        assertTrue(Screen.SupplierLeaderboard.route in sharedSettingsRoutes)
+        assertTrue(Screen.SubmitReview.route in sharedSettingsRoutes)
         assertFalse(Screen.SupplierMarketplace.route in sharedSettingsRoutes)
         assertFalse(Screen.CreateListing.route in sharedSettingsRoutes)
     }

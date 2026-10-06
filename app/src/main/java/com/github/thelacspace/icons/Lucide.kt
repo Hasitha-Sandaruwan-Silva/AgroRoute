@@ -34,6 +34,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -44,6 +47,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 object Lucide {
     val AlertCircle: ImageVector get() = Icons.Default.ErrorOutline
     val ArrowLeft: ImageVector get() = Icons.AutoMirrored.Filled.ArrowBack
+    val Award: ImageVector get() = Icons.Default.MilitaryTech
     val Bell: ImageVector get() = Icons.Default.Notifications
     val Bookmark: ImageVector get() = Icons.Default.Bookmark
     val CalendarDays: ImageVector get() = Icons.Default.CalendarToday
@@ -72,9 +76,11 @@ object Lucide {
     val ShoppingBag: ImageVector get() = Icons.Default.ShoppingBag
     val ShoppingCart: ImageVector get() = Icons.Default.ShoppingCart
     val Sprout: ImageVector get() = Icons.Default.Eco
+    val Star: ImageVector get() = Icons.Default.Star
     val Store: ImageVector get() = Icons.Default.Storefront
     val Tag: ImageVector get() = Icons.Default.Label
     val TrendingUp: ImageVector get() = Icons.AutoMirrored.Filled.TrendingUp
+    val Trophy: ImageVector get() = Icons.Default.EmojiEvents
     val Truck: ImageVector get() = Icons.Default.LocalShipping
     val User: ImageVector get() = Icons.Default.Person
     val Wheat: ImageVector get() = Icons.Default.Grain

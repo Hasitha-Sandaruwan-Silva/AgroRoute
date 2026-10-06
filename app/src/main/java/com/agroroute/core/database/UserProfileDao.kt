@@ -16,6 +16,9 @@ interface UserProfileDao {
     @Query("SELECT * FROM user_profiles LIMIT 1")
     fun getCurrentUser(): Flow<UserProfile?>
 
+    @Query("SELECT * FROM user_profiles WHERE role = :role ORDER BY points DESC")
+    fun getUsersByRoleSortedByPoints(role: String): Flow<List<UserProfile>>
+
     @Upsert
     suspend fun upsertUserProfile(profile: UserProfile)
 

@@ -298,6 +298,8 @@ internal val supplierRoutes = setOf(
     Screen.PlaceBid.route,
     Screen.PlaceOrderRequest.route,
     Screen.SupplierOrderDetail.route,
+    Screen.SupplierLeaderboard.route,
+    Screen.SubmitReview.route,
     Screen.HelpSupport.route,
     Screen.About.route,
     Screen.Privacy.route
@@ -309,11 +311,13 @@ internal fun supplierTitle(route: String): String = when {
     route == Screen.SupplierOrders.route -> "Orders"
     route == Screen.SupplierBids.route -> "My Bids"
     route == Screen.SupplierProfile.route -> "Profile"
+    route == Screen.SupplierLeaderboard.route -> "Supplier Leaderboard"
     route == Screen.HelpSupport.route -> "Help & Support"
     route == Screen.About.route -> "About"
     route == Screen.Privacy.route -> "Privacy & Terms"
     route.startsWith(Screen.PlaceBid.route.substringBefore("{")) -> "Place Bid"
     route.startsWith(Screen.PlaceOrderRequest.route.substringBefore("{")) -> "Place Order Request"
     route.startsWith(Screen.SupplierOrderDetail.route.substringBefore("{")) -> "Order Details"
+    route.startsWith(Screen.SubmitReview.route.substringBefore("{")) -> "Submit Review"
     else -> "Supplier"
 }

@@ -65,13 +65,20 @@ service cloud.firestore {
         && request.resource.data.userId == userId
         && request.resource.data.role in ['FARMER', 'SUPPLIER'];
       allow update: if signedIn()
-        && request.auth.uid == userId
         && resource.data.userId == userId
         && request.resource.data.userId == userId
         && request.resource.data.role == resource.data.role
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'displayName', 'email', 'phone', 'profileImageUrl', 'location'
-        ]);
+        && (
+          // User updating their own profile (cannot change points directly)
+          (request.auth.uid == userId
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'displayName', 'email', 'phone', 'profileImageUrl', 'location'
+            ]))
+          // System updating points (from order completion transaction) - only increment by 1
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points'])
+            && request.resource.data.points == resource.data.points + 1
+            && resource.data.points >= 0)
+        );
       allow delete: if false;
     }
 
@@ -328,6 +335,56 @@ service cloud.firestore {
               || (supplier() && resource.data.supplierId == request.auth.uid)))
         );
 
+      allow delete: if false;
+    }
+
+    match /order_completion_records/{recordId} {
+      // Creation only allowed when order is being marked as delivered (in transaction)
+      allow create: if signedIn()
+        && request.resource.data.orderId == recordId
+        && exists(/databases/$(database)/documents/orders/$(recordId))
+        && (get(/databases/$(database)/documents/orders/$(recordId)).data.status == 'DELIVERED'
+          || getAfter(/databases/$(database)/documents/orders/$(recordId)).data.status == 'DELIVERED')
+        && request.resource.data.farmerId == get(/databases/$(database)/documents/orders/$(recordId)).data.farmerId
+        && request.resource.data.supplierId == get(/databases/$(database)/documents/orders/$(recordId)).data.supplierId
+        // Only supplier can trigger this (they mark order as delivered)
+        && supplier()
+        && get(/databases/$(database)/documents/orders/$(recordId)).data.supplierId == request.auth.uid
+        // Only allow creation if record doesn't exist (idempotency)
+        && !exists(/databases/$(database)/documents/order_completion_records/$(recordId));
+      // No reads needed from client - internal collection
+      allow get, list: if false;
+      // No updates or deletes
+      allow update, delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      allow get, list: if signedIn()
+        && (resource.data.reviewerId == request.auth.uid
+          || resource.data.revieweeId == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.reviewId == reviewId
+        && reviewId == request.resource.data.orderId + '_' + request.resource.data.reviewerId
+        && request.resource.data.reviewerId == request.auth.uid
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId))
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'DELIVERED'
+        && (
+          // Farmer reviewing supplier
+          (farmer()
+            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.farmerId == request.auth.uid
+            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.supplierId == request.resource.data.revieweeId)
+          // Supplier reviewing farmer
+          || (supplier()
+            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.supplierId == request.auth.uid
+            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.farmerId == request.resource.data.revieweeId)
+        )
+        // Ensure reviewer hasn't already reviewed this order
+        && !exists(/databases/$(database)/documents/reviews/$(reviewId));
+
+      allow update: if false;
       allow delete: if false;
     }
   }

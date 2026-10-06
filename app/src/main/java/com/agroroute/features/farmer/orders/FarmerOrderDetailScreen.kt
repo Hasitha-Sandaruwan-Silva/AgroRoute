@@ -21,7 +21,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +46,7 @@ import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
+import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.theme.ForestSoft
@@ -126,6 +129,28 @@ fun FarmerOrderDetailScreen(
                             } else {
                                 Text("Cancel Order", style = MaterialTheme.typography.labelLarge)
                             }
+                        }
+                        OrderStatus.DELIVERED -> OutlinedButton(
+                            onClick = {
+                                navController.navigate(
+                                    Screen.SubmitReview.createRoute(
+                                        orderId = orderId,
+                                        revieweeId = uiState.selectedOrder!!.supplierId,
+                                        revieweeName = "Supplier"
+                                    )
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 52.dp)
+                        ) {
+                            Icon(
+                                imageVector = Lucide.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Rate Supplier", style = MaterialTheme.typography.labelLarge)
                         }
                         else -> Unit
                     }

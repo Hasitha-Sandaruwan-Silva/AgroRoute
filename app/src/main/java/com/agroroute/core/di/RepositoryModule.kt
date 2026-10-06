@@ -12,6 +12,10 @@ import com.agroroute.core.repository.ListingPhotoStorage
 import com.agroroute.core.remote.CloudinaryPhotoStorage
 import com.agroroute.core.repository.OrderRequestRepository
 import com.agroroute.core.repository.OrderRequestRepositoryImpl
+import com.agroroute.core.repository.ReviewRepository
+import com.agroroute.core.repository.ReviewRepositoryImpl
+import com.agroroute.core.repository.LeaderboardRepository
+import com.agroroute.core.repository.LeaderboardRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -62,5 +66,17 @@ abstract class RepositoryModule {
     abstract fun bindOrderRequestRepository(
         impl: OrderRequestRepositoryImpl
     ): OrderRequestRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReviewRepository(
+        impl: ReviewRepositoryImpl
+    ): ReviewRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLeaderboardRepository(
+        impl: LeaderboardRepositoryImpl
+    ): LeaderboardRepository
 }
 

@@ -50,6 +50,8 @@ import com.agroroute.features.supplier.profile.SupplierProfileScreen
 import com.agroroute.features.supplier.bids.SupplierBidsScreen
 import com.agroroute.features.supplier.shell.SupplierScaffold
 import com.agroroute.features.supplier.shell.supplierRoutes
+import com.agroroute.features.leaderboard.LeaderboardScreen
+import com.agroroute.features.reviews.SubmitReviewScreen
 
 private val authRoutes = setOf(
     Screen.Welcome.route,
@@ -66,7 +68,10 @@ private val authRoutes = setOf(
 internal val sharedSettingsRoutes = setOf(
     Screen.HelpSupport.route,
     Screen.About.route,
-    Screen.Privacy.route
+    Screen.Privacy.route,
+    Screen.FarmerLeaderboard.route,
+    Screen.SupplierLeaderboard.route,
+    Screen.SubmitReview.route
 )
 
 internal fun roleHomeDestination(role: UserRole?): String? = when (role) {
@@ -274,6 +279,33 @@ fun NavGraph(
 
                 composable(Screen.Privacy.route) {
                     com.agroroute.features.settings.PrivacyScreen()
+                }
+
+                composable(Screen.FarmerLeaderboard.route) {
+                    LeaderboardScreen(role = "FARMER")
+                }
+
+                composable(Screen.SupplierLeaderboard.route) {
+                    LeaderboardScreen(role = "SUPPLIER")
+                }
+
+                composable(
+                    route = Screen.SubmitReview.route,
+                    arguments = listOf(
+                        navArgument(Constants.ARG_ORDER_ID) { type = NavType.StringType },
+                        navArgument(Constants.ARG_USER_ID) { type = NavType.StringType },
+                        navArgument(Constants.ARG_USER_NAME) { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val orderId = backStackEntry.arguments?.getString(Constants.ARG_ORDER_ID) ?: return@composable
+                    val revieweeId = backStackEntry.arguments?.getString(Constants.ARG_USER_ID) ?: return@composable
+                    val revieweeName = backStackEntry.arguments?.getString(Constants.ARG_USER_NAME) ?: return@composable
+                    SubmitReviewScreen(
+                        orderId = orderId,
+                        revieweeId = revieweeId,
+                        revieweeName = revieweeName,
+                        navController = navController
+                    )
                 }
             }
         }

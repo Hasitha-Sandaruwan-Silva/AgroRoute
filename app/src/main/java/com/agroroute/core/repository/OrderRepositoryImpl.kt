@@ -4,12 +4,16 @@ import com.agroroute.core.database.OrderDao
 import com.agroroute.core.database.BidDao
 import com.agroroute.core.database.HarvestListingDao
 import com.agroroute.core.database.OrderRequestDao
+import com.agroroute.core.database.OrderCompletionRecordDao
+import com.agroroute.core.database.UserProfileDao
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
+import com.agroroute.core.model.OrderCompletionRecord
+import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.recordSale
 import com.agroroute.core.model.ListingStatus
@@ -41,7 +45,9 @@ class OrderRepositoryImpl @Inject constructor(
     private val bidDao: BidDao,
     private val listingDao: HarvestListingDao,
     private val orderRequestDao: OrderRequestDao,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val orderCompletionRecordDao: OrderCompletionRecordDao,
+    private val userProfileDao: UserProfileDao
 ) : OrderRepository {
 
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
@@ -200,6 +206,12 @@ class OrderRepositoryImpl @Inject constructor(
             if (updatedListing != null) listingDao.upsertListing(updatedListing)
         } else {
             val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
+            val completionRecordRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDER_COMPLETION_RECORDS).document(orderId)
+
+            var isDeliveredCompletion = false
+            var farmerId = ""
+            var supplierId = ""
+
             val updatedOrder = firestoreService.runTransaction<Order> { transaction ->
                 val existing = transaction.get(orderRef).toObject(Order::class.java)
                     ?: error("Order $orderId not found")
@@ -223,13 +235,65 @@ class OrderRepositoryImpl @Inject constructor(
                         check(existing.status == OrderStatus.IN_TRANSIT) {
                             "Order must be in transit to be marked as delivered"
                         }
+
+                        // Atomic completion point awarding
+                        val existingRecord = transaction.get(completionRecordRef)
+                        if (!existingRecord.exists()) {
+                            val farmerRef = firestoreService.firestore.collection(Constants.COLLECTION_USERS).document(existing.farmerId)
+                            val supplierRef = firestoreService.firestore.collection(Constants.COLLECTION_USERS).document(existing.supplierId)
+
+                            val farmerDoc = transaction.get(farmerRef)
+                            val supplierDoc = transaction.get(supplierRef)
+
+                            val farmerProfile = farmerDoc.toObject(UserProfile::class.java)
+                            val supplierProfile = supplierDoc.toObject(UserProfile::class.java)
+
+                            if (farmerProfile != null && supplierProfile != null) {
+                                val updatedFarmer = farmerProfile.copy(points = farmerProfile.points + 1)
+                                val updatedSupplier = supplierProfile.copy(points = supplierProfile.points + 1)
+
+                                val completionRecord = OrderCompletionRecord(
+                                    orderId = orderId,
+                                    farmerId = existing.farmerId,
+                                    supplierId = existing.supplierId,
+                                    pointsAwardedAt = System.currentTimeMillis()
+                                )
+
+                                transaction.set(completionRecordRef, completionRecord)
+                                transaction.set(farmerRef, updatedFarmer)
+                                transaction.set(supplierRef, updatedSupplier)
+
+                                isDeliveredCompletion = true
+                                farmerId = existing.farmerId
+                                supplierId = existing.supplierId
+                            }
+                        }
                     }
                     else -> error("Invalid status transition")
                 }
-                existing.copy(status = status, updatedAt = System.currentTimeMillis())
+                val newOrder = existing.copy(status = status, updatedAt = System.currentTimeMillis())
+                transaction.set(orderRef, newOrder)
+                newOrder
             }
-            firestoreService.set(Constants.COLLECTION_ORDERS, orderId, updatedOrder)
+
             dao.upsertOrder(updatedOrder)
+
+            // Sync completion record and profiles to local Room database
+            if (isDeliveredCompletion) {
+                val completionRecord = OrderCompletionRecord(
+                    orderId = orderId,
+                    farmerId = farmerId,
+                    supplierId = supplierId,
+                    pointsAwardedAt = System.currentTimeMillis()
+                )
+                orderCompletionRecordDao.upsertRecord(completionRecord)
+
+                val farmerProfile = firestoreService.getOnce<UserProfile>(Constants.COLLECTION_USERS, farmerId)
+                val supplierProfile = firestoreService.getOnce<UserProfile>(Constants.COLLECTION_USERS, supplierId)
+
+                if (farmerProfile != null) userProfileDao.upsertUserProfile(farmerProfile)
+                if (supplierProfile != null) userProfileDao.upsertUserProfile(supplierProfile)
+            }
         }
     }
 

@@ -6,7 +6,9 @@ import androidx.room.TypeConverters
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.Order
+import com.agroroute.core.model.OrderCompletionRecord
 import com.agroroute.core.model.OrderRequest
+import com.agroroute.core.model.Review
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.util.Constants
 
@@ -19,7 +21,9 @@ import com.agroroute.core.util.Constants
         HarvestListing::class,
         Bid::class,
         Order::class,
-        OrderRequest::class
+        OrderRequest::class,
+        OrderCompletionRecord::class,
+        Review::class
     ],
     version = Constants.DATABASE_VERSION,
     exportSchema = false
@@ -32,4 +36,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bidDao(): BidDao
     abstract fun orderDao(): OrderDao
     abstract fun orderRequestDao(): OrderRequestDao
+    abstract fun orderCompletionRecordDao(): OrderCompletionRecordDao
+    abstract fun reviewDao(): ReviewDao
 }

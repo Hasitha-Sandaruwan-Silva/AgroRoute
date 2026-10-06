@@ -16,5 +16,6 @@ data class UserProfile(
     val role: UserRole = UserRole.FARMER,
     val profileImageUrl: String? = null,
     val location: String = "",
+    val points: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )

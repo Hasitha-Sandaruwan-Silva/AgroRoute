@@ -58,14 +58,19 @@ class FirestoreService @Inject constructor(
 
     /**
      * Returns documents in [collection] where field [field] equals [value] as a [Flow].
+     * If [field] is null, returns all documents in the collection.
      */
     inline fun <reified T : Any> queryFlow(
         collection: String,
-        field: String,
-        value: Any
+        field: String?,
+        value: Any?
     ): Flow<List<T>> = callbackFlow {
-        val listener = firestore.collection(collection)
-            .whereEqualTo(field, value)
+        val query = if (field != null && value != null) {
+            firestore.collection(collection).whereEqualTo(field, value)
+        } else {
+            firestore.collection(collection)
+        }
+        val listener = query
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     close(error)
