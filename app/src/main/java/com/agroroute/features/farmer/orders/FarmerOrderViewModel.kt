@@ -97,6 +97,16 @@ class FarmerOrderViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    fun refreshOrdersForFarmer(farmerId: String) {
+        if (farmerId.isBlank()) return
+        viewModelScope.launch {
+            when (val sync = orderRepository.syncOrders(farmerId)) {
+                is Result.Error -> _uiState.update { it.copy(error = sync.message) }
+                else -> Unit
+            }
+        }
+    }
+
     fun updateOrderStatus(orderId: String, status: OrderStatus) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }

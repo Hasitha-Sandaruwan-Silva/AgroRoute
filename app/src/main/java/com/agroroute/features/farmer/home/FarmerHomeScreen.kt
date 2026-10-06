@@ -273,11 +273,11 @@ fun FarmerHomeScreen(
 
                 ActionLargeCard(
                     modifier = Modifier.weight(1f),
-                    title = "Manage Orders",
-                    subtitle = "Review requests and fulfillment",
+                    title = "Review Requests",
+                    subtitle = "Respond to supplier orders",
                     icon = Lucide.Receipt,
                     iconBgColor = ForestSoft,
-                    onClick = { navController.navigate(FarmerHomeDestination.ORDERS.route) }
+                    onClick = { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) }
                 )
             }
 

@@ -144,6 +144,7 @@ class OrderRequestFlowTest {
         assertEquals(1, orders.acceptCount)
         val order = orders.acceptedOrders.single()
         assertEquals("request-1", order.orderId)
+        assertEquals("farmer-1", order.farmerId)
         assertEquals("", order.bidId)
         assertEquals("supplier-1", order.supplierId)
         assertEquals(5.0, order.quantity, 0.0)

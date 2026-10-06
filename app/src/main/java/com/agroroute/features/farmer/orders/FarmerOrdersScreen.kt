@@ -43,6 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.R
@@ -79,6 +81,7 @@ fun FarmerOrdersScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf<OrderStatus?>(null) }
     var selectedRange by remember { mutableStateOf(OrderRange.ALL_TIME) }
+    var ordersLoaded by remember { mutableStateOf(false) }
     val now = remember { System.currentTimeMillis() }
 
     val rangedOrders = remember(uiState.orders, selectedRange, now) {
@@ -100,8 +103,13 @@ fun FarmerOrdersScreen(
     val deliveredQuantity = deliveredOrders.sumOf { it.quantity }
     val deliveredValue = deliveredOrders.sumOf { it.quantity * it.agreedPrice }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadOrdersForFarmer(viewModel.currentFarmerId)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (ordersLoaded) {
+            viewModel.refreshOrdersForFarmer(viewModel.currentFarmerId)
+        } else {
+            ordersLoaded = true
+            viewModel.loadOrdersForFarmer(viewModel.currentFarmerId)
+        }
     }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }

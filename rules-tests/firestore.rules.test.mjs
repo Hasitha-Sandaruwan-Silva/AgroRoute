@@ -507,6 +507,9 @@ test("owning farmer can atomically accept a request, consume stock, and create t
   if (order.status !== "AWAITING_PICKUP" || order.bidId !== "" || order.agreedPrice !== 8) {
     throw new Error(`Unexpected order after acceptance: ${JSON.stringify(order)}`);
   }
+  if (order.farmerId !== request.farmerId) {
+    throw new Error(`Order was assigned to the wrong Farmer: ${JSON.stringify(order)}`);
+  }
 });
 
 test("supplier cannot run the accept batch", async () => {
