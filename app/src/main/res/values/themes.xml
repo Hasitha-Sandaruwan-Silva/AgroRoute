@@ -4,13 +4,13 @@
     <!-- Main App Theme -->
     <style name="Theme.AgroRoute" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
-        <item name="android:windowBackground">#F6FAF6</item>
+        <item name="android:windowBackground">#FAF8F1</item>
     </style>
 
     <!-- 🌟 Splash Screen Theme 🌟 -->
     <style name="Theme.AgroRoute.Splash" parent="Theme.SplashScreen">
         <!-- Background පාට -->
-        <item name="windowSplashScreenBackground">#F6FAF6</item>
+        <item name="windowSplashScreenBackground">#FAF8F1</item>
 
         <!-- අපි හදපු PNG Logo එක -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>

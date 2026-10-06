@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import com.github.thelacspace.icons.Lucide
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -41,22 +40,31 @@ fun ListingImage(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .clip(MaterialTheme.shapes.medium)
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         if (shouldUseListingImageFallback(imageUrl, imageFailed)) {
-            Icon(
-                imageVector = Lucide.Image,
-                contentDescription = "Listing photo unavailable",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-            )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Lucide.Image,
+                    contentDescription = "Listing photo unavailable",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
         if (shouldShowListingImageLoading(imageUrl, imageLoading) && !imageFailed) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(28.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary
+            ShimmerBox(
+                modifier = Modifier.matchParentSize(),
+                height = height,
+                cornerRadius = 24.dp
             )
         }
         if (!imageUrl.isNullOrBlank() && !imageFailed) {

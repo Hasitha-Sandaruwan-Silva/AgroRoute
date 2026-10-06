@@ -1,17 +1,17 @@
 package com.agroroute.core.theme
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
  * Brand colours that screens and shells use directly (outside the Material
  * [androidx.compose.material3.ColorScheme]).
  *
- * Every LIGHT value is byte-identical to the literal it replaces in the screens,
- * so the light theme looks exactly as before. Each entry carries a DARK
- * counterpart (mostly the existing dark palette in [Color.kt] plus a few
- * dark-only additions) so text and surfaces stay readable in dark mode.
+ * Values follow the "Fresh Harvest" palette: forest green for the farmer feel,
+ * harvest amber for the supplier feel, plus soft status containers that stay
+ * readable in both light and dark themes. Provided via
+ * [LocalAgroExtendedColors] from [AgroRouteTheme].
  */
 data class AgroExtendedColors(
     val pageBg: Color,
@@ -34,60 +34,107 @@ data class AgroExtendedColors(
     val tabInactive: Color,
     val pagerDot: Color,
     val quoteBg: Color,
-    val orangeBadge: Color
+    val orangeBadge: Color,
+    // Role accents — same design language, slightly different accent usage.
+    val farmerAccent: Color,
+    val farmerAccentContainer: Color,
+    val farmerOnAccentContainer: Color,
+    val supplierAccent: Color,
+    val supplierAccentContainer: Color,
+    val supplierOnAccentContainer: Color,
+    val tealAccent: Color,
+    val tealAccentContainer: Color,
+    val tealOnAccentContainer: Color,
+    // Soft status containers shared by chips, banners and timelines.
+    val successContainer: Color,
+    val successOnContainer: Color,
+    val warningContainer: Color,
+    val warningOnContainer: Color,
+    val neutralContainer: Color,
+    val neutralOnContainer: Color
 )
 
-/** Light palette — mirrors the historical hard-coded values exactly. */
+/** Light palette — fresh cream surfaces with forest and harvest accents. */
 val LightExtendedColors = AgroExtendedColors(
-    pageBg = Color(0xFFF6FAF6),
-    brandGreen = Color(0xFF2E7D32),
-    brandGreenDark = Color(0xFF1B5E20),
-    brandGreenMid = Color(0xFF66BB6A),
-    brandLeaf = Color(0xFF43A047),
-    headingGreen = Color(0xFF14532D),
-    inkBlack = Color(0xFF1B1B1B),
-    bodyCharcoal = Color(0xFF4B5563),
-    mutedGreen = Color(0xFF5F6B5F),
-    textSecondary = Color(0xFF64748B),
-    lineGray = Color(0xFFE5E7EB),
-    borderGray = Color(0xFFE2E8F0),
-    softGreen = Color(0xFFE6F4EA),
-    softAmber = Color(0xFFFFF8E1),
-    goldAccent = Color(0xFFF59E0B),
-    goldSoft = Color(0xFFFEF3C7),
-    goldText = Color(0xFFB45309),
-    tabInactive = Color(0xFF9CA3AF),
-    pagerDot = Color(0xFFCBD5E1),
-    quoteBg = Color(0xFFF8FAFC),
-    orangeBadge = Color(0xFFF97316)
+    pageBg = SoftMintBg,
+    brandGreen = GreenEmerald,
+    brandGreenDark = Color(0xFF1C4A35),
+    brandGreenMid = GreenLight,
+    brandLeaf = Color(0xFF48A06B),
+    headingGreen = Color(0xFF123723),
+    inkBlack = Color(0xFF1A2B20),
+    bodyCharcoal = Color(0xFF44544A),
+    mutedGreen = Color(0xFF5C6B5F),
+    textSecondary = Color(0xFF5E6E63),
+    lineGray = Color(0xFFE3E9DE),
+    borderGray = Color(0xFFDCE4D7),
+    softGreen = Color(0xFFE3F1E6),
+    softAmber = Color(0xFFFDF3D7),
+    goldAccent = HarvestGold,
+    goldSoft = HarvestCream,
+    goldText = AmberDeepText,
+    tabInactive = Color(0xFF93A396),
+    pagerDot = Color(0xFFC9D6CB),
+    quoteBg = Color(0xFFF3F7F1),
+    orangeBadge = Color(0xFFE07B39),
+    farmerAccent = GreenEmerald,
+    farmerAccentContainer = Color(0xFFD5EBDC),
+    farmerOnAccentContainer = Color(0xFF0B3620),
+    supplierAccent = HarvestGoldDeep,
+    supplierAccentContainer = HarvestCream,
+    supplierOnAccentContainer = AmberDeepText,
+    tealAccent = Color(0xFF1E7A6F),
+    tealAccentContainer = Color(0xFFD3EDE9),
+    tealOnAccentContainer = Color(0xFF0F4A43),
+    successContainer = Color(0xFFD9EEDD),
+    successOnContainer = Color(0xFF1E5C3A),
+    warningContainer = AmberSoftBg,
+    warningOnContainer = AmberDeepText,
+    neutralContainer = NeutralSoftBg,
+    neutralOnContainer = NeutralDeepText
 )
 
-/** Dark palette — built from the existing dark theme colours (WCAG AA text contrast). */
+/** Dark palette — rich green-black surfaces with mint and amber accents. */
 val DarkExtendedColors = AgroExtendedColors(
     pageBg = DarkBg,
     brandGreen = MintAccent,
-    brandGreenDark = MintAccent,
-    brandGreenMid = MintAccent,
-    brandLeaf = MintAccent,
+    brandGreenDark = Color(0xFFA9DDBB),
+    brandGreenMid = GreenLight,
+    brandLeaf = Color(0xFF7FCB97),
     headingGreen = DarkTextPrimary,
-    inkBlack = DarkTextPrimary,
+    inkBlack = Color(0xFFF0F6F1),
     bodyCharcoal = DarkTextSecondary,
-    mutedGreen = DarkTextSecondary,
-    textSecondary = DarkTextSecondary,
-    lineGray = DarkOutline,
-    borderGray = DarkOutline,
-    softGreen = DarkSurface2,
-    softAmber = Color(0xFF3A321B),
-    goldAccent = AccentAmber,
-    goldSoft = Color(0xFF3A321B),
-    goldText = AccentAmber,
-    tabInactive = DarkTextSecondary,
-    pagerDot = DarkOutline,
+    mutedGreen = Color(0xFF9DAD9F),
+    textSecondary = Color(0xFFA7B7AB),
+    lineGray = Color(0xFF24352B),
+    borderGray = Color(0xFF2A3D31),
+    softGreen = Color(0xFF1E3226),
+    softAmber = Color(0xFF3A3010),
+    goldAccent = Color(0xFFEBC26E),
+    goldSoft = Color(0xFF3A3010),
+    goldText = Color(0xFFEBC26E),
+    tabInactive = Color(0xFF8FA296),
+    pagerDot = Color(0xFF3A4A3E),
     quoteBg = DarkSurface2,
-    orangeBadge = Color(0xFFFFA46B)
+    orangeBadge = Color(0xFFF0A468),
+    farmerAccent = MintAccent,
+    farmerAccentContainer = Color(0xFF1E4631),
+    farmerOnAccentContainer = Color(0xFFB7EFC9),
+    supplierAccent = Color(0xFFEBC26E),
+    supplierAccentContainer = Color(0xFF544310),
+    supplierOnAccentContainer = Color(0xFFF4DFA6),
+    tealAccent = Color(0xFF6FD1C5),
+    tealAccentContainer = Color(0xFF12403C),
+    tealOnAccentContainer = Color(0xFFB2ECE3),
+    successContainer = Color(0xFF1E3A2A),
+    successOnContainer = Color(0xFF9FDCAF),
+    warningContainer = Color(0xFF3A3010),
+    warningOnContainer = Color(0xFFEFCF85),
+    neutralContainer = Color(0xFF232E27),
+    neutralOnContainer = DarkTextSecondary
 )
 
-val LocalAgroExtendedColors = compositionLocalOf { LightExtendedColors }
+val LocalAgroExtendedColors = staticCompositionLocalOf { LightExtendedColors }
 
 /** Syntax probe: proves @Composable property getters compile in this module. */
 private val ColorSchemeProbe: Color

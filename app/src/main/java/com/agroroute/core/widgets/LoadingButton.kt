@@ -1,10 +1,14 @@
 package com.agroroute.core.widgets
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -12,8 +16,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.agroroute.core.theme.PillShape
 
 @Composable
 fun LoadingButton(
@@ -27,24 +33,39 @@ fun LoadingButton(
         onClick = onClick,
         enabled = enabled && !isLoading,
         // Keep every primary action at the 48dp minimum touch target.
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .animateContentSize(spring(stiffness = Spring.StiffnessMedium)),
-        shape = MaterialTheme.shapes.large,
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp),
+        modifier = modifier.heightIn(min = 48.dp),
+        shape = PillShape,
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 4.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
         )
     ) {
-        AnimatedVisibility(visible = isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                color = MaterialTheme.colorScheme.onPrimary,
-                strokeWidth = 2.dp
-            )
-        }
-        AnimatedVisibility(visible = !isLoading) {
-            Text(text = text, style = MaterialTheme.typography.labelLarge)
+        AnimatedContent(
+            targetState = isLoading,
+            transitionSpec = {
+                fadeIn(tween(180)) togetherWith fadeOut(tween(180))
+            },
+            label = "buttonContent"
+        ) { loading ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+            }
         }
     }
 }

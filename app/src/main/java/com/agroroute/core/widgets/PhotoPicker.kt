@@ -3,11 +3,13 @@ package com.agroroute.core.widgets
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.material3.Icon
@@ -59,11 +61,12 @@ fun PhotoPicker(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(20.dp)
             )
             .clickable(enabled = enabled) { launcher.launch(arrayOf("image/*")) },
         contentAlignment = Alignment.Center
@@ -78,11 +81,20 @@ fun PhotoPicker(
             )
         }
         if (selectedUri == null || imageFailed) {
-            Icon(
-                imageVector  = if (selectedUri == null) Lucide.ImagePlus else Lucide.Image,
-                contentDescription = if (selectedUri == null) "Pick a photo" else "Selected photo unavailable",
-                tint         = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector  = if (selectedUri == null) Lucide.ImagePlus else Lucide.Image,
+                    contentDescription = if (selectedUri == null) "Pick a photo" else "Selected photo unavailable",
+                    tint         = MaterialTheme.colorScheme.primary,
+                    modifier     = Modifier.size(26.dp)
+                )
+            }
         }
     }
 }

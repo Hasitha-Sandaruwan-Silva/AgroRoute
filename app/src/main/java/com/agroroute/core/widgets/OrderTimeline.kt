@@ -1,6 +1,7 @@
 package com.agroroute.core.widgets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.theme.AgroRouteTheme
+import com.github.thelacspace.icons.Lucide
 
 /** The fulfilment path every order travels (cancelled orders never start it). */
 private val orderSteps = listOf(
@@ -67,11 +70,11 @@ fun OrderStatusTimeline(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.error)
+                    Icon(
+                        imageVector = Lucide.AlertCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
@@ -106,7 +109,7 @@ private fun TimelineStep(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 modifier = Modifier
-                    .size(if (active) 14.dp else 10.dp)
+                    .size(if (active) 20.dp else 14.dp)
                     .clip(CircleShape)
                     .background(
                         when {
@@ -115,12 +118,22 @@ private fun TimelineStep(
                             else -> MaterialTheme.colorScheme.outline
                         }
                     )
+                    .then(
+                        if (active) {
+                            Modifier.border(
+                                width = 3.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                shape = CircleShape
+                            )
+                        } else Modifier
+                    )
             )
             if (!isLast) {
                 Box(
                     modifier = Modifier
-                        .width(2.dp)
+                        .width(3.dp)
                         .height(28.dp)
+                        .clip(CircleShape)
                         .background(
                             if (completed) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
                             else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
@@ -128,8 +141,13 @@ private fun TimelineStep(
                 )
             }
         }
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.padding(bottom = if (isLast) 0.dp else 12.dp)) {
+        Spacer(Modifier.width(16.dp))
+        Column(
+            modifier = Modifier.padding(
+                top = if (active) 0.dp else 1.dp,
+                bottom = if (isLast) 0.dp else 12.dp
+            )
+        ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
@@ -183,7 +201,8 @@ fun OrderProgressStrip(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(2.dp)
+                            .height(3.dp)
+                            .clip(CircleShape)
                             .background(
                                 if (!cancelled && index < currentIndex) {
                                     MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
@@ -206,8 +225,8 @@ fun OrderProgressStrip(
     }
 }
 
-@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF8F1)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0C1410, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun OrderStatusTimelinePreview() {
     AgroRouteTheme {

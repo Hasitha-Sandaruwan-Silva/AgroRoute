@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,12 +44,18 @@ fun EmptyState(
         animationSpec = tween(400),
         label = "emptyFade"
     )
+    val slide by animateFloatAsState(
+        targetValue = if (visible) 0f else 24f,
+        animationSpec = tween(400),
+        label = "emptySlide"
+    )
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(32.dp)
-            .alpha(alpha),
+            .alpha(alpha)
+            .graphicsLayer(translationY = slide),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -56,13 +63,13 @@ fun EmptyState(
             modifier = Modifier
                 .size(104.dp)
                 .background(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                    shape = CircleShape
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(36.dp)
                 )
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                    shape = CircleShape
+                    shape = RoundedCornerShape(36.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -70,8 +77,8 @@ fun EmptyState(
                 modifier = Modifier
                     .size(64.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
-                        shape = CircleShape
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(24.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {

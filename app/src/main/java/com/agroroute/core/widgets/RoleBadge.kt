@@ -10,6 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.theme.PillShape
 
 @Composable
 fun RoleBadge(
@@ -35,8 +36,8 @@ fun RoleBadge(
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
+            .clip(PillShape)
             .background(containerColor)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 14.dp, vertical = 7.dp)
     )
 }

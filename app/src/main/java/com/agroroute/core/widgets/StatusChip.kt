@@ -1,10 +1,8 @@
 package com.agroroute.core.widgets
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,17 +18,8 @@ import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.theme.AgroRouteTheme
-import com.agroroute.core.theme.AmberDeepText
-import com.agroroute.core.theme.AmberSoftBg
-import com.agroroute.core.theme.DarkSurface2
-import com.agroroute.core.theme.DarkTextSecondary
-import com.agroroute.core.theme.GreenDeep
-import com.agroroute.core.theme.MintAccent
-import com.agroroute.core.theme.MintContainer
-import com.agroroute.core.theme.NeutralDeepText
-import com.agroroute.core.theme.NeutralSoftBg
-import com.agroroute.core.theme.RedDeepText
-import com.agroroute.core.theme.RedSoftBg
+import com.agroroute.core.theme.LocalAgroExtendedColors
+import com.agroroute.core.theme.PillShape
 
 enum class ChipTone {
     Primary, Secondary, Tertiary, Success, Warning, Error, Neutral
@@ -46,7 +35,7 @@ fun StatusChip(
     Surface(
         modifier = modifier,
         color = container,
-        shape = RoundedCornerShape(percent = 50)
+        shape = PillShape
     ) {
         Text(
             text = label,
@@ -131,21 +120,20 @@ fun BiddingChip(biddingEnabled: Boolean, modifier: Modifier = Modifier) {
 
 @Composable
 private fun chipColors(tone: ChipTone): Pair<Color, Color> {
-    val dark = isSystemInDarkTheme()
+    val extended = LocalAgroExtendedColors.current
     return when (tone) {
         ChipTone.Primary -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         ChipTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         ChipTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        ChipTone.Success -> if (dark) Color(0xFF1E3A2A) to MintAccent else MintContainer to GreenDeep
-        ChipTone.Warning -> if (dark) Color(0xFF3A321B) to Color(0xFFFFD580) else AmberSoftBg to AmberDeepText
-        ChipTone.Error -> if (dark) MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-            else RedSoftBg to RedDeepText
-        ChipTone.Neutral -> if (dark) DarkSurface2 to DarkTextSecondary else NeutralSoftBg to NeutralDeepText
+        ChipTone.Success -> extended.successContainer to extended.successOnContainer
+        ChipTone.Warning -> extended.warningContainer to extended.warningOnContainer
+        ChipTone.Error -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        ChipTone.Neutral -> extended.neutralContainer to extended.neutralOnContainer
     }
 }
 
-@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF8F1)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0C1410, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HarvestStatusBadgePreview() {
     AgroRouteTheme {

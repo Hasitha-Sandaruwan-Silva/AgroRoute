@@ -1,22 +1,25 @@
 package com.agroroute.core.widgets
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,14 +57,18 @@ fun AnimatedBottomBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(28.dp),
-        shadowElevation = 12.dp,
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(32.dp),
+        shadowElevation = 8.dp,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 10.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -86,52 +93,62 @@ private fun BottomBarItem(
     onClick: () -> Unit
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1.12f else 1f,
+        targetValue = if (selected) 1.1f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "iconScale"
     )
-    val tint by animateColorAsState(
+    val iconTint by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "iconTint"
     )
+    val pillColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
+        else androidx.compose.ui.graphics.Color.Transparent,
+        label = "itemPill"
+    )
+    val labelColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "labelTint"
+    )
 
     val interactionSource = remember { MutableInteractionSource() }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(pillColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .offset(y = 0.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
-                )
-            }
             Icon(
                 imageVector = if (selected) item.selectedIcon else item.icon,
                 contentDescription = item.label,
-                tint = tint,
-                modifier = Modifier.scale(scale)
+                tint = iconTint,
+                modifier = Modifier
+                    .size(22.dp)
+                    .scale(scale)
             )
         }
-        if (selected) {
+        AnimatedVisibility(
+            visible = selected,
+            enter = fadeIn() + expandHorizontally(),
+            exit = fadeOut() + shrinkHorizontally()
+        ) {
             Text(
                 text = item.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 2.dp)
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                color = labelColor,
+                modifier = Modifier.padding(start = 8.dp)
             )
         }
     }

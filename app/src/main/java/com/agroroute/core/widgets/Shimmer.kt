@@ -60,18 +60,20 @@ fun ShimmerBox(
 @Composable
 fun ListingCardSkeleton(modifier: Modifier = Modifier) {
     AppCard(modifier = modifier) {
-        ShimmerBox(modifier = Modifier.fillMaxWidth(), height = 140.dp, cornerRadius = 16.dp)
+        ShimmerBox(modifier = Modifier.fillMaxWidth(), height = 150.dp, cornerRadius = 20.dp)
         ShimmerBox(
             modifier = Modifier
                 .fillMaxWidth(0.6f)
-                .padding(top = 12.dp),
-            height = 20.dp
+                .padding(top = 14.dp),
+            height = 20.dp,
+            cornerRadius = 8.dp
         )
         ShimmerBox(
             modifier = Modifier
                 .fillMaxWidth(0.4f)
-                .padding(top = 8.dp),
-            height = 14.dp
+                .padding(top = 10.dp),
+            height = 14.dp,
+            cornerRadius = 8.dp
         )
     }
 }
@@ -99,14 +101,19 @@ fun StatCardsSkeleton() {
         repeat(2) {
             AppCard(modifier = Modifier.weight(1f)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ShimmerBox(modifier = Modifier.size(28.dp), height = 28.dp, cornerRadius = 8.dp)
+                    ShimmerBox(
+                        modifier = Modifier.size(44.dp),
+                        height = 44.dp,
+                        cornerRadius = 15.dp
+                    )
                     Column {
-                        ShimmerBox(modifier = Modifier.fillMaxWidth(), height = 24.dp)
+                        ShimmerBox(modifier = Modifier.fillMaxWidth(), height = 24.dp, cornerRadius = 8.dp)
                         ShimmerBox(
                             modifier = Modifier
                                 .fillMaxWidth(0.7f)
                                 .padding(top = 6.dp),
-                            height = 12.dp
+                            height = 12.dp,
+                            cornerRadius = 8.dp
                         )
                     }
                 }

@@ -1,14 +1,19 @@
 package com.agroroute.core.widgets
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -19,11 +24,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.theme.AgroRouteTheme
+import com.agroroute.core.theme.PillShape
 import com.agroroute.core.theme.ThemeMode
+import com.github.thelacspace.icons.Lucide
 
 /**
  * Shared Settings block so Farmer and Supplier profiles stay identical.
@@ -81,6 +89,7 @@ fun SettingsSection(
                 FilterChip(
                     selected = themeMode == mode,
                     onClick = { onThemeModeChange(mode) },
+                    shape = PillShape,
                     label = {
                         Text(
                             text = when (mode) {
@@ -100,33 +109,33 @@ fun SettingsSection(
             modifier = Modifier.padding(top = 6.dp, bottom = 12.dp)
         )
 
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
         SettingsRow(
-            icon = com.github.thelacspace.icons.Lucide.Lock,
+            icon = Lucide.Lock,
             title = "Change password",
             subtitle = "Email a reset link to your own address",
             onClick = onChangePassword
         )
         SettingsRow(
-            icon = com.github.thelacspace.icons.Lucide.User,
+            icon = Lucide.User,
             title = "Edit profile",
             subtitle = "Name, phone and location",
             onClick = onEditProfile
         )
         SettingsRow(
-            icon = com.github.thelacspace.icons.Lucide.Info,
+            icon = Lucide.Info,
             title = "Help & Support",
             subtitle = "How listings, bids and orders work",
             onClick = onHelp
         )
         SettingsRow(
-            icon = com.github.thelacspace.icons.Lucide.Sprout,
+            icon = Lucide.Sprout,
             title = "About",
             subtitle = "Version and app notes",
             onClick = onAbout
         )
         SettingsRow(
-            icon = com.github.thelacspace.icons.Lucide.FileText,
+            icon = Lucide.FileText,
             title = "Privacy & Terms",
             subtitle = "What this app stores",
             onClick = onPrivacy
@@ -145,14 +154,15 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .height(56.dp)
-            .padding(vertical = 4.dp),
+            .heightIn(min = 64.dp)
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        androidx.compose.foundation.layout.Box(
+        Box(
             modifier = Modifier
-                .size(36.dp)
-                .padding(end = 0.dp),
+                .size(42.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -162,7 +172,7 @@ private fun SettingsRow(
                 modifier = Modifier.size(20.dp)
             )
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(14.dp))
         SettingsRowText(
             title = title,
             subtitle = subtitle,
@@ -189,7 +199,7 @@ private fun SettingsRowText(title: String, subtitle: String, modifier: Modifier 
         )
     }
     Icon(
-        imageVector = com.github.thelacspace.icons.Lucide.ChevronRight,
+        imageVector = Lucide.ChevronRight,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.size(18.dp)

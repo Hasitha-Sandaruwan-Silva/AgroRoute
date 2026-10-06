@@ -14,8 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.agroroute.core.theme.EarthAmber
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
+import com.agroroute.core.theme.LeafAccent
 
 @Composable
 fun GradientHeader(
@@ -33,6 +35,20 @@ fun GradientHeader(
             .background(gradient)
             .statusBarsPadding()
     ) {
+        // Soft diagonal harvest glow — leaf lime fading into warm amber.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            LeafAccent.copy(alpha = 0.14f),
+                            Color.Transparent,
+                            EarthAmber.copy(alpha = 0.10f)
+                        )
+                    )
+                )
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()

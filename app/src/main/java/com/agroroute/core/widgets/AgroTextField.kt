@@ -27,9 +27,15 @@ fun AgroTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
         leadingIcon = if (leadingIcon != null) {
-            { androidx.compose.material3.Icon(leadingIcon, contentDescription = null) }
+            {
+                androidx.compose.material3.Icon(
+                    leadingIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         } else null,
         singleLine = singleLine,
         minLines = minLines,
@@ -37,12 +43,14 @@ fun AgroTextField(
         isError = isError,
         supportingText = supportingText,
         visualTransformation = visualTransformation,
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
             focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
         modifier = modifier.fillMaxWidth()
     )

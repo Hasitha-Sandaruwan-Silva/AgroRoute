@@ -26,16 +26,24 @@ fun PriceInputField(
                 onValueChange(input)
             }
         },
-        label = { Text(label) },
-        prefix = { Text("Rs. ", style = MaterialTheme.typography.bodyMedium) },
+        label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+        prefix = {
+            Text(
+                "Rs. ",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,
         isError = isError,
         supportingText = supportingText?.let { { Text(it) } },
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface
         ),
         modifier = modifier.fillMaxWidth()
     )

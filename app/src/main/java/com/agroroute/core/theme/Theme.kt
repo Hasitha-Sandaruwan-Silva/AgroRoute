@@ -8,6 +8,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -19,18 +20,18 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = PureWhite,
     primaryContainer = MintContainer,
     onPrimaryContainer = GreenDeep,
-    secondary = FreshGreen,
+    secondary = HarvestGoldDeep,
     onSecondary = PureWhite,
-    secondaryContainer = MintContainer,
-    onSecondaryContainer = GreenDeep,
-    tertiary = GreenLight,
+    secondaryContainer = HarvestCream,
+    onSecondaryContainer = AmberDeepText,
+    tertiary = OliveLeaf,
     onTertiary = PureWhite,
-    tertiaryContainer = MintContainer,
-    onTertiaryContainer = GreenDeep,
+    tertiaryContainer = Color(0xFFE5EFC6),
+    onTertiaryContainer = Color(0xFF2C3614),
     error = ErrorRed,
     onError = PureWhite,
     errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = ErrorRed,
+    onErrorContainer = Color(0xFF410002),
     background = SoftMintBg,
     onBackground = TextDarkGreen,
     surface = PureWhite,
@@ -38,23 +39,23 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = SurfaceVariant,
     onSurfaceVariant = TextSecondary,
     outline = OutlineGreen,
-    outlineVariant = OutlineGreen
+    outlineVariant = OutlineSoft
 )
 
 // Applied whenever the system (or caller) asks for dark mode
 private val DarkColorScheme = darkColorScheme(
     primary = MintAccent,
-    onPrimary = DarkBg,
-    primaryContainer = DarkSurface2,
-    onPrimaryContainer = MintAccent,
-    secondary = GreenLight,
-    onSecondary = DarkBg,
-    secondaryContainer = DarkSurface2,
-    onSecondaryContainer = MintAccent,
-    tertiary = FreshGreen,
-    onTertiary = DarkBg,
-    tertiaryContainer = DarkSurface2,
-    onTertiaryContainer = MintAccent,
+    onPrimary = Color(0xFF06281A),
+    primaryContainer = Color(0xFF1E4631),
+    onPrimaryContainer = Color(0xFFB7EFC9),
+    secondary = Color(0xFFEBC26E),
+    onSecondary = Color(0xFF3B2D07),
+    secondaryContainer = Color(0xFF544310),
+    onSecondaryContainer = Color(0xFFF4DFA6),
+    tertiary = Color(0xFFC6D48E),
+    onTertiary = Color(0xFF2A3311),
+    tertiaryContainer = Color(0xFF3A4526),
+    onTertiaryContainer = Color(0xFFE1EDB8),
     error = ErrorRedDark,
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
@@ -66,7 +67,7 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = DarkSurface2,
     onSurfaceVariant = DarkTextSecondary,
     outline = DarkOutline,
-    outlineVariant = DarkOutline
+    outlineVariant = Color(0xFF243528)
 )
 
 /**
@@ -84,13 +85,37 @@ private fun UpdateStatusBarAppearance(darkTheme: Boolean) {
     }
 }
 
+/** Large rounded-corner scale — cards 24dp, hero surfaces 28dp. */
 val AgroShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(22.dp),
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(24.dp),
     extraLarge = RoundedCornerShape(28.dp)
 )
+
+/** Pill shape for buttons and chips. */
+val PillShape = RoundedCornerShape(percent = 50)
+
+/** 4dp-base spacing scale used across every screen. */
+object AgroSpacing {
+    val xs = 4.dp
+    val sm = 8.dp
+    val md = 12.dp
+    val lg = 16.dp
+    val xl = 20.dp
+    val xxl = 24.dp
+    val xxxl = 32.dp
+}
+
+/** Soft elevation levels — tonal surfaces instead of harsh shadows. */
+object AgroElevation {
+    val flat = 0.dp
+    val card = 1.dp
+    val raised = 2.dp
+    val floating = 3.dp
+    val lifted = 6.dp
+}
 
 @Composable
 fun AgroRouteTheme(
@@ -98,12 +123,15 @@ fun AgroRouteTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
     UpdateStatusBarAppearance(darkTheme)
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AgroTypography,
-        shapes = AgroShapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalAgroExtendedColors provides extendedColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AgroTypography,
+            shapes = AgroShapes,
+            content = content
+        )
+    }
 }
