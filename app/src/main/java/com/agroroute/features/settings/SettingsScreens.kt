@@ -146,7 +146,7 @@ fun AboutScreen() {
         title = "About",
         intro = "A fair farm-to-market place for farmers and suppliers in Sri Lanka."
     ) {
-        AppCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally

@@ -257,7 +257,7 @@ private fun OrderHeroCard(order: Order) {
 
 @Composable
 private fun OrderDetailCard(order: Order) {
-    AppCard {
+    Column(modifier = Modifier.fillMaxWidth()) {
         DetailRow(label = "Order ID", value = order.orderId)
         if (order.pickupLocation.isNotBlank()) DetailRow("Pickup Location", order.pickupLocation)
         if (order.deliveryLocation.isNotBlank()) DetailRow("Delivery Location", order.deliveryLocation)

@@ -127,7 +127,7 @@ fun RegisterScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(top = 24.dp, bottom = 52.dp),
+                        .padding(top = 24.dp, bottom = 28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
@@ -168,25 +168,7 @@ fun RegisterScreen(
                 }
             }
 
-            // ── Main Form Card (overlaps the hero) ─────────────────────────
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y = (-28).dp)
-                    .padding(horizontal = 20.dp)
-                    .shadow(
-                        elevation = 10.dp,
-                        shape = RoundedCornerShape(26.dp),
-                        ambientColor = ForestDeep.copy(alpha = 0.18f),
-                        spotColor = ForestDeep.copy(alpha = 0.18f)
-                    ),
-                shape = RoundedCornerShape(26.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                )
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -166,7 +166,7 @@ private fun ReviewHeader(revieweeName: String) {
 
 @Composable
 private fun RatingCard(rating: Int, onRatingChange: (Int) -> Unit) {
-    AppCard {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Rating",
             style = MaterialTheme.typography.titleMedium,
@@ -218,7 +218,7 @@ private fun RatingCard(rating: Int, onRatingChange: (Int) -> Unit) {
 
 @Composable
 private fun CommentCard(comment: String, onCommentChange: (String) -> Unit) {
-    AppCard {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Write a Review",
             style = MaterialTheme.typography.titleMedium,

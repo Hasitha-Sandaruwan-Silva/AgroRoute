@@ -249,7 +249,7 @@ private fun OrderHeroCard(order: Order) {
 
 @Composable
 private fun OrderDetailCard(order: Order) {
-    AppCard {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Order ID",
             style = MaterialTheme.typography.titleMedium,

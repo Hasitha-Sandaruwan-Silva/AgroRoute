@@ -163,7 +163,7 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(top = 28.dp, bottom = 56.dp),
+                        .padding(top = 24.dp, bottom = 28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
@@ -204,25 +204,7 @@ fun LoginScreen(
                 }
             }
 
-            // ── Main Form Card (overlaps the hero) ─────────────────────────
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y = (-32).dp)
-                    .padding(horizontal = 20.dp)
-                    .shadow(
-                        elevation = 10.dp,
-                        shape = RoundedCornerShape(26.dp),
-                        ambientColor = ForestDeep.copy(alpha = 0.18f),
-                        spotColor = ForestDeep.copy(alpha = 0.18f)
-                    ),
-                shape = RoundedCornerShape(26.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                )
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -362,39 +344,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(4.dp))
 
-            // Trust & Security Footer Badge
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier
-                    .offset(y = (-32).dp)
-                    .padding(horizontal = 20.dp)
-                    .fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "Secure access for farmers and suppliers across Sri Lanka.",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
             Spacer(Modifier.navigationBarsPadding())
         }
     }

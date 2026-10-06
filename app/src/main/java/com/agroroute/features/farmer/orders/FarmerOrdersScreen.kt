@@ -136,24 +136,17 @@ fun FarmerOrdersScreen(
                     )
                 }
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(
-                        Brush.linearGradient(listOf(ForestDeep, ForestMid, ForestSoft))
-                    )
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
+                        .padding(vertical = 8.dp)
                 ) {
                     Text(
                         text = "Delivered order value - ${selectedRange.label}",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White.copy(alpha = 0.72f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 12.dp)) {
                         Row(
@@ -174,12 +167,12 @@ fun FarmerOrdersScreen(
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 14.dp),
                         thickness = 1.dp,
-                        color = Color.White.copy(alpha = 0.14f)
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
                     Text(
                         text = "Based on delivered orders; this does not indicate payment status.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.72f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -352,12 +345,12 @@ private fun OrderCard(
 @Composable
 private fun SummaryValue(label: String, value: String) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.66f))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

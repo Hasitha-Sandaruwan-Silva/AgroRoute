@@ -184,39 +184,18 @@ private fun OnboardingPageContent(page: OnboardingPage, index: Int, isDark: Bool
     val stepText = "STEP 0${index + 1}"
 
     Column(Modifier.fillMaxSize().padding(horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Box(Modifier.fillMaxWidth().height(210.dp)) {
-            // 3D LOOK + DARK THEME SUPPORT
-            Surface(
-                modifier = Modifier.fillMaxSize().shadow(12.dp, RoundedCornerShape(24.dp)),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
-            ) {
-                Box(
-                    Modifier.fillMaxSize().padding(7.dp).clip(RoundedCornerShape(18.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                ) {
-                    SubcomposeAsyncImage(
-                        model = ImageRequest.Builder(context).data(page.imageUrl).crossfade(true).crossfade(400).memoryCacheKey(page.imageUrl).diskCacheKey(page.imageUrl).build(),
-                        contentDescription = page.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        loading = {
-                            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 2.5.dp, modifier = Modifier.size(28.dp))
-                            }
-                        }
-                    )
+        Box(Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(16.dp))) {
+            SubcomposeAsyncImage(
+                model = ImageRequest.Builder(context).data(page.imageUrl).crossfade(true).crossfade(400).memoryCacheKey(page.imageUrl).diskCacheKey(page.imageUrl).build(),
+                contentDescription = page.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                loading = {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 2.5.dp, modifier = Modifier.size(28.dp))
+                    }
                 }
-            }
-            Surface(Modifier.align(Alignment.TopStart).padding(14.dp).shadow(4.dp, RoundedCornerShape(10.dp)), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)) {
-                Text(stepText, Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp, fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurface)
-            }
-            Surface(Modifier.align(Alignment.BottomEnd).padding(14.dp).size(44.dp).shadow(8.dp, CircleShape), shape = CircleShape, color = MaterialTheme.colorScheme.surface) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icons[index % icons.size], null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                }
-            }
+            )
         }
         Spacer(Modifier.height(20.dp))
         Text(page.title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 0.1.sp, fontSize = 22.sp), color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center)

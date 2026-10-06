@@ -343,45 +343,33 @@ private fun MarketplaceListingCard(
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-            ) {
-                Column(modifier = Modifier.padding(11.dp)) {
-                    Text(
-                        text = if (isExpected) "Estimated qty (estimate)" else "Available",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = if (isExpected) {
-                            "${listing.estimatedAvailable()} ${listing.quantityUnit.name}"
-                        } else {
-                            "${listing.availableStock()} ${listing.quantityUnit.name}"
-                        },
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2
-                    )
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (isExpected) "Estimated quantity" else "Available",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (isExpected) {
+                        "${listing.estimatedAvailable()} ${listing.quantityUnit.name}"
+                    } else {
+                        "${listing.availableStock()} ${listing.quantityUnit.name}"
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2
+                )
             }
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
-            ) {
-                Column(modifier = Modifier.padding(11.dp)) {
-                    Text("Reserve price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        "Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 2
-                    )
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Reserve price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Rs. ${listing.reservePrice}/${listing.quantityUnit.name}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 2
+                )
             }
         }
         if (listing.description.isNotBlank()) {
