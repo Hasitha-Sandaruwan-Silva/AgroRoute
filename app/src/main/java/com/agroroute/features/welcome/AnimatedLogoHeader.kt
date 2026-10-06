@@ -35,11 +35,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.agroroute.R
+import com.agroroute.core.theme.GreenDeep
+import com.agroroute.core.theme.GreenEmerald
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val PrimaryGreen = Color(0xFF2E7D32)
-private val DarkGreenText = Color(0xFF14532D)
+private val PrimaryGreen = GreenEmerald
+private val DarkGreenText = GreenDeep
 
 /**
  * Super Dramatic & Unmissable Animated Logo Header

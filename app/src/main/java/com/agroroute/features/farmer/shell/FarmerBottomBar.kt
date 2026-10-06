@@ -124,7 +124,7 @@ private fun FarmerTabItem(
     )
     val bgColor by animateColorAsState(
         targetValue = if (selected)
-            Color(0xFF16A34A).copy(alpha = 0.1f)  // Light green background for selected
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         else
             Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -132,9 +132,9 @@ private fun FarmerTabItem(
     )
     val iconTint by animateColorAsState(
         targetValue = if (selected)
-            Color(0xFF16A34A)  // Primary green for selected
+            MaterialTheme.colorScheme.primary
         else
-            Color(0xFF9CA3AF),  // Light gray for unselected
+            MaterialTheme.colorScheme.onSurfaceVariant,
         label = "tabIconTint"
     )
     val interactionSource = remember { MutableInteractionSource() }
@@ -176,7 +176,7 @@ private fun FarmerTabItem(
                         fontSize = 13.sp,
                         letterSpacing = 0.1.sp
                     ),
-                    color = Color(0xFF16A34A),  // Primary green for selected text
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

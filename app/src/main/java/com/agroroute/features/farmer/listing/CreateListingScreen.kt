@@ -1212,8 +1212,8 @@ private fun CreateListingBottomBar(
     }
 }
 
-@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFEAF9E7)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF013237, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HarvestStatusSelectorPreview() {
     AgroRouteTheme {

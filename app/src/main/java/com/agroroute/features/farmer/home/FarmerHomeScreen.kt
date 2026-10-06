@@ -44,6 +44,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.theme.ForestDeep
+import com.agroroute.core.theme.ForestMid
+import com.agroroute.core.theme.ForestSoft
+import com.agroroute.core.theme.GreenDeep
+import com.agroroute.core.theme.GreenEmerald
+import com.agroroute.core.theme.PureWhite
+import com.agroroute.core.theme.SoftMintBg
+import com.agroroute.core.theme.TextSecondary
 import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.ErrorSnackbarEffect
@@ -62,12 +70,11 @@ internal enum class FarmerHomeDestination(val route: String) {
 }
 
 // Custom Colors matching the UI design
-private val DarkGreenBg = Color(0xFF2C4C3B)
-private val CardGreen = Color(0xFF3F634B)
-private val CardGreenLight = Color(0xFF4C7559)
-private val AccentGreen = Color(0xFF86B956)
-private val LightBg = Color(0xFFF2F5F2)
-private val TextGray = Color(0xFF8A9D8F)
+private val DarkGreenBg = ForestDeep
+private val CardGreen = ForestMid
+private val AccentGreen = GreenEmerald
+private val LightBg = SoftMintBg
+private val TextGray = TextSecondary
 
 @Composable
 fun FarmerHomeScreen(
@@ -226,7 +233,7 @@ fun FarmerHomeScreen(
                     text = "Sell and fulfill",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = GreenDeep
                 )
             }
 
@@ -269,7 +276,7 @@ fun FarmerHomeScreen(
                     title = "Manage Orders",
                     subtitle = "Review requests and fulfillment",
                     icon = Lucide.Receipt,
-                    iconBgColor = Color(0xFFE5A83B),
+                    iconBgColor = ForestSoft,
                     onClick = { navController.navigate(FarmerHomeDestination.ORDERS.route) }
                 )
             }
@@ -400,7 +407,7 @@ private fun ChipItem(
 ) {
     Surface(
         shape = RoundedCornerShape(50),
-        color = if (isActive) AccentGreen else Color.White,
+        color = if (isActive) AccentGreen else PureWhite,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick)
@@ -409,7 +416,7 @@ private fun ChipItem(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-            color = if (isActive) Color.White else Color.Black,
+            color = if (isActive) PureWhite else GreenDeep,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
         )
     }
@@ -426,7 +433,7 @@ private fun ActionLargeCard(
 ) {
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
@@ -484,13 +491,13 @@ private fun ActionLargeCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = GreenDeep
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
+                    color = TextGray,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )

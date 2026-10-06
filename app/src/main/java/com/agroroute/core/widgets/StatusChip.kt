@@ -132,8 +132,8 @@ private fun chipColors(tone: ChipTone): Pair<Color, Color> {
     }
 }
 
-@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFAF8F1)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0C1410, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFEAF9E7)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF013237, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HarvestStatusBadgePreview() {
     AgroRouteTheme {

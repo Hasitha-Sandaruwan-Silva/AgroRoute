@@ -884,8 +884,8 @@ private fun previewListing(harvestStatus: HarvestStatus) = HarvestListing(
     harvestUpdatedAt = 1_795_000_000_000L
 )
 
-@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFF4FBF6, heightDp = 1600)
-@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF0F1F16, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, heightDp = 1600)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFEAF9E7, heightDp = 1600)
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF013237, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, heightDp = 1600)
 @Composable
 private fun ListingCardsPreview() {
     AgroRouteTheme {

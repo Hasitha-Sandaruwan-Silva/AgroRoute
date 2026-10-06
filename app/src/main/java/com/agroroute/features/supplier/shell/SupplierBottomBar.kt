@@ -120,12 +120,12 @@ private fun SupplierTabItem(
         label = "supplierTabScale"
     )
     val background by animateColorAsState(
-        targetValue = if (selected) Color(0xFF16A34A).copy(alpha = 0.1f) else Color.Transparent,
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "supplierTabBackground"
     )
     val iconTint by animateColorAsState(
-        targetValue = if (selected) Color(0xFF16A34A) else Color(0xFF9CA3AF),
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "supplierTabIconTint"
     )
     val interactionSource = remember { MutableInteractionSource() }
@@ -164,7 +164,7 @@ private fun SupplierTabItem(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp
                     ),
-                    color = Color(0xFF16A34A),
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
