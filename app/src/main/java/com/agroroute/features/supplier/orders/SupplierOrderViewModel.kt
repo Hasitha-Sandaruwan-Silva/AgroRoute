@@ -107,6 +107,22 @@ class SupplierOrderViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    fun refreshOrdersForSupplier(supplierId: String) {
+        if (supplierId.isBlank()) return
+        viewModelScope.launch {
+            when (val sync = orderRepository.syncOrders(supplierId)) {
+                is Result.Error -> _uiState.update { it.copy(error = sync.message) }
+                else -> Unit
+            }
+        }
+        viewModelScope.launch {
+            when (val sync = orderRequestRepository.syncRequestsForUser(supplierId)) {
+                is Result.Error -> _uiState.update { it.copy(error = sync.message) }
+                else -> Unit
+            }
+        }
+    }
+
     fun cancelRequest(requestId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }

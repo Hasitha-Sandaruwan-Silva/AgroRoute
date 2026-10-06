@@ -356,6 +356,17 @@ test("supplier can create an order request on a fixed-price listing", async () =
   );
 });
 
+test("same supplier can create multiple distinct requests for the same farmer", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+
+  await assertSucceeds(
+    setDoc(doc(db, "order_requests/request-1"), orderRequestDoc("request-1", { requestedQuantity: 3 }))
+  );
+  await assertSucceeds(
+    setDoc(doc(db, "order_requests/request-2"), orderRequestDoc("request-2", { requestedQuantity: 3 }))
+  );
+});
+
 test("supplier cannot create an order request on a bidding-enabled listing", async () => {
   const db = testEnvironment.authenticatedContext("supplier-1").firestore();
 

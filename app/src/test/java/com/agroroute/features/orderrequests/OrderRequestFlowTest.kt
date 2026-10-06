@@ -59,6 +59,34 @@ class OrderRequestFlowTest {
     }
 
     @Test
+    fun sameSupplierCanPlaceAndFarmerCanAcceptMultipleOrdersOnOneListing() = runBlocking {
+        val listingRepository = FakeListingRepository(fixedPriceListing())
+        val requests = FakeOrderRequestRepository()
+        val supplierAuth = FakeAuthRepository(UserRole.SUPPLIER, "supplier-1")
+        val placeRequest = PlaceOrderRequestUseCase(requests, listingRepository, supplierAuth)
+
+        val firstRequest = validRequest().copy(requestedQuantity = 3.0)
+        val secondRequest = firstRequest.copy(requestId = "request-2")
+        assertTrue(placeRequest(firstRequest) is Result.Success)
+        assertTrue(placeRequest(secondRequest) is Result.Success)
+        assertEquals(2, requests.storedRequests.size)
+
+        val orders = FakeOrderRepository(listingRepository, requests)
+        val acceptRequest = AcceptOrderRequestUseCase(
+            orders,
+            requests,
+            listingRepository,
+            FakeAuthRepository(UserRole.FARMER, "farmer-1")
+        )
+
+        assertTrue(acceptRequest(firstRequest) is Result.Success)
+        assertTrue(acceptRequest(secondRequest) is Result.Success)
+        assertEquals(listOf("request-1", "request-2"), orders.acceptedOrders.map { it.orderId })
+        assertTrue(orders.acceptedOrders.all { it.supplierId == "supplier-1" && it.farmerId == "farmer-1" })
+        assertEquals(4.0, orders.currentListing.availableStock(), 0.0)
+    }
+
+    @Test
     fun orderRequestRejectsZeroNegativeAndAboveStockQuantities() = runBlocking {
         val invalidQuantities = listOf(0.0, -1.0, 10.1, 11.0)
         for (quantity in invalidQuantities) {
