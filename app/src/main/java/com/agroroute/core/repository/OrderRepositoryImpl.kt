@@ -206,11 +206,10 @@ class OrderRepositoryImpl @Inject constructor(
             if (updatedListing != null) listingDao.upsertListing(updatedListing)
         } else {
             val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
-            val completionRecordRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDER_COMPLETION_RECORDS).document(orderId)
 
-            var isDeliveredCompletion = false
-            var farmerId = ""
-            var supplierId = ""
+            var completionRecordToSave: OrderCompletionRecord? = null
+            var updatedFarmerProfile: UserProfile? = null
+            var updatedSupplierProfile: UserProfile? = null
 
             val updatedOrder = firestoreService.runTransaction<Order> { transaction ->
                 val existing = transaction.get(orderRef).toObject(Order::class.java)
@@ -236,7 +235,7 @@ class OrderRepositoryImpl @Inject constructor(
                             "Order must be in transit to be marked as delivered"
                         }
 
-                        // Atomic completion point awarding
+                        val completionRecordRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDER_COMPLETION_RECORDS).document(orderId)
                         val existingRecord = transaction.get(completionRecordRef)
                         if (!existingRecord.exists()) {
                             val farmerRef = firestoreService.firestore.collection(Constants.COLLECTION_USERS).document(existing.farmerId)
@@ -245,28 +244,36 @@ class OrderRepositoryImpl @Inject constructor(
                             val farmerDoc = transaction.get(farmerRef)
                             val supplierDoc = transaction.get(supplierRef)
 
-                            val farmerProfile = farmerDoc.toObject(UserProfile::class.java)
-                            val supplierProfile = supplierDoc.toObject(UserProfile::class.java)
-
-                            if (farmerProfile != null && supplierProfile != null) {
-                                val updatedFarmer = farmerProfile.copy(points = farmerProfile.points + 1)
-                                val updatedSupplier = supplierProfile.copy(points = supplierProfile.points + 1)
-
-                                val completionRecord = OrderCompletionRecord(
-                                    orderId = orderId,
-                                    farmerId = existing.farmerId,
-                                    supplierId = existing.supplierId,
-                                    pointsAwardedAt = System.currentTimeMillis()
-                                )
-
-                                transaction.set(completionRecordRef, completionRecord)
-                                transaction.set(farmerRef, updatedFarmer)
-                                transaction.set(supplierRef, updatedSupplier)
-
-                                isDeliveredCompletion = true
-                                farmerId = existing.farmerId
-                                supplierId = existing.supplierId
+                            val farmerProfile = checkNotNull(farmerDoc.toObject(UserProfile::class.java)) {
+                                "Farmer account profile is unavailable"
                             }
+                            val supplierProfile = checkNotNull(supplierDoc.toObject(UserProfile::class.java)) {
+                                "Supplier account profile is unavailable"
+                            }
+                            check(farmerProfile.userId == existing.farmerId && farmerProfile.role == UserRole.FARMER) {
+                                "Farmer account profile does not match the order"
+                            }
+                            check(supplierProfile.userId == existing.supplierId && supplierProfile.role == UserRole.SUPPLIER) {
+                                "Supplier account profile does not match the order"
+                            }
+
+                            val updatedFarmer = farmerProfile.copy(points = farmerProfile.points + 1)
+                            val updatedSupplier = supplierProfile.copy(points = supplierProfile.points + 1)
+
+                            val completionRecord = OrderCompletionRecord(
+                                orderId = orderId,
+                                farmerId = existing.farmerId,
+                                supplierId = existing.supplierId,
+                                pointsAwardedAt = System.currentTimeMillis()
+                            )
+
+                            transaction.set(completionRecordRef, completionRecord)
+                            transaction.set(farmerRef, updatedFarmer)
+                            transaction.set(supplierRef, updatedSupplier)
+
+                            completionRecordToSave = completionRecord
+                            updatedFarmerProfile = updatedFarmer
+                            updatedSupplierProfile = updatedSupplier
                         }
                     }
                     else -> error("Invalid status transition")
@@ -278,22 +285,9 @@ class OrderRepositoryImpl @Inject constructor(
 
             dao.upsertOrder(updatedOrder)
 
-            // Sync completion record and profiles to local Room database
-            if (isDeliveredCompletion) {
-                val completionRecord = OrderCompletionRecord(
-                    orderId = orderId,
-                    farmerId = farmerId,
-                    supplierId = supplierId,
-                    pointsAwardedAt = System.currentTimeMillis()
-                )
-                orderCompletionRecordDao.upsertRecord(completionRecord)
-
-                val farmerProfile = firestoreService.getOnce<UserProfile>(Constants.COLLECTION_USERS, farmerId)
-                val supplierProfile = firestoreService.getOnce<UserProfile>(Constants.COLLECTION_USERS, supplierId)
-
-                if (farmerProfile != null) userProfileDao.upsertUserProfile(farmerProfile)
-                if (supplierProfile != null) userProfileDao.upsertUserProfile(supplierProfile)
-            }
+            completionRecordToSave?.let { orderCompletionRecordDao.upsertRecord(it) }
+            updatedFarmerProfile?.let { userProfileDao.upsertUserProfile(it) }
+            updatedSupplierProfile?.let { userProfileDao.upsertUserProfile(it) }
         }
     }
 

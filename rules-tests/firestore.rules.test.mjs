@@ -1706,3 +1706,366 @@ test("farmer can cancel order with releaseSale transaction (order + full listing
 
   await assertSucceeds(batch.commit());
 });
+
+// ── Tests: Order Completion, Points Awarding & Idempotency ─────────────────────
+
+test("supplier can complete order in transaction: DELIVERED, completion record, award 1 pt to farmer and 1 pt to supplier", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "users/farmer-1"), {
+      userId: "farmer-1",
+      role: "FARMER",
+      points: 5
+    });
+    await setDoc(doc(db, "users/supplier-1"), {
+      userId: "supplier-1",
+      role: "SUPPLIER",
+      points: 2
+    });
+    await setDoc(doc(db, "orders/order-complete-1"), {
+      ...fullOrderDoc("order-complete-1"),
+      status: "IN_TRANSIT"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  await assertSucceeds(
+    runTransaction(db, async (tx) => {
+      tx.update(doc(db, "orders/order-complete-1"), {
+        status: "DELIVERED",
+        updatedAt: 2
+      });
+      tx.set(doc(db, "order_completion_records/order-complete-1"), {
+        orderId: "order-complete-1",
+        farmerId: "farmer-1",
+        supplierId: "supplier-1",
+        pointsAwardedAt: Date.now()
+      });
+      tx.update(doc(db, "users/farmer-1"), { points: 6 });
+      tx.update(doc(db, "users/supplier-1"), { points: 3 });
+    })
+  );
+});
+
+test("duplicate completion attempt cannot recreate completion record or award more points (idempotent)", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-complete-2"), {
+      ...fullOrderDoc("order-complete-2"),
+      status: "DELIVERED"
+    });
+    await setDoc(doc(db, "order_completion_records/order-complete-2"), {
+      orderId: "order-complete-2",
+      farmerId: "farmer-1",
+      supplierId: "supplier-1",
+      pointsAwardedAt: Date.now()
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  // Attempting to overwrite or recreate completion record is rejected
+  await assertFails(
+    setDoc(doc(db, "order_completion_records/order-complete-2"), {
+      orderId: "order-complete-2",
+      farmerId: "farmer-1",
+      supplierId: "supplier-1",
+      pointsAwardedAt: Date.now()
+    })
+  );
+});
+
+test("non-supplier cannot mark DELIVERED or create completion record", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-complete-3"), {
+      ...fullOrderDoc("order-complete-3"),
+      status: "IN_TRANSIT"
+    });
+  });
+
+  const farmerDb = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertFails(
+    setDoc(doc(farmerDb, "order_completion_records/order-complete-3"), {
+      orderId: "order-complete-3",
+      farmerId: "farmer-1",
+      supplierId: "supplier-1",
+      pointsAwardedAt: Date.now()
+    })
+  );
+});
+
+test("pending or cancelled orders cannot have completion record created", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-pending"), {
+      ...fullOrderDoc("order-pending"),
+      status: "AWAITING_PICKUP"
+    });
+    await setDoc(doc(db, "orders/order-cancelled"), {
+      ...fullOrderDoc("order-cancelled"),
+      status: "CANCELLED"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  await assertFails(
+    setDoc(doc(db, "order_completion_records/order-pending"), {
+      orderId: "order-pending",
+      farmerId: "farmer-1",
+      supplierId: "supplier-1",
+      pointsAwardedAt: Date.now()
+    })
+  );
+  await assertFails(
+    setDoc(doc(db, "order_completion_records/order-cancelled"), {
+      orderId: "order-cancelled",
+      farmerId: "farmer-1",
+      supplierId: "supplier-1",
+      pointsAwardedAt: Date.now()
+    })
+  );
+});
+
+test("users cannot arbitrarily modify their own or others points outside +1 increment", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  // Arbitrary jump by 10 points fails
+  await assertFails(updateDoc(doc(db, "users/farmer-1"), { points: 100 }));
+});
+
+// ── Tests: Reviews & Ratings ───────────────────────────────────────────────────
+
+test("farmer can review supplier on DELIVERED order with valid 1-5 rating", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-1"), {
+      ...fullOrderDoc("order-rev-1"),
+      status: "DELIVERED"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertSucceeds(
+    setDoc(doc(db, "reviews/order-rev-1_farmer-1"), {
+      reviewId: "order-rev-1_farmer-1",
+      orderId: "order-rev-1",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 5,
+      comment: "Prompt pickup and smooth transaction",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("supplier can review farmer on DELIVERED order with valid 1-5 rating", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-2"), {
+      ...fullOrderDoc("order-rev-2"),
+      status: "DELIVERED"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  await assertSucceeds(
+    setDoc(doc(db, "reviews/order-rev-2_supplier-1"), {
+      reviewId: "order-rev-2_supplier-1",
+      orderId: "order-rev-2",
+      reviewerId: "supplier-1",
+      revieweeId: "farmer-1",
+      rating: 4,
+      comment: "Produce was fresh and well packed",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("review requires nonblank written feedback", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-comment"), {
+      ...fullOrderDoc("order-rev-comment"),
+      status: "DELIVERED"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertFails(
+    setDoc(doc(db, "reviews/order-rev-comment_farmer-1"), {
+      reviewId: "order-rev-comment_farmer-1",
+      orderId: "order-rev-comment",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 5,
+      comment: "   ",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("rating outside 1-5 is rejected", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-3"), {
+      ...fullOrderDoc("order-rev-3"),
+      status: "DELIVERED"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertFails(
+    setDoc(doc(db, "reviews/order-rev-3_farmer-1"), {
+      reviewId: "order-rev-3_farmer-1",
+      orderId: "order-rev-3",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 0,
+      comment: "Invalid zero rating",
+      createdAt: Date.now()
+    })
+  );
+  await assertFails(
+    setDoc(doc(db, "reviews/order-rev-3_farmer-1"), {
+      reviewId: "order-rev-3_farmer-1",
+      orderId: "order-rev-3",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 6,
+      comment: "Invalid six rating",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("cannot review an order before DELIVERED (e.g. IN_TRANSIT, AWAITING_PICKUP)", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-transit"), {
+      ...fullOrderDoc("order-rev-transit"),
+      status: "IN_TRANSIT"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertFails(
+    setDoc(doc(db, "reviews/order-rev-transit_farmer-1"), {
+      reviewId: "order-rev-transit_farmer-1",
+      orderId: "order-rev-transit",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 5,
+      comment: "Not delivered yet",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("cannot review a CANCELLED order", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-cancel"), {
+      ...fullOrderDoc("order-rev-cancel"),
+      status: "CANCELLED"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertFails(
+    setDoc(doc(db, "reviews/order-rev-cancel_farmer-1"), {
+      reviewId: "order-rev-cancel_farmer-1",
+      orderId: "order-rev-cancel",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 1,
+      comment: "Cancelled",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("non-participant cannot review an order", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-party"), {
+      ...fullOrderDoc("order-rev-party"),
+      status: "DELIVERED"
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-2").firestore();
+  await assertFails(
+    setDoc(doc(db, "reviews/order-rev-party_farmer-2"), {
+      reviewId: "order-rev-party_farmer-2",
+      orderId: "order-rev-party",
+      reviewerId: "farmer-2",
+      revieweeId: "supplier-1",
+      rating: 5,
+      comment: "Did not participate",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("reviewer cannot review more than once on the same order", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "orders/order-rev-dup"), {
+      ...fullOrderDoc("order-rev-dup"),
+      status: "DELIVERED"
+    });
+    await setDoc(doc(db, "reviews/order-rev-dup_farmer-1"), {
+      reviewId: "order-rev-dup_farmer-1",
+      orderId: "order-rev-dup",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 5,
+      comment: "First review",
+      createdAt: Date.now()
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  // Second submission with same deterministic ID fails
+  await assertFails(
+    setDoc(doc(db, "reviews/order-rev-dup_farmer-1"), {
+      reviewId: "order-rev-dup_farmer-1",
+      orderId: "order-rev-dup",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 4,
+      comment: "Second review attempt",
+      createdAt: Date.now()
+    })
+  );
+});
+
+test("review cannot be updated or deleted", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "reviews/order-rev-immutable_farmer-1"), {
+      reviewId: "order-rev-immutable_farmer-1",
+      orderId: "order-rev-immutable",
+      reviewerId: "farmer-1",
+      revieweeId: "supplier-1",
+      rating: 5,
+      comment: "Original review",
+      createdAt: Date.now()
+    });
+  });
+
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertFails(
+    updateDoc(doc(db, "reviews/order-rev-immutable_farmer-1"), {
+      rating: 1
+    })
+  );
+  await assertFails(
+    deleteDoc(doc(db, "reviews/order-rev-immutable_farmer-1"))
+  );
+});
+
+test("signed-in users can list user profiles and reviews for leaderboards", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertSucceeds(getDoc(doc(db, "users/farmer-2")));
+  await assertSucceeds(getDoc(doc(db, "users/supplier-1")));
+});

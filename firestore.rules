@@ -58,8 +58,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if signedIn() && request.auth.uid == userId;
-      allow list: if false;
+      allow get, list: if signedIn();
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.userId == userId
@@ -74,10 +73,10 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               'displayName', 'email', 'phone', 'profileImageUrl', 'location'
             ]))
-          // System updating points (from order completion transaction) - only increment by 1
+          // Points increment by 1 during order completion
           || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points'])
-            && request.resource.data.points == resource.data.points + 1
-            && resource.data.points >= 0)
+            && request.resource.data.points == resource.data.get('points', 0) + 1
+            && resource.data.get('points', 0) >= 0)
         );
       allow delete: if false;
     }
@@ -359,9 +358,7 @@ service cloud.firestore {
     }
 
     match /reviews/{reviewId} {
-      allow get, list: if signedIn()
-        && (resource.data.reviewerId == request.auth.uid
-          || resource.data.revieweeId == request.auth.uid);
+      allow get, list: if signedIn();
 
       allow create: if signedIn()
         && request.resource.data.reviewId == reviewId
@@ -369,6 +366,8 @@ service cloud.firestore {
         && request.resource.data.reviewerId == request.auth.uid
         && request.resource.data.rating >= 1
         && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.matches('.*\\S.*')
         && exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId))
         && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'DELIVERED'
         && (

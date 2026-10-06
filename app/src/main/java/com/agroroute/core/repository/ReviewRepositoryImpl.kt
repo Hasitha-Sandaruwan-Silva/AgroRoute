@@ -49,9 +49,10 @@ class ReviewRepositoryImpl @Inject constructor(
         check(review.reviewerId == userId) { "You can only submit reviews as yourself" }
 
         // Enforce deterministic reviewId for database-level single review per reviewer per order
-        val targetReview = if (review.reviewId.isBlank() || review.reviewId != "${review.orderId}_${review.reviewerId}") {
-            review.copy(reviewId = "${review.orderId}_${review.reviewerId}")
-        } else review
+        val targetReview = review.copy(
+            reviewId = "${review.orderId}_${review.reviewerId}",
+            comment = review.comment.trim()
+        )
 
         // Verify the order exists and is completed
         val orderFlow = orderRepository.getOrderById(targetReview.orderId)
@@ -87,6 +88,9 @@ class ReviewRepositoryImpl @Inject constructor(
         // Validate rating
         check(targetReview.rating in 1..5) {
             "Rating must be between 1 and 5 stars"
+        }
+        check(targetReview.comment.isNotBlank()) {
+            "A written review is required"
         }
 
         // Write to Firestore

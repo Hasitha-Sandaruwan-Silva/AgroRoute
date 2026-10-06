@@ -239,6 +239,33 @@ class ReviewConstraintsTest {
     }
 
     @Test
+    fun `written review is required`() = runTest {
+        val order = Order(
+            orderId = testOrderId,
+            farmerId = testFarmerId,
+            supplierId = testSupplierId,
+            status = OrderStatus.DELIVERED
+        )
+        val review = Review(
+            reviewId = "${testOrderId}_${testFarmerId}",
+            orderId = testOrderId,
+            reviewerId = testFarmerId,
+            revieweeId = testSupplierId,
+            rating = 5,
+            comment = "   "
+        )
+
+        every { fakeAuthRepository.currentUserId } returns testFarmerId
+        every { fakeAuthRepository.getCurrentUserProfile() } returns flowOf(Result.Success(UserProfile(userId = testFarmerId, role = UserRole.FARMER)))
+        every { fakeOrderRepository.getOrderById(testOrderId) } returns flowOf(Result.Success(order))
+        coEvery { fakeReviewDao.getReviewByOrderAndReviewer(testOrderId, testFarmerId) } returns null
+
+        val result = reviewRepository.submitReview(review)
+
+        assertTrue(result is Result.Error)
+    }
+
+    @Test
     fun `submitting review never changes user points`() = runTest {
         val order = Order(
             orderId = testOrderId,

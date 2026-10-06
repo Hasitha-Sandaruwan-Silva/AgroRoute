@@ -51,7 +51,6 @@ class PointAwardingTest {
     fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         every { firestoreService.firestore } returns firestore
-        coEvery { firestoreService.getOnce<UserProfile>(any(), any()) } returns null
 
         orderRepository = OrderRepositoryImpl(
             dao = mockk(relaxed = true),
@@ -174,6 +173,61 @@ class PointAwardingTest {
     }
 
     @Test
+    fun `delivery is rejected when a participant profile is missing`() = runTest {
+        val existingOrder = Order(
+            orderId = testOrderId,
+            listingId = testListingId,
+            farmerId = testFarmerId,
+            supplierId = testSupplierId,
+            status = OrderStatus.IN_TRANSIT
+        )
+        val orderRef = mockk<DocumentReference>(relaxed = true)
+        val recordRef = mockk<DocumentReference>(relaxed = true)
+        val farmerRef = mockk<DocumentReference>(relaxed = true)
+        val supplierRef = mockk<DocumentReference>(relaxed = true)
+        every { orderRef.path } returns "orders/$testOrderId"
+        every { recordRef.path } returns "order_completion_records/$testOrderId"
+        every { farmerRef.path } returns "users/$testFarmerId"
+        every { supplierRef.path } returns "users/$testSupplierId"
+
+        val ordersColl = mockk<CollectionReference>(relaxed = true)
+        val recordsColl = mockk<CollectionReference>(relaxed = true)
+        val usersColl = mockk<CollectionReference>(relaxed = true)
+        every { firestore.collection("orders") } returns ordersColl
+        every { ordersColl.document(testOrderId) } returns orderRef
+        every { firestore.collection("order_completion_records") } returns recordsColl
+        every { recordsColl.document(testOrderId) } returns recordRef
+        every { firestore.collection("users") } returns usersColl
+        every { usersColl.document(testFarmerId) } returns farmerRef
+        every { usersColl.document(testSupplierId) } returns supplierRef
+
+        val transaction = mockk<Transaction>(relaxed = true)
+        val orderDoc = mockk<DocumentSnapshot>()
+        val completionDoc = mockk<DocumentSnapshot>()
+        val farmerDoc = mockk<DocumentSnapshot>()
+        val supplierDoc = mockk<DocumentSnapshot>()
+        every { orderDoc.toObject(Order::class.java) } returns existingOrder
+        every { completionDoc.exists() } returns false
+        every { farmerDoc.toObject(UserProfile::class.java) } returns UserProfile(
+            userId = testFarmerId,
+            role = UserRole.FARMER
+        )
+        every { supplierDoc.toObject(UserProfile::class.java) } returns null
+        every { transaction.get(match { it.path == "orders/$testOrderId" }) } returns orderDoc
+        every { transaction.get(match { it.path == "order_completion_records/$testOrderId" }) } returns completionDoc
+        every { transaction.get(match { it.path == "users/$testFarmerId" }) } returns farmerDoc
+        every { transaction.get(match { it.path == "users/$testSupplierId" }) } returns supplierDoc
+        coEvery { firestoreService.runTransaction<Order>(any()) } answers {
+            firstArg<(Transaction) -> Order>()(transaction)
+        }
+
+        val result = orderRepository.updateOrderStatus(testOrderId, OrderStatus.DELIVERED)
+
+        assertTrue(result is Result.Error)
+        verify(exactly = 0) { transaction.set(orderRef, any<Order>()) }
+    }
+
+    @Test
     fun `duplicate completion attempts do not award additional points`() = runTest {
         val existingOrder = Order(
             orderId = testOrderId,
@@ -220,7 +274,8 @@ class PointAwardingTest {
         val result = orderRepository.updateOrderStatus(testOrderId, OrderStatus.DELIVERED)
 
         assertTrue(result is Result.Success)
-        verify(exactly = 0) { mockTransaction.set(match<DocumentReference> { it.path.startsWith("users/") }, any()) }
+        verify(exactly = 0) { mockTransaction.set(recordRef, any()) }
+        verify(exactly = 0) { firestore.collection("users") }
     }
 
     @Test
@@ -269,7 +324,8 @@ class PointAwardingTest {
         val result = orderRepository.updateOrderStatus(testOrderId, OrderStatus.CANCELLED)
 
         assertTrue(result is Result.Success)
-        verify(exactly = 0) { txMock.set(match<DocumentReference> { it.path.contains("order_completion_records") }, any()) }
+        verify(exactly = 0) { firestore.collection("order_completion_records") }
+        verify(exactly = 0) { firestore.collection("users") }
     }
 
     @Test
@@ -319,6 +375,7 @@ class PointAwardingTest {
         val result = farmerRepo.updateOrderStatus(testOrderId, OrderStatus.IN_TRANSIT)
 
         assertTrue(result is Result.Success)
-        verify(exactly = 0) { txMock.set(match<DocumentReference> { it.path.contains("order_completion_records") }, any()) }
+        verify(exactly = 0) { firestore.collection("order_completion_records") }
+        verify(exactly = 0) { firestore.collection("users") }
     }
 }

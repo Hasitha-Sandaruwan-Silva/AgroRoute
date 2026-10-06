@@ -103,7 +103,7 @@ fun SubmitReviewScreen(
             LoadingButton(
                 text = "Submit Review",
                 isLoading = uiState.isLoading,
-                enabled = rating in 1..5 && !uiState.hasReviewed,
+                enabled = rating in 1..5 && comment.isNotBlank() && !uiState.hasReviewed,
                 onClick = {
                     viewModel.submitReview(
                         orderId = orderId,
@@ -220,7 +220,7 @@ private fun RatingCard(rating: Int, onRatingChange: (Int) -> Unit) {
 private fun CommentCard(comment: String, onCommentChange: (String) -> Unit) {
     AppCard {
         Text(
-            text = "Write a Review (Optional)",
+            text = "Write a Review",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
