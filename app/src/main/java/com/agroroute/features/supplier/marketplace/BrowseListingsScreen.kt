@@ -23,6 +23,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -163,6 +164,11 @@ fun BrowseListingsScreen(
                         Icon(Lucide.RefreshCw, contentDescription = "Refresh")
                     }
                 }
+            }
+            TextButton(onClick = { navController.navigate(Screen.SupplierBids.route) }) {
+                Icon(Lucide.Gavel, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Optional bidding · My bids")
             }
         }
 
@@ -398,14 +404,16 @@ private fun MarketplaceListingCard(
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(Modifier.height(12.dp))
-            Button(
+            OutlinedButton(
                 onClick = onCardClick,
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text("Place Bid", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Icon(Lucide.Gavel, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Optional bid", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
             }
         } else if (canRequestOrder) {
             Spacer(Modifier.height(12.dp))
@@ -418,7 +426,7 @@ private fun MarketplaceListingCard(
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text("Place Order Request", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("Request order", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }

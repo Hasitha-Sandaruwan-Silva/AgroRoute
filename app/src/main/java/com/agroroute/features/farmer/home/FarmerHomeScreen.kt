@@ -42,11 +42,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.agroroute.core.model.acceptsNewBids
+import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.navigation.Screen
+import com.agroroute.core.widgets.AppCard
 import com.agroroute.core.widgets.AgroSnackbarHost
 import com.agroroute.core.widgets.ErrorSnackbarEffect
 import com.agroroute.core.widgets.ShimmerBox
+import com.agroroute.features.auth.AuthViewModel
 import com.agroroute.features.farmer.listing.ListingViewModel
 import com.agroroute.features.farmer.orders.FarmerOrderViewModel
 import com.github.thelacspace.icons.Lucide
@@ -71,10 +73,12 @@ private val TextGray = Color(0xFF8A9D8F)
 fun FarmerHomeScreen(
     navController: NavController,
     listingViewModel: ListingViewModel = hiltViewModel(),
-    orderViewModel: FarmerOrderViewModel = hiltViewModel()
+    orderViewModel: FarmerOrderViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val listingState by listingViewModel.uiState.collectAsStateWithLifecycle()
     val orderState by orderViewModel.uiState.collectAsStateWithLifecycle()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // ✅ LOGIC EXACTLY UNCHANGED
@@ -87,7 +91,7 @@ fun FarmerHomeScreen(
     ErrorSnackbarEffect(orderState.error, snackbarHostState) { orderViewModel.clearError() }
 
     val publishedListings = listingState.listings.filterNot { it.isDraft }
-    val openListings = publishedListings.count { it.acceptsNewBids() }
+    val activeListings = publishedListings.count { it.status == ListingStatus.OPEN }
     val totalListings = publishedListings.size
     val totalOrders = orderState.orders.size
     val isLoading = listingState.isLoading && listingState.listings.isEmpty()
@@ -174,10 +178,37 @@ fun FarmerHomeScreen(
                     )
                 } else {
                     HeroStatCard(
-                        openListings = openListings.toString(),
+                        activeListings = activeListings.toString(),
                         totalListings = totalListings.toString(),
                         totalOrders = totalOrders.toString()
                     )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                AppCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { navController.navigate(Screen.FarmerLeaderboard.route) }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Lucide.Trophy,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Your points", style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                "${authState.user?.points ?: 0} pts",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text("Farmer leaderboard", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
 
@@ -192,7 +223,7 @@ fun FarmerHomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Quick Menu",
+                    text = "Sell and fulfill",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -208,9 +239,9 @@ fun FarmerHomeScreen(
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ChipItem("My Listings", isActive = true) { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) }
-                ChipItem("Orders", isActive = false) { navController.navigate(FarmerHomeDestination.ORDERS.route) }
+                ChipItem("Orders", isActive = true) { navController.navigate(FarmerHomeDestination.ORDERS.route) }
                 ChipItem("Requests", isActive = false) { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) }
+                ChipItem("My Listings", isActive = false) { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) }
                 ChipItem("Calendar", isActive = false) { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) }
             }
 
@@ -227,20 +258,19 @@ fun FarmerHomeScreen(
                 ActionLargeCard(
                     modifier = Modifier.weight(1f),
                     title = "New Listing",
-                    subtitle = "Post fresh harvest for bids",
+                    subtitle = "List harvest for buyers",
                     icon = Lucide.Plus,
                     iconBgColor = AccentGreen,
                     onClick = { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) }
                 )
 
-                // Card 2: Pro Tip
                 ActionLargeCard(
                     modifier = Modifier.weight(1f),
-                    title = "Pro Tip",
-                    subtitle = "Open bids attract better prices",
-                    icon = Lucide.TrendingUp,
-                    iconBgColor = Color(0xFFE5A83B), // A nice warm yellow/orange for the tip
-                    onClick = { /* Expand tip or do nothing */ }
+                    title = "Manage Orders",
+                    subtitle = "Review requests and fulfillment",
+                    icon = Lucide.Receipt,
+                    iconBgColor = Color(0xFFE5A83B),
+                    onClick = { navController.navigate(FarmerHomeDestination.ORDERS.route) }
                 )
             }
 
@@ -260,7 +290,7 @@ fun FarmerHomeScreen(
 
 @Composable
 private fun HeroStatCard(
-    openListings: String,
+    activeListings: String,
     totalListings: String,
     totalOrders: String
 ) {
@@ -287,7 +317,7 @@ private fun HeroStatCard(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Farm Overview",
+                        text = "Order Overview",
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White
                     )
@@ -307,7 +337,7 @@ private fun HeroStatCard(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = openListings,
+                    text = totalOrders,
                     fontSize = 56.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -316,12 +346,12 @@ private fun HeroStatCard(
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.alignByBaseline()) {
                     Text(
-                        text = "Open",
+                        text = "Orders",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = "For Bids",
+                        text = "To fulfill",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White
                     )
@@ -337,9 +367,8 @@ private fun HeroStatCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatItem(label = "Total Listings", value = totalListings)
-                StatItem(label = "Total Orders", value = totalOrders)
-                StatItem(label = "Status", value = "Active")
+                StatItem(label = "Active listings", value = activeListings)
+                StatItem(label = "All listings", value = totalListings)
             }
         }
     }

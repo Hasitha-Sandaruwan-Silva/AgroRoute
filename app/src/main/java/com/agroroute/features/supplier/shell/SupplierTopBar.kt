@@ -289,12 +289,12 @@ internal val supplierTabRoutes = setOf(
     Screen.SupplierHome.route,
     Screen.SupplierMarketplace.route,
     Screen.SupplierOrders.route,
-    Screen.SupplierBids.route,
     Screen.SupplierProfile.route
 )
 
 internal val supplierRoutes = setOf(
     *supplierTabRoutes.toTypedArray(),
+    Screen.SupplierBids.route,
     Screen.PlaceBid.route,
     Screen.PlaceOrderRequest.route,
     Screen.SupplierOrderDetail.route,

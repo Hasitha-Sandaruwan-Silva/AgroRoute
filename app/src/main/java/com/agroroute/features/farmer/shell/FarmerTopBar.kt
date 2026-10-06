@@ -295,13 +295,13 @@ fun FarmerTopBar(
 internal val farmerTabRoutes = setOf(
     Screen.FarmerHome.route,
     Screen.MyListings.route,
-    Screen.FarmerBids.route,
     Screen.FarmerOrders.route,
     Screen.FarmerProfile.route
 )
 
 internal val farmerRoutes = setOf(
     *farmerTabRoutes.toTypedArray(),
+    Screen.FarmerBids.route,
     Screen.HarvestCalendar.route,
     Screen.CreateListing.route,
     Screen.EditListing.route,

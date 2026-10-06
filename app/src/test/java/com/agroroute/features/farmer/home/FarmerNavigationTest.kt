@@ -29,6 +29,8 @@ class FarmerNavigationTest {
         assertTrue(homeRoutes.all { it in farmerRoutes })
         assertFalse(Screen.SupplierMarketplace.route in homeRoutes)
         assertFalse(Screen.PlaceBid.route in homeRoutes)
+        assertFalse(Screen.FarmerBids.route in farmerTabRoutes)
+        assertTrue(Screen.FarmerBids.route in farmerRoutes)
         assertTrue(Screen.SupplierMarketplace.route in supplierRoutes)
         assertTrue(Screen.PlaceBid.route in supplierRoutes)
     }

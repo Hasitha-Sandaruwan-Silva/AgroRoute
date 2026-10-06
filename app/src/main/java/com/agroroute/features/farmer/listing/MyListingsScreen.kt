@@ -275,6 +275,14 @@ fun MyListingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
                         )
+                        TextButton(
+                            onClick = { navController.navigate(Screen.FarmerBids.route) },
+                            modifier = Modifier.heightIn(min = 40.dp)
+                        ) {
+                            Icon(Lucide.Gavel, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Optional bidding · Incoming offers")
+                        }
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
@@ -602,12 +610,12 @@ private fun ListingCard(
                 modifier = Modifier.heightIn(min = 48.dp)
             ) {
                 Icon(
-                    Lucide.Gavel,
-                    contentDescription = "View details and bids",
+                    Lucide.FileText,
+                    contentDescription = "View listing details",
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("View details & bids")
+                Text("View listing details")
             }
         }
 
@@ -628,7 +636,7 @@ private fun ListingCard(
             if (!isFailed) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Bidding",
+                        text = "Optional bidding",
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(end = 8.dp)
                     )

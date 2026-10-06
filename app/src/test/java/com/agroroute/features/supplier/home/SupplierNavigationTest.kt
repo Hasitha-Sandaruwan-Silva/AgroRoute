@@ -41,12 +41,13 @@ class SupplierNavigationTest {
             setOf(
                 Screen.SupplierHome.route,
                 Screen.SupplierMarketplace.route,
-                Screen.SupplierBids.route,
                 Screen.SupplierOrders.route,
                 Screen.SupplierProfile.route
             ),
             supplierTabRoutes
         )
+        assertFalse(Screen.SupplierBids.route in supplierTabRoutes)
+        assertTrue(Screen.SupplierBids.route in supplierRoutes)
         assertTrue(supplierTabRoutes.all { it in supplierRoutes })
         assertTrue(supplierTabRoutes.none { it in farmerOnlyRoutes })
     }

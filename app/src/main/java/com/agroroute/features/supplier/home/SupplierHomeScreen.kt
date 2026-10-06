@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
@@ -51,16 +52,19 @@ import com.agroroute.core.widgets.SectionTitle
 import com.agroroute.core.widgets.StatCardsSkeleton
 import com.agroroute.features.supplier.marketplace.MarketplaceViewModel
 import com.agroroute.features.supplier.orders.SupplierOrderViewModel
+import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 
 @Composable
 fun SupplierHomeScreen(
     navController: NavController,
     marketplaceViewModel: MarketplaceViewModel = hiltViewModel(),
-    orderViewModel: SupplierOrderViewModel = hiltViewModel()
+    orderViewModel: SupplierOrderViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val marketState by marketplaceViewModel.uiState.collectAsStateWithLifecycle()
     val orderState by orderViewModel.uiState.collectAsStateWithLifecycle()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -70,7 +74,7 @@ fun SupplierHomeScreen(
     ErrorSnackbarEffect(marketState.error, snackbarHostState) { /* auto-clears on next emission */ }
     ErrorSnackbarEffect(orderState.error, snackbarHostState) { orderViewModel.clearError() }
 
-    val biddingOpen = marketState.listings.count { it.biddingEnabled }
+    val pendingRequests = orderState.requests.count { it.status == OrderRequestStatus.PENDING }
     val isLoading = (marketState.isLoading && marketState.listings.isEmpty()) ||
         (orderState.isLoading && orderState.orders.isEmpty())
 
@@ -131,7 +135,7 @@ fun SupplierHomeScreen(
                                 color = Color.White
                             )
                             Text(
-                                text = "Find active harvests and keep track of your orders.",
+                                text = "Browse harvests and manage your orders.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.78f),
                                 modifier = Modifier.padding(top = 2.dp)
@@ -170,9 +174,9 @@ fun SupplierHomeScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             HeroStatItem(
-                                label = "Bidding open",
-                                value = biddingOpen.toString(),
-                                icon = Lucide.ShoppingCart,
+                                label = "Pending requests",
+                                value = pendingRequests.toString(),
+                                icon = Lucide.Receipt,
                                 highlight = true,
                                 modifier = Modifier.weight(1f)
                             )
@@ -181,15 +185,40 @@ fun SupplierHomeScreen(
                 }
             }
 
+            Spacer(Modifier.height(12.dp))
+            AppCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { navController.navigate(Screen.SupplierLeaderboard.route) }
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Lucide.Trophy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Your points", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            "${authState.user?.points ?: 0} pts",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text("Supplier leaderboard", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
-            SectionTitle(title = "Marketplace")
+            SectionTitle(title = "Buying and orders")
 
             // ── Shortcut tiles ───────────────────────────────────────────────
             ShortcutTile(
                 icon = Lucide.ShoppingBag,
-                title = "Find your next harvest",
-                subtitle = "Browse listings available for bids",
-                actionLabel = "Browse Marketplace",
+                title = "Browse harvest listings",
+                subtitle = "Request at the listed price; bidding is optional",
+                actionLabel = "Open Marketplace",
                 onClick = { navController.navigate(Screen.SupplierMarketplace.route) }
             )
             Spacer(Modifier.height(12.dp))
@@ -199,14 +228,6 @@ fun SupplierHomeScreen(
                 subtitle = null,
                 actionLabel = null,
                 onClick = { navController.navigate(Screen.SupplierOrders.route) }
-            )
-            Spacer(Modifier.height(12.dp))
-            ShortcutTile(
-                icon = Lucide.ShoppingCart,
-                title = "View My Bids",
-                subtitle = null,
-                actionLabel = null,
-                onClick = { navController.navigate(Screen.SupplierBids.route) }
             )
             Spacer(Modifier.height(20.dp))
         }

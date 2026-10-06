@@ -56,7 +56,6 @@ private val supplierTabs = listOf(
     SupplierTab(Screen.SupplierHome.route, "Home", Lucide.Home),
     SupplierTab(Screen.SupplierMarketplace.route, "Marketplace", Lucide.ShoppingBag),
     SupplierTab(Screen.SupplierOrders.route, "Orders", Lucide.Receipt),
-    SupplierTab(Screen.SupplierBids.route, "Bids", Lucide.ShoppingCart),
     SupplierTab(Screen.SupplierProfile.route, "Profile", Lucide.User)
 )
 
