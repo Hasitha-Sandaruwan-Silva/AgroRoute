@@ -7,6 +7,7 @@ import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.model.QuantityUnit
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.OrderRepositoryImpl
@@ -60,7 +61,8 @@ class PointAwardingTest {
             orderRequestDao = mockk(relaxed = true),
             authRepository = supplierAuthRepository(),
             orderCompletionRecordDao = mockk(relaxed = true),
-            userProfileDao = mockk(relaxed = true)
+            userProfileDao = mockk(relaxed = true),
+            notificationService = mockk<NotificationService>(relaxed = true)
         )
     }
 
@@ -369,7 +371,8 @@ class PointAwardingTest {
             orderRequestDao = mockk(relaxed = true),
             authRepository = farmerAuthRepository(),
             orderCompletionRecordDao = mockk(relaxed = true),
-            userProfileDao = mockk(relaxed = true)
+            userProfileDao = mockk(relaxed = true),
+            notificationService = mockk<NotificationService>(relaxed = true)
         )
 
         val result = farmerRepo.updateOrderStatus(testOrderId, OrderStatus.IN_TRANSIT)

@@ -1,7 +1,5 @@
 package com.agroroute.core.notification
 
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,29 +9,19 @@ class NotificationHelperTest {
 
     @Test
     fun preTiramisuReturnsTrueWithoutCheckingPermission() {
-        val context = mockk<android.content.Context>(relaxed = true)
-        every { context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) } returns mockk()
-        val result = NotificationHelper.hasNotificationPermission(context)
+        val result = NotificationHelper.hasNotificationPermission(32, false)
         assertTrue(result)
     }
 
     @Test
     fun tiramisuWithoutPermissionReturnsFalse() {
-        val context = mockk<android.content.Context>(relaxed = true)
-        every { context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) } returns mockk()
-        every { android.os.Build.VERSION.SDK_INT } returns android.os.Build.VERSION_CODES.TIRAMISU
-        every { context.checkPermission(android.Manifest.permission.POST_NOTIFICATIONS, android.os.Process.myPid(), android.os.Process.myUid()) } returns PackageManager.PERMISSION_DENIED
-        val result = NotificationHelper.hasNotificationPermission(context)
+        val result = NotificationHelper.hasNotificationPermission(33, false)
         assertFalse(result)
     }
 
     @Test
     fun tiramisuWithPermissionReturnsTrue() {
-        val context = mockk<android.content.Context>(relaxed = true)
-        every { context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) } returns mockk()
-        every { android.os.Build.VERSION.SDK_INT } returns android.os.Build.VERSION_CODES.TIRAMISU
-        every { context.checkPermission(android.Manifest.permission.POST_NOTIFICATIONS, android.os.Process.myPid(), android.os.Process.myUid()) } returns PackageManager.PERMISSION_GRANTED
-        val result = NotificationHelper.hasNotificationPermission(context)
+        val result = NotificationHelper.hasNotificationPermission(33, true)
         assertTrue(result)
     }
 

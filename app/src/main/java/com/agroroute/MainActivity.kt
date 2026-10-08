@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
@@ -29,12 +31,14 @@ import kotlinx.coroutines.launch
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private var notificationRoute by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // 1. Install System Native Splash Screen
         val splashScreen = installSplashScreen()
 
         super.onCreate(savedInstanceState)
+        notificationRoute = intent.getStringExtra(com.agroroute.core.notification.NotificationAction.EXTRA_ROUTE)
 
         // 2. Keep Splash Screen visible for 2.5 seconds
         var keepSplashScreen = true
@@ -80,8 +84,17 @@ class MainActivity : ComponentActivity() {
             }
 
             AgroRouteTheme(darkTheme = darkTheme) {
-                NavGraph()
+                NavGraph(
+                    notificationRoute = notificationRoute,
+                    onNotificationRouteHandled = { notificationRoute = null }
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        notificationRoute = intent.getStringExtra(com.agroroute.core.notification.NotificationAction.EXTRA_ROUTE)
     }
 }

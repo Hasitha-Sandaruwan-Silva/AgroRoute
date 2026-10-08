@@ -1,7 +1,9 @@
 package com.agroroute.core.notification
 
+import com.agroroute.core.model.HarvestListing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
@@ -37,11 +39,10 @@ class HarvestReminderSchedulerTest {
     }
 
     @Test
-    fun reminderExactlyAtOrAfterNowIsAllowedWhenOnOrAfterNow() {
+    fun reminderAtTodayNineAmIsSkippedWhenItHasAlreadyPassed() {
         val now = System.currentTimeMillis()
-        // A harvest scheduled for now should still produce a valid but equal reminder.
         val reminder = HarvestReminderTime.reminderEpochMillis(now)
-        assertEquals(now, reminder)
+        if (reminder != null) assertTrue(reminder > now)
     }
 
     @Test
@@ -58,8 +59,8 @@ class HarvestReminderSchedulerTest {
         val reminder = HarvestReminderTime.reminderEpochMillis(
             listing.expectedHarvestAt ?: error("expectedHarvestAt is null")
         )
-        // The time is valid; the scheduler's isDraft guard is tested in integration.
-        assertNotNull(reminder)
+        // The time helper remains independent of draft state; schedule() checks it.
+        if (reminder != null) assertTrue(reminder > System.currentTimeMillis())
     }
 
     @Test

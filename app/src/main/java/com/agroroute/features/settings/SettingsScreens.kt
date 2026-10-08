@@ -1,6 +1,11 @@
 package com.agroroute.features.settings
 
+import android.Manifest
+import android.content.Intent
 import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,11 +23,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.agroroute.R
 import com.agroroute.core.components.AppCard
+import com.agroroute.core.notification.NotificationHelper
 import com.github.thelacspace.icons.Lucide
 
 private data class FaqItem(val question: String, val answer: String)
@@ -192,6 +206,79 @@ fun AboutScreen() {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltViewModel()) {
+    val context = LocalContext.current
+    var permissionGranted by remember {
+        mutableStateOf(NotificationHelper.hasNotificationPermission(context))
+    }
+    var permissionDenied by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        permissionGranted = granted
+        permissionDenied = !granted
+        if (granted) viewModel.rescheduleHarvestReminders()
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        permissionGranted = NotificationHelper.hasNotificationPermission(context)
+        if (permissionGranted) viewModel.rescheduleHarvestReminders()
+    }
+
+    val appSettingsIntent = remember(context) {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+    }
+
+    SettingsPage(
+        title = "Notifications",
+        intro = "Receive updates about orders, bids, order requests and scheduled harvest reminders."
+    ) {
+        AppCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = if (permissionGranted) "Notification permission is allowed" else "Notifications are off",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = if (permissionGranted) {
+                    "AgroRoute can alert you when another farmer or supplier updates a relevant order, bid or request. Harvest reminders are scheduled on this device."
+                } else {
+                    "Allow notifications to receive relevant order, bid and harvest updates. If you previously denied access, open Android settings and enable notifications for AgroRoute."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (permissionDenied) {
+                Text(
+                    text = "Permission was denied. In Android settings, open Apps > AgroRoute > Notifications and turn notifications on.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 10.dp)
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !permissionGranted) {
+                Button(
+                    onClick = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Allow notifications")
+                }
+            }
+            OutlinedButton(
+                onClick = { context.startActivity(appSettingsIntent) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Open Android notification settings")
+            }
         }
     }
 }

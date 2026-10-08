@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.model.HarvestStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import java.time.LocalTime
@@ -37,15 +38,24 @@ class HarvestReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     fun schedule(listing: HarvestListing) {
-        val harvestAt = listing.expectedHarvestAt ?: return
-        if (listing.isDraft || !hasNotificationPermission()) return
+        val harvestAt = listing.expectedHarvestAt
+        if (listing.isDraft || listing.harvestStatus != HarvestStatus.EXPECTED ||
+            harvestAt == null || !hasNotificationPermission()
+        ) {
+            cancel(listing.listingId)
+            return
+        }
 
-        val reminderAt = HarvestReminderTime.reminderEpochMillis(harvestAt) ?: return
+        val reminderAt = HarvestReminderTime.reminderEpochMillis(harvestAt) ?: run {
+            cancel(listing.listingId)
+            return
+        }
 
         val intent = Intent(context, HarvestReminderReceiver::class.java).apply {
             action = ACTION_HARVEST_REMINDER
             putExtra(EXTRA_LISTING_ID, listing.listingId)
             putExtra(EXTRA_CROP_NAME, listing.cropName)
+            putExtra(EXTRA_FARMER_ID, listing.farmerId)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -82,5 +92,6 @@ class HarvestReminderScheduler @Inject constructor(
         const val ACTION_HARVEST_REMINDER = "com.agroroute.action.HARVEST_REMINDER"
         const val EXTRA_LISTING_ID = "listing_id"
         const val EXTRA_CROP_NAME = "crop_name"
+        const val EXTRA_FARMER_ID = "farmer_id"
     }
 }

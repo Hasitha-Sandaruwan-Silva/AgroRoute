@@ -3,9 +3,11 @@
 package com.agroroute.features.farmer.listing
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -35,6 +37,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -167,6 +170,8 @@ fun CreateListingScreen(
     var expectedHarvestAt by remember { mutableStateOf<Long?>(null) }
     var qualityGrade by remember { mutableStateOf("") }
     var showHarvestDatePicker by remember { mutableStateOf(false) }
+    var showNotificationRationale by remember { mutableStateOf(false) }
+    var showNotificationDenied by remember { mutableStateOf(false) }
     var harvestStatus by remember { mutableStateOf(HarvestStatus.READY) }
     var estimatedQuantity by remember { mutableStateOf("") }
     var formLoadedFor by remember { mutableStateOf<String?>(null) }
@@ -217,7 +222,9 @@ fun CreateListingScreen(
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { showHarvestDatePicker = true }
+    ) { granted ->
+        if (granted) showHarvestDatePicker = true else showNotificationDenied = true
+    }
 
     fun requestHarvestDatePicker() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -226,10 +233,53 @@ fun CreateListingScreen(
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            showNotificationRationale = true
         } else {
             showHarvestDatePicker = true
         }
+    }
+
+    if (showNotificationRationale) {
+        AlertDialog(
+            onDismissRequest = { showNotificationRationale = false },
+            title = { Text("Harvest reminders") },
+            text = { Text("Allow AgroRoute notifications to receive a reminder on the expected harvest date. You can still save the date if you choose not to allow alerts.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showNotificationRationale = false
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNotificationRationale = false
+                    showHarvestDatePicker = true
+                }) { Text("Not now") }
+            }
+        )
+    }
+
+    if (showNotificationDenied) {
+        AlertDialog(
+            onDismissRequest = { showNotificationDenied = false },
+            title = { Text("Notifications are off") },
+            text = { Text("The harvest date can still be saved. To receive reminders, open Android settings, choose Apps > AgroRoute > Notifications, and turn them on.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showNotificationDenied = false
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    )
+                }) { Text("Open settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNotificationDenied = false
+                    showHarvestDatePicker = true
+                }) { Text("Continue without alerts") }
+            }
+        )
     }
 
     fun buildListing(isDraft: Boolean): HarvestListing {

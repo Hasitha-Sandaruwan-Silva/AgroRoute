@@ -157,21 +157,6 @@ fun FarmerHomeScreen(
                     )
                 }
 
-                // Notification Bell
-                Surface(
-                    shape = CircleShape,
-                    color = CardGreen,
-                    modifier = Modifier.size(44.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Lucide.Bell,
-                            contentDescription = "Notifications",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
             }
 
             // ── Hero Overview Card (Weather Style) ─────────────────────────────────────────────

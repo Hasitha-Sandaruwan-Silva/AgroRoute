@@ -41,17 +41,17 @@ class NotificationEventTest {
                 orderId = "bid-1"
             )
         )
-        assertEquals("John supplier accepted your bid for Maha rice. Your order is now awaiting pickup.", content)
+        assertEquals("Your bid for Maha rice was accepted. Your order is now awaiting pickup.", content)
     }
 
     @Test
-    fun bidAcceptedFallbackUsesGenericSupplierWhenNameBlank() {
+    fun bidAcceptedMessageDoesNotDependOnSupplierName() {
         val event = NotificationEvent.BID_ACCEPTED
         val content = event.content(
             anyContext(),
             NotificationEvent.Payload(cropName = "Maha rice", supplierName = "")
         )
-        assertEquals("a supplier accepted your bid for Maha rice. Your order is now awaiting pickup.", content)
+        assertEquals("Your bid for Maha rice was accepted. Your order is now awaiting pickup.", content)
     }
 
     @Test
@@ -67,7 +67,7 @@ class NotificationEventTest {
                 orderId = "req-1"
             )
         )
-        assertEquals("John supplier's request for Maha rice has been accepted. Your order is now awaiting pickup.", content)
+        assertEquals("Your order request for Maha rice was accepted. Your order is awaiting pickup.", content)
     }
 
     @Test
@@ -75,26 +75,26 @@ class NotificationEventTest {
         val event = NotificationEvent.ORDER_REQUEST_REJECTED
         val content = event.content(
             anyContext(),
-            NotificationEvent.Payload(reason = "Insufficient stock")
+            NotificationEvent.Payload(cropName = "Rice", reason = "Insufficient stock")
         )
-        assertEquals("Your order request was rejected. Insufficient stock", content)
+        assertEquals("Your request for Rice was rejected: Insufficient stock", content)
     }
 
     @Test
     fun orderRequestRejectedFallbackUsesGenericReasonWhenBlank() {
         val event = NotificationEvent.ORDER_REQUEST_REJECTED
         val content = event.content(anyContext(), NotificationEvent.Payload())
-        assertEquals("Your order request was rejected. No reason provided.", content)
+        assertEquals("Your request for your harvest was rejected.", content)
     }
 
     @Test
-    fun orderRequestCancelledContentUsesReason() {
+    fun orderRequestCancelledContentNamesTheHarvest() {
         val event = NotificationEvent.ORDER_REQUEST_CANCELLED
         val content = event.content(
             anyContext(),
-            NotificationEvent.Payload(reason = "Supplier withdrew")
+            NotificationEvent.Payload(cropName = "Rice", reason = "Supplier withdrew")
         )
-        assertEquals("The order request was cancelled. Supplier withdrew", content)
+        assertEquals("A supplier cancelled their request for Rice.", content)
     }
 
     @Test

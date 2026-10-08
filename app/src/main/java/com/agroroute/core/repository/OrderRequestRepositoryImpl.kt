@@ -11,6 +11,7 @@ import com.agroroute.core.notification.NotificationEvent
 import com.agroroute.core.notification.NotificationEvent.Payload
 import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.model.estimatedAvailable
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -95,6 +96,20 @@ class OrderRequestRepositoryImpl @Inject constructor(
             transaction.set(requestRef, pendingRequest)
         }
         dao.upsertRequest(pendingRequest)
+
+        // A supplier placed a new order request against a farmer's listing. Notify the
+        // farmer (recipient), not the supplier (actorUserId) who is excluded.
+        notificationService.sendPushToServer(
+            recipientUserId = pendingRequest.farmerId,
+            event = NotificationEvent.ORDER_REQUEST_CREATED,
+            payload = Payload(
+                cropName = pendingRequest.cropName,
+                supplierName = pendingRequest.supplierId,
+                orderId = pendingRequest.requestId,
+                reason = "A new order request is awaiting your review."
+            ),
+            actorUserId = pendingRequest.supplierId
+        )
     }
 
     override suspend fun updateRequestStatus(requestId: String, status: OrderRequestStatus): Result<Unit> = safeCall {
@@ -132,22 +147,25 @@ class OrderRequestRepositoryImpl @Inject constructor(
 
         val payload = Payload(
             cropName = updated.cropName,
-            supplierName = updated.supplierId,
-            orderId = updated.requestId,
-            reason = "Your order request was rejected."
+            supplierName = updated.supplierName,
+            requestId = updated.requestId,
+            listingId = updated.listingId,
+            status = updated.status.name
         )
 
         when (status) {
-            OrderRequestStatus.REJECTED ->
-                notificationService.post(
-                    event = NotificationEvent.ORDER_REQUEST_REJECTED,
-                    payload = payload
-                )
-            OrderRequestStatus.CANCELLED ->
-                notificationService.post(
-                    event = NotificationEvent.ORDER_REQUEST_CANCELLED,
-                    payload = payload
-                )
+            OrderRequestStatus.REJECTED -> notificationService.sendPushToServer(
+                recipientUserId = updated.supplierId,
+                event = NotificationEvent.ORDER_REQUEST_REJECTED,
+                payload = payload,
+                actorUserId = userId
+            )
+            OrderRequestStatus.CANCELLED -> notificationService.sendPushToServer(
+                recipientUserId = updated.farmerId,
+                event = NotificationEvent.ORDER_REQUEST_CANCELLED,
+                payload = payload,
+                actorUserId = userId
+            )
             else -> Unit
         }
     }

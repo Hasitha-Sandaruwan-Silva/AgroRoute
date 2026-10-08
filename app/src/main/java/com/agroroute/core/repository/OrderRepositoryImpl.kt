@@ -117,13 +117,17 @@ class OrderRepositoryImpl @Inject constructor(
         bidDao.upsertBid(updatedRecords.second)
         dao.upsertOrder(order)
 
-        notificationService.post(
+        // Accepting a bid turns a supplier's bid into an order. The supplier is the
+        // recipient the farmer is not; the farmer (actorUserId) is excluded.
+        notificationService.sendPushToServer(
+            recipientUserId = order.supplierId,
             event = NotificationEvent.BID_ACCEPTED,
             payload = Payload(
                 cropName = order.cropName,
                 supplierName = order.supplierId,
                 orderId = order.orderId
-            )
+            ),
+            actorUserId = order.farmerId
         )
     }
 
@@ -186,13 +190,19 @@ class OrderRepositoryImpl @Inject constructor(
         dao.upsertOrder(updatedRecords.second)
         orderRequestDao.upsertRequest(updatedRecords.third)
 
-        notificationService.post(
+        // The farmer accepted a request placed by a supplier. The supplier is the
+        // recipient; the farmer (actorUserId) is excluded.
+        notificationService.sendPushToServer(
+            recipientUserId = updatedRecords.third.supplierId,
             event = NotificationEvent.ORDER_REQUEST_ACCEPTED,
             payload = Payload(
-                cropName = order.cropName,
-                supplierName = request.supplierId,
-                orderId = order.orderId
-            )
+                cropName = updatedRecords.second.cropName,
+                supplierName = updatedRecords.third.supplierName,
+                orderId = updatedRecords.second.orderId,
+                requestId = updatedRecords.third.requestId,
+                listingId = updatedRecords.second.listingId
+            ),
+            actorUserId = updatedRecords.third.farmerId
         )
     }
 
@@ -225,6 +235,21 @@ class OrderRepositoryImpl @Inject constructor(
             dao.upsertOrder(updatedRecords.first)
             val updatedListing = updatedRecords.second
             if (updatedListing != null) listingDao.upsertListing(updatedListing)
+
+            // The counterparty of the order (not the actor who changed it) receives the
+            // notification so the sender is never alerted about their own status change.
+            val cancelledOrder = updatedRecords.first
+            val counterparty = if (profile.role == UserRole.FARMER) cancelledOrder.supplierId else cancelledOrder.farmerId
+            notificationService.sendPushToServer(
+                recipientUserId = counterparty,
+                event = NotificationEvent.ORDER_CANCELLED,
+                payload = Payload(
+                    cropName = cancelledOrder.cropName,
+                    supplierName = if (profile.role == UserRole.FARMER) cancelledOrder.supplierId else cancelledOrder.farmerId,
+                    orderId = cancelledOrder.orderId
+                ),
+                actorUserId = userId
+            )
         } else {
             val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
 
@@ -305,6 +330,23 @@ class OrderRepositoryImpl @Inject constructor(
             }
 
             dao.upsertOrder(updatedOrder)
+
+            val notification = when (status) {
+                OrderStatus.IN_TRANSIT -> updatedOrder.supplierId to NotificationEvent.ORDER_IN_TRANSIT
+                OrderStatus.DELIVERED -> updatedOrder.farmerId to NotificationEvent.ORDER_COMPLETED
+                else -> null
+            }
+            val (recipientUserId, event) = notification ?: return@safeCall
+            notificationService.sendPushToServer(
+                recipientUserId = recipientUserId,
+                event = event,
+                payload = Payload(
+                    cropName = updatedOrder.cropName,
+                    supplierName = updatedOrder.supplierId,
+                    orderId = updatedOrder.orderId
+                ),
+                actorUserId = userId
+            )
 
             completionRecordToSave?.let { orderCompletionRecordDao.upsertRecord(it) }
             updatedFarmerProfile?.let { userProfileDao.upsertUserProfile(it) }

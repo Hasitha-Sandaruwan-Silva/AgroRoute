@@ -12,6 +12,7 @@ import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
 import com.agroroute.core.util.Result
@@ -75,7 +76,12 @@ class OrderSyncTest {
         every { firestore.collection(Constants.COLLECTION_ORDER_REQUESTS) } returns requests
         every { requests.whereEqualTo("farmerId", farmerId) } returns query
 
-        val repository = OrderRequestRepositoryImpl(dao, FirestoreService(firestore), farmerAuth())
+        val repository = OrderRequestRepositoryImpl(
+            dao,
+            FirestoreService(firestore),
+            farmerAuth(),
+            mockk<NotificationService>(relaxed = true)
+        )
         val result = repository.syncRequestsForUser(farmerId)
 
         assertTrue(result is Result.Success)
@@ -99,7 +105,8 @@ class OrderSyncTest {
             orderRequestDao = mockk<OrderRequestDao>(relaxed = true),
             authRepository = auth,
             orderCompletionRecordDao = mockk<OrderCompletionRecordDao>(relaxed = true),
-            userProfileDao = mockk<UserProfileDao>(relaxed = true)
+            userProfileDao = mockk<UserProfileDao>(relaxed = true),
+            notificationService = mockk<NotificationService>(relaxed = true)
         )
 
     private fun mockOrderQuery(order: Order): Query {
