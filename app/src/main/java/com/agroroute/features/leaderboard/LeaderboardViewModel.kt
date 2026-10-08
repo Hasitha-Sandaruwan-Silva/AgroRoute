@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import javax.inject.Inject
 
 /** Representation of a user on the leaderboard along with their review metrics. */
@@ -39,11 +41,14 @@ class LeaderboardViewModel @Inject constructor(
     private val reviewRepository: ReviewRepository
 ) : ViewModel() {
 
+    private var leaderboardLoadJob: Job? = null
+
     private val _uiState = MutableStateFlow(LeaderboardUiState())
     val uiState: StateFlow<LeaderboardUiState> = _uiState.asStateFlow()
 
     fun loadLeaderboard(role: String) {
-        viewModelScope.launch {
+        leaderboardLoadJob?.cancel()
+        leaderboardLoadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             // Sync latest data from Firestore

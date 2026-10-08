@@ -16,6 +16,20 @@ service firebase.storage {
         && userProfile().role == 'FARMER';
     }
 
+    function isProfileOwner(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && userProfile().userId == userId;
+    }
+
+    match /profile_images/{userId}/avatar {
+      allow read: if signedIn();
+      allow create, update: if isProfileOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isProfileOwner(userId);
+    }
+
     function listingData(listingId) {
       return firestore.get(/databases/(default)/documents/listings/$(listingId)).data;
     }

@@ -27,8 +27,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +54,8 @@ import com.agroroute.core.components.AgroSnackbarHost
 import com.agroroute.core.components.AppCard
 import com.agroroute.core.components.RoleBadge
 import com.agroroute.core.components.SettingsSection
+import com.agroroute.core.components.ProfileEditDialog
+import com.agroroute.core.components.UserProfileAvatar
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 import kotlinx.coroutines.launch
@@ -67,6 +71,7 @@ fun FarmerProfileScreen(
     val themeMode by themeViewModel.mode.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var showProfileEditor by remember { mutableStateOf(false) }
 
     val user = uiState.user
     val displayName = user?.displayName?.takeIf(String::isNotBlank) ?: "Profile unavailable"
@@ -101,20 +106,13 @@ fun FarmerProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(88.dp)
-                            .clip(CircleShape)
-                            .background(LeafAccent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = initials,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ForestDeep
-                        )
-                    }
+                    UserProfileAvatar(
+                        displayName = displayName,
+                        imageUrl = user?.profileImageUrl,
+                        size = 88.dp,
+                        editable = true,
+                        onPhotoSelected = viewModel::uploadProfilePhoto
+                    )
                     Spacer(Modifier.height(16.dp))
                     Text(
                         text = displayName,
@@ -195,6 +193,12 @@ fun FarmerProfileScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 2.dp)
                 )
+                Spacer(Modifier.height(10.dp))
+                Text("Phone", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(user?.phone?.ifBlank { "Add your phone number" } ?: "Add your phone number", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
+                Text("Location", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(user?.location?.ifBlank { "Add your location" } ?: "Add your location", style = MaterialTheme.typography.bodyMedium)
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
                     thickness = 1.dp,
@@ -252,16 +256,26 @@ fun FarmerProfileScreen(
                         }
                     }
                 },
-                onEditProfile = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Profile editing needs backend logic changes")
-                    }
-                },
+                onEditProfile = { showProfileEditor = true },
                 onHelp = { navController.navigate(Screen.HelpSupport.route) },
                 onAbout = { navController.navigate(Screen.About.route) },
                 onPrivacy = { navController.navigate(Screen.Privacy.route) },
                 onNotifications = { navController.navigate(Screen.NotificationInbox.route) }
             )
+
+            if (showProfileEditor && user != null) {
+                ProfileEditDialog(
+                    displayName = user.displayName,
+                    phone = user.phone,
+                    location = user.location,
+                    isSaving = uiState.isLoading,
+                    onDismiss = { showProfileEditor = false },
+                    onSave = { name, phoneNumber, locationText ->
+                        viewModel.updateProfile(user.copy(displayName = name, phone = phoneNumber, location = locationText))
+                        showProfileEditor = false
+                    }
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
 

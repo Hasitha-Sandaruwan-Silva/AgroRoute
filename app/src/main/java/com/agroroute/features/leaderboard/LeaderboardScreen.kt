@@ -21,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +41,7 @@ import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.theme.LeafAccent
 import com.agroroute.core.components.EmptyState
 import com.agroroute.core.components.ListSkeleton
+import com.agroroute.core.components.UserProfileAvatar
 import com.github.thelacspace.icons.Lucide
 import java.util.Locale
 
@@ -64,6 +66,20 @@ fun LeaderboardScreen(
     ) {
         when {
             uiState.isLoading && uiState.items.isEmpty() -> ListSkeleton(count = 5)
+            uiState.error != null && uiState.items.isEmpty() -> Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                EmptyState(
+                    icon = Lucide.Award,
+                    title = "Leaderboard unavailable",
+                    subtitle = uiState.error ?: "Check your connection and try again"
+                )
+                TextButton(onClick = { viewModel.clearError(); viewModel.loadLeaderboard(role) }) {
+                    Text("Try again")
+                }
+            }
             uiState.items.isEmpty() -> Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -81,6 +97,15 @@ fun LeaderboardScreen(
                         .padding(16.dp)
                 ) {
                     LeaderboardHeader(role = role)
+                    uiState.error?.let { error ->
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = "Showing saved rankings. Refresh failed: $error",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
                     Spacer(Modifier.height(16.dp))
                     LeaderboardList(items = uiState.items)
                 }
@@ -186,6 +211,14 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
             }
 
             Spacer(Modifier.width(16.dp))
+
+            UserProfileAvatar(
+                displayName = item.user.displayName,
+                imageUrl = item.user.profileImageUrl,
+                size = 42.dp
+            )
+
+            Spacer(Modifier.width(12.dp))
 
             // User info and average rating
             Column(modifier = Modifier.weight(1f)) {

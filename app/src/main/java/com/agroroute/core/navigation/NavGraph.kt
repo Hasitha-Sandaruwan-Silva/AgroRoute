@@ -1,5 +1,6 @@
 package com.agroroute.core.navigation
 
+import android.app.Activity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,6 +31,7 @@ import com.agroroute.features.welcome.WelcomeScreen
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.util.Constants
 import com.agroroute.core.notification.NotificationRoute
+import com.agroroute.core.notification.NotificationPermission
 import com.agroroute.features.farmer.bids.ViewBidsScreen
 import com.agroroute.features.farmer.bids.FarmerBidsScreen
 import com.agroroute.features.farmer.home.FarmerHomeScreen
@@ -93,6 +96,13 @@ fun NavGraph(
     var currentUserRole by remember { mutableStateOf<UserRole?>(null) }
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(authState.sessionResolved, authState.user?.userId) {
+        if (authState.sessionResolved && authState.user != null) {
+            (context as? Activity)?.let { activity -> NotificationPermission.requestIfNeeded(activity) }
+        }
+    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

@@ -142,8 +142,21 @@ class AuthRepositoryImpl @Inject constructor(
         val existing = firestoreService.getOnce<UserProfile>(Constants.COLLECTION_USERS, userId)
             ?: error("User profile not found")
         check(profile.role == existing.role) { "Account role cannot be changed" }
-        firestoreService.set(Constants.COLLECTION_USERS, profile.userId, profile)
-        userProfileDao.upsertUserProfile(profile)
+        val editableFields = mapOf(
+            "displayName" to profile.displayName,
+            "phone" to profile.phone,
+            "location" to profile.location,
+            "profileImageUrl" to profile.profileImageUrl
+        )
+        firestoreService.updateFields(Constants.COLLECTION_USERS, userId, editableFields)
+        userProfileDao.upsertUserProfile(
+            existing.copy(
+                displayName = profile.displayName,
+                phone = profile.phone,
+                location = profile.location,
+                profileImageUrl = profile.profileImageUrl
+            )
+        )
     })
 
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> = mapFirebaseFailure(safeCall {

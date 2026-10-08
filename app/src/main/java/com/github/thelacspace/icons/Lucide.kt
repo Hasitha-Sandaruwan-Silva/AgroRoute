@@ -49,6 +49,11 @@ import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.ui.graphics.vector.ImageVector
 
 object Lucide {
@@ -103,6 +108,12 @@ object Lucide {
     val Trophy: ImageVector get() = Icons.Default.EmojiEvents
     val Truck: ImageVector get() = Icons.Default.LocalShipping
     val User: ImageVector get() = Icons.Default.Person
+    val Users: ImageVector get() = Icons.Default.People
     val Wheat: ImageVector get() = Icons.Default.Grain
     val X: ImageVector get() = Icons.Filled.Close
+    val Banknote: ImageVector get() = Icons.Default.AttachMoney
+    val CheckCircle: ImageVector get() = Icons.Default.CheckCircle
+    val Check: ImageVector get() = Icons.Default.Check
+    val Archive: ImageVector get() = Icons.Default.Archive
+    val Sparkles: ImageVector get() = Icons.Default.AutoAwesome
 }

@@ -32,6 +32,7 @@ import com.agroroute.core.theme.ForestMid
 import com.agroroute.core.components.AgroSnackbarHost
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ShimmerBox
+import com.agroroute.core.components.UserProfileAvatar
 import com.agroroute.features.auth.AuthViewModel
 import com.agroroute.features.farmer.listing.ListingViewModel
 import com.agroroute.features.farmer.orders.FarmerOrderViewModel
@@ -82,7 +83,7 @@ fun FarmerHomeScreen(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // HEADER - NO NOTIFICATION ICON - REMOVED AS REQUESTED
+            // Greeting, current profile contact, notifications and profile shortcut.
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp).shadow(6.dp, CircleShape)) {
@@ -90,17 +91,31 @@ fun FarmerHomeScreen(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Hi, Farmer 👋", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Hi, ${authState.user?.displayName?.takeIf(String::isNotBlank) ?: "Farmer"} 👋",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
                         Text("Welcome back!", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 22.sp), color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
+                        Text(
+                            text = authState.user?.phone?.takeIf(String::isNotBlank)?.let { "Phone: $it" } ?: "Add phone number in profile",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            modifier = Modifier.clickable { navController.navigate(Screen.FarmerProfile.route) }
+                        )
                     }
                 }
-                // Profile avatar only - notification removed
-                Surface(
-                    shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(44.dp).clickable { navController.navigate(Screen.FarmerProfile.route) }
-                ) {
-                    Box(contentAlignment = Alignment.Center) { Icon(Lucide.User, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp)) }
+                IconButton(onClick = { navController.navigate(Screen.NotificationInbox.route) }) {
+                    Icon(Lucide.Bell, contentDescription = "Open notifications", tint = MaterialTheme.colorScheme.primary)
                 }
+                UserProfileAvatar(
+                    displayName = authState.user?.displayName ?: "Farmer",
+                    imageUrl = authState.user?.profileImageUrl,
+                    size = 42.dp,
+                    onClick = { navController.navigate(Screen.FarmerProfile.route) }
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))

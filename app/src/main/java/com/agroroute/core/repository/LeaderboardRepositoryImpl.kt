@@ -61,11 +61,12 @@ class LeaderboardRepositoryImpl @Inject constructor(
     override suspend fun syncLeaderboard(): Result<Unit> = safeCall {
         val userId = authRepository.currentUserId ?: error("Sign in to sync leaderboard")
         // Sync all users to get updated points
-        val allUsers = firestoreService.queryFlow<UserProfile>(
+        val allUsers = firestoreService.queryOnceFromServer(
             Constants.COLLECTION_USERS,
             null,
-            null
-        ).first()
+            null,
+            UserProfile::class.java
+        )
         allUsers.forEach { userProfileDao.upsertUserProfile(it) }
     }
 }

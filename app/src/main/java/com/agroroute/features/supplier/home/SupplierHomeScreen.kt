@@ -1,6 +1,7 @@
 package com.agroroute.features.supplier.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ import com.agroroute.core.components.AppCard
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.SectionTitle
 import com.agroroute.core.components.StatCardsSkeleton
+import com.agroroute.core.components.UserProfileAvatar
 import com.agroroute.features.supplier.marketplace.MarketplaceViewModel
 import com.agroroute.features.supplier.orders.SupplierOrderViewModel
 import com.agroroute.features.auth.AuthViewModel
@@ -131,7 +133,7 @@ fun SupplierHomeScreen(
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Good day, Supplier",
+                                text = "Good day, ${authState.user?.displayName?.takeIf(String::isNotBlank) ?: "Supplier"}",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -142,7 +144,23 @@ fun SupplierHomeScreen(
                                 color = Color.White.copy(alpha = 0.78f),
                                 modifier = Modifier.padding(top = 2.dp)
                             )
+                            Text(
+                                text = authState.user?.phone?.takeIf(String::isNotBlank)?.let { "Phone: $it" } ?: "Add phone number in profile",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.82f),
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .clickable { navController.navigate(Screen.SupplierProfile.route) }
+                            )
                         }
+                        UserProfileAvatar(
+                            displayName = authState.user?.displayName ?: "Supplier",
+                            imageUrl = authState.user?.profileImageUrl,
+                            size = 42.dp,
+                            onClick = { navController.navigate(Screen.SupplierProfile.route) }
+                        )
+                        Spacer(Modifier.width(8.dp))
                         IconButton(
                             onClick = { navController.navigate(Screen.NotificationInbox.route) },
                             modifier = Modifier

@@ -52,6 +52,7 @@ import com.agroroute.core.components.ListSkeleton
 import com.agroroute.core.components.LoadingButton
 import com.agroroute.core.components.OrderStatusChip
 import com.agroroute.core.components.OrderStatusTimeline
+import com.agroroute.core.components.ProfilePhoneContact
 import com.github.thelacspace.icons.Lucide
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -94,6 +95,7 @@ fun SupplierOrderDetailScreen(
                     OrderHeroCard(order = uiState.selectedOrder!!)
                     OrderStatusTimeline(currentStatus = uiState.selectedOrder!!.status)
                     OrderDetailCard(order = uiState.selectedOrder!!)
+                    ProfilePhoneContact(userId = uiState.selectedOrder!!.farmerId, personLabel = "Farmer")
 
                     Text(
                         text = "Orders are not payments. No payment is processed in this app.",

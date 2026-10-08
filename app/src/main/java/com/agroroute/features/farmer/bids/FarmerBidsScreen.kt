@@ -47,6 +47,7 @@ import com.agroroute.core.components.EmptyState
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ListSkeleton
 import com.agroroute.core.components.LoadingButton
+import com.agroroute.core.components.ProfilePhoneContact
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -212,6 +213,8 @@ private fun FarmerBidCard(
             Spacer(Modifier.width(8.dp))
             BidStatusChip(bid.status)
         }
+        Spacer(Modifier.height(8.dp))
+        ProfilePhoneContact(userId = bid.supplierId, personLabel = "Supplier")
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),

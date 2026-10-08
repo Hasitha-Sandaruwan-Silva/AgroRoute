@@ -1,15 +1,12 @@
 package com.agroroute.features.farmer.shell
 
 import android.app.Activity
+import android.os.Build
+import android.view.WindowManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Logout
@@ -18,8 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,8 +32,6 @@ import com.agroroute.core.navigation.Screen
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 
-private data class FarmerNotification(val id: String, val title: String, val subtitle: String, val time: String, val isRead: Boolean = false)
-
 @Composable
 fun FarmerTopBar(
     currentRoute: String,
@@ -49,37 +44,38 @@ fun FarmerTopBar(
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
 
-    // STATUS BAR ICONS - FIX WIFI/TIME/BATTERY NOT VISIBLE - 100% FIXED
+    // WIFI/BATTERY/TIME 100% VISIBLE - LIGHT MODE FIX - BASED ON SURFACE LUMINANCE
     val view = LocalView.current
     val isDarkTheme = isSystemInDarkTheme()
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    // Use luminance to decide icon color - light surface = dark icons, dark surface = light icons
+    val isSurfaceLight = surfaceColor.luminance() > 0.5f
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Make status bar transparent so icons are visible over app content
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
-            // Light surface = dark icons (visible on white), Dark surface = light icons (visible on dark)
-            WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !isDarkTheme
-                isAppearanceLightNavigationBars = !isDarkTheme
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+            WindowCompat.setDecorFitsSystemWindows(window, true)
+            window.statusBarColor = surfaceColor.toArgb()
+            window.navigationBarColor = surfaceColor.toArgb()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                WindowCompat.getInsetsController(window, view).apply {
+                    // Force based on actual surface luminance, not just system theme
+                    // Light surface (white) -> dark icons (black wifi/battery) visible
+                    // Dark surface (black) -> light icons (white wifi/battery) visible
+                    isAppearanceLightStatusBars = isSurfaceLight
+                    isAppearanceLightNavigationBars = isSurfaceLight
+                }
             }
         }
     }
 
     var showAvatarMenu by remember { mutableStateOf(false) }
-    var showNotifications by remember { mutableStateOf(false) }
-    var notifications by remember {
-        mutableStateOf(
-            listOf(
-                FarmerNotification("1", "New bid received!", "Supplier offered Rs. 450 for Tomatoes", "2m ago"),
-                FarmerNotification("2", "Order confirmed", "Your Basmati Rice order #1234 confirmed", "1h ago"),
-                FarmerNotification("3", "Harvest reminder", "Tomatoes harvest in 2 days", "3h ago", true)
-            )
-        )
-    }
-    val unreadCount = notifications.count { !it.isRead }
 
     Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shadowElevation = 0.dp) {
-        Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars).background(MaterialTheme.colorScheme.surface))
             Row(
                 modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -88,7 +84,7 @@ fun FarmerTopBar(
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     if (!isTab) {
                         IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.size(40.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
                         }
                         Spacer(Modifier.width(4.dp))
                     } else {
@@ -108,31 +104,19 @@ fun FarmerTopBar(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    // NOTIFICATION - NO BG, NO CUT, NO FREEZE - FIXED WITH DIALOG
-                    IconButton(onClick = { showNotifications = true }, modifier = Modifier.size(44.dp)) {
-                        BadgedBox(
-                            badge = {
-                                if (unreadCount > 0) {
-                                    Badge(containerColor = Color(0xFFD32F2F), contentColor = Color.White) {
-                                        Text("$unreadCount", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(Lucide.Bell, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
-                        }
+                    IconButton(onClick = { navController.navigate(Screen.NotificationInbox.route) }, modifier = Modifier.size(44.dp)) {
+                        Icon(imageVector = Lucide.Bell, contentDescription = "Open notifications", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
                     }
 
-                    // PROFILE - NO BG
                     Box {
                         IconButton(onClick = { showAvatarMenu = true }, modifier = Modifier.size(44.dp)) {
-                            Icon(Icons.Default.Person, "Profile", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
+                            Icon(imageVector = Icons.Default.Person, contentDescription = "Profile", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                         }
                         DropdownMenu(expanded = showAvatarMenu, onDismissRequest = { showAvatarMenu = false }) {
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                         Spacer(Modifier.width(12.dp))
                                         Text("Profile", fontWeight = FontWeight.SemiBold)
                                     }
@@ -143,7 +127,7 @@ fun FarmerTopBar(
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Logout, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                                        Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                                         Spacer(Modifier.width(12.dp))
                                         Text("Logout", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                                     }
@@ -159,71 +143,6 @@ fun FarmerTopBar(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 1.dp)
         }
-    }
-
-    // NOTIFICATION DIALOG - NO FREEZE, NO CUT - FIXED
-    if (showNotifications) {
-        AlertDialog(
-            onDismissRequest = { showNotifications = false },
-            modifier = Modifier.widthIn(max = 380.dp),
-            title = {
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Text("Notifications", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    if (unreadCount > 0) {
-                        TextButton(onClick = { notifications = notifications.map { it.copy(isRead = true) } }) {
-                            Text("Mark all read", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            },
-            text = {
-                Column(Modifier.fillMaxWidth().heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
-                    if (notifications.isEmpty()) {
-                        Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Lucide.Bell, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(Modifier.height(8.dp))
-                                Text("No notifications", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    } else {
-                        notifications.forEach { n ->
-                            Row(
-                                Modifier.fillMaxWidth().clickable { notifications = notifications.map { if (it.id == n.id) it.copy(isRead = true) else it } }
-                                    .padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                Icon(
-                                    when {
-                                        n.title.contains("bid", true) -> Lucide.Gavel
-                                        n.title.contains("order", true) -> Lucide.Receipt
-                                        else -> Lucide.Sprout
-                                    },
-                                    null,
-                                    tint = if (!n.isRead) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp).padding(top = 2.dp)
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                                        Text(n.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, modifier = Modifier.weight(1f))
-                                        Text(n.time, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(n.subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                }
-                                if (!n.isRead) {
-                                    Spacer(Modifier.width(8.dp))
-                                    Box(Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).align(Alignment.CenterVertically))
-                                }
-                            }
-                            HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                        }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showNotifications = false }) { Text("Close", fontWeight = FontWeight.Bold) } }
-        )
     }
 
     authState.error?.let { error ->

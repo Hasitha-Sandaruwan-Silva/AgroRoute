@@ -422,7 +422,7 @@ class HarvestListingRulesTest {
 
         assertEquals(Screen.ViewBids.createRoute(listingId), route)
         assertTrue(Screen.ViewBids.route in farmerRoutes)
-        assertTrue(Screen.FarmerBids.route in farmerTabRoutes)
+        assertFalse(Screen.FarmerBids.route in farmerTabRoutes)
         assertTrue(Screen.FarmerBids.route in farmerRoutes)
         assertFalse(route == Screen.PlaceBid.createRoute(listingId))
     }

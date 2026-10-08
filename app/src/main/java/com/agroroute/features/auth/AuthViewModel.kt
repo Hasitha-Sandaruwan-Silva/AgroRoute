@@ -2,8 +2,10 @@ package com.agroroute.features.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.remote.StorageService
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.GoogleSignInOutcome
 import com.agroroute.core.util.Result
@@ -31,7 +33,8 @@ class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase,
     private val sendPasswordResetEmailUseCase: SendPasswordResetEmailUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val storageService: StorageService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -153,6 +156,45 @@ class AuthViewModel @Inject constructor(
                     it.copy(isLoading = false, error = result.message, passwordResetSent = false)
                 }
                 is Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun updateProfile(profile: UserProfile) {
+        val current = _uiState.value.user ?: return showError("Sign in to update your profile")
+        val safeProfile = profile.copy(
+            userId = current.userId,
+            email = current.email,
+            role = current.role,
+            points = current.points,
+            createdAt = current.createdAt
+        )
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = authRepository.updateProfile(safeProfile)) {
+                is Result.Success -> _uiState.update { it.copy(isLoading = false, user = safeProfile) }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun uploadProfilePhoto(uri: Uri) {
+        val current = _uiState.value.user ?: return showError("Sign in to update your profile photo")
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val url = storageService.uploadImage(uri, "profile_images/${current.userId}/avatar")
+                val updated = current.copy(profileImageUrl = url)
+                when (val result = authRepository.updateProfile(updated)) {
+                    is Result.Success -> _uiState.update { it.copy(isLoading = false, user = updated) }
+                    is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                    Result.Loading -> Unit
+                }
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(isLoading = false, error = error.message ?: "Could not upload the profile photo")
+                }
             }
         }
     }

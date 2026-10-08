@@ -57,6 +57,7 @@ import com.agroroute.core.components.EmptyState
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ListSkeleton
 import com.agroroute.core.components.ListingImage
+import com.agroroute.core.components.ProfilePhoneContact
 import com.agroroute.core.components.StatusChip
 import com.github.thelacspace.icons.Lucide
 import java.text.SimpleDateFormat
@@ -306,6 +307,8 @@ private fun MarketplaceListingCard(
                 )
             }
         }
+        Spacer(Modifier.height(8.dp))
+        ProfilePhoneContact(userId = listing.farmerId, personLabel = "Farmer")
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (isExpected) {

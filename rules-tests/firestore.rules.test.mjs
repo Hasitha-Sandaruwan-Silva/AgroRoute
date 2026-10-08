@@ -10,7 +10,7 @@ import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, runTransaction }
 import { after, before, beforeEach, test } from "node:test";
 
 const projectId = "demo-agroroute-rules";
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 let testEnvironment;
 
 before(async () => {
@@ -2082,4 +2082,11 @@ test("signed-in users can list user profiles and reviews for leaderboards", asyn
   const db = testEnvironment.authenticatedContext("farmer-1").firestore();
   await assertSucceeds(getDoc(doc(db, "users/farmer-2")));
   await assertSucceeds(getDoc(doc(db, "users/supplier-1")));
+});
+
+test("a user can save their own phone number without changing protected account fields", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertSucceeds(updateDoc(doc(db, "users/farmer-1"), {
+    phone: "+94771234567"
+  }));
 });
