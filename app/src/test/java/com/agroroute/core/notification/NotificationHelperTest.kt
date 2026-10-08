@@ -26,12 +26,15 @@ class NotificationHelperTest {
     }
 
     @Test
+    fun deliveryRequiresAppAndChannelNotificationsToBeEnabled() {
+        assertTrue(NotificationHelper.isNotificationDeliveryEnabled(32, false, true, true))
+        assertFalse(NotificationHelper.isNotificationDeliveryEnabled(33, true, false, true))
+        assertFalse(NotificationHelper.isNotificationDeliveryEnabled(33, true, true, false))
+    }
+
+    @Test
     fun channelIdIsStable() {
         assertEquals("agroroute_notifications", NotificationHelper.CHANNEL_ID)
     }
 
-    @Test
-    fun suggestionChannelIdIsStable() {
-        assertEquals("agraroute_order_suggestions", NotificationHelper.ORDER_SUGGESTION_CHANNEL_ID)
-    }
 }

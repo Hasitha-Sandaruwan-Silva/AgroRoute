@@ -126,7 +126,7 @@ fun SettingsSection(
         SettingsRow(
             icon = Lucide.Bell,
             title = "Notifications",
-            subtitle = "Order, bid and harvest alerts",
+            subtitle = "Inbox and alert settings",
             onClick = onNotifications
         )
         SettingsRow(

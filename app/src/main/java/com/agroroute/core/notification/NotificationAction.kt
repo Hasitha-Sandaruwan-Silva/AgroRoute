@@ -2,8 +2,6 @@ package com.agroroute.core.notification
 
 /** Intent actions and extras used by the notification receivers. */
 object NotificationAction {
-    const val ACTION_OPEN_ORDER = "com.agroroute.action.OPEN_ORDER"
-    const val ACTION_OPEN_NOTIFICATION = "com.agroroute.action.OPEN_NOTIFICATION"
     const val EXTRA_ORDER_ID = "order_id"
     const val EXTRA_BID_ID = "bid_id"
     const val EXTRA_REQUEST_ID = "request_id"

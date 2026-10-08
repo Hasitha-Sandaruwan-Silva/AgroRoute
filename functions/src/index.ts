@@ -34,34 +34,37 @@ export const registerDeviceToken = functions.https.onCall(
       );
     }
 
-    const { token } = data as { token?: string };
+    const { token, installationId } = data as { token?: string; installationId?: string };
 
-    if (typeof token !== "string" || token.trim().length === 0 || token.length > 4096) {
+    if (typeof token !== "string" || token.trim().length === 0 || token.length > 4096 ||
+        typeof installationId !== "string" || installationId.trim().length === 0 || installationId.length > 256) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "A non-empty device token is required."
+        "A device token and Firebase installation ID are required."
       );
     }
 
-    const tokenKey = createHash("sha256").update(token).digest("hex");
-    const deviceTokenRef = db.collection("device_tokens").doc(userId).collection("devices").doc(tokenKey);
-    const ownerRef = db.collection("device_token_owners").doc(tokenKey);
+    const deviceKey = createHash("sha256").update(installationId).digest("hex");
+    const deviceTokenRef = db.collection("device_tokens").doc(userId).collection("devices").doc(deviceKey);
+    const ownerRef = db.collection("device_token_owners").doc(deviceKey);
     await db.runTransaction(async (transaction) => {
       const owner = await transaction.get(ownerRef);
       const previousUserId = stringField(owner.data(), "userId");
       if (previousUserId && previousUserId !== userId) {
         transaction.delete(
-          db.collection("device_tokens").doc(previousUserId).collection("devices").doc(tokenKey)
+          db.collection("device_tokens").doc(previousUserId).collection("devices").doc(deviceKey)
         );
       }
       transaction.set(ownerRef, {
         userId,
         token,
+        installationId,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       transaction.set(deviceTokenRef, {
         userId,
         token,
+        installationId,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     });
@@ -73,8 +76,7 @@ export const registerDeviceToken = functions.https.onCall(
 /** Removes a stale token (e.g. on sign-out or unregistration). */
 export const unregisterDeviceToken = functions.https.onCall(
   async (data, context) => {
-    const auth = context.auth;
-    if (!auth) {
+    if (!context.auth) {
       throw new functions.https.HttpsError(
         "unauthenticated",
         "Only authenticated users can unregister a device token."
@@ -89,19 +91,21 @@ export const unregisterDeviceToken = functions.https.onCall(
     if (requestedUserId && requestedUserId !== userId) {
       throw new functions.https.HttpsError("permission-denied", "A user can only remove their own device token.");
     }
-    const token = (data as { token?: string }).token;
-    if (typeof token !== "string" || !token.trim()) {
-      throw new functions.https.HttpsError("invalid-argument", "The current device token is required.");
+    const { token, installationId } = data as { token?: string; installationId?: string };
+    if (typeof token !== "string" || !token.trim() ||
+        typeof installationId !== "string" || !installationId.trim()) {
+      throw new functions.https.HttpsError("invalid-argument", "The current device token and installation ID are required.");
     }
-    const tokenKey = createHash("sha256").update(token).digest("hex");
-    const deviceTokenRef = db.collection("device_tokens").doc(userId).collection("devices").doc(tokenKey);
-    const ownerRef = db.collection("device_token_owners").doc(tokenKey);
+    const deviceKey = createHash("sha256").update(installationId).digest("hex");
+    const deviceTokenRef = db.collection("device_tokens").doc(userId).collection("devices").doc(deviceKey);
+    const ownerRef = db.collection("device_token_owners").doc(deviceKey);
     await db.runTransaction(async (transaction) => {
       const [device, owner] = await Promise.all([
         transaction.get(deviceTokenRef),
         transaction.get(ownerRef),
       ]);
-      if (device.get("token") === token && owner.get("userId") === userId) {
+      if (device.get("token") === token && device.get("installationId") === installationId &&
+          owner.get("userId") === userId && owner.get("installationId") === installationId) {
         transaction.delete(deviceTokenRef);
         transaction.delete(ownerRef);
       }
@@ -361,16 +365,39 @@ export const sendNotification = functions.https.onCall(
       .update(`${eventType}:${resolved.entityId}:${resolved.version}:${resolved.userId}`)
       .digest("hex");
     const eventRef = db.collection("notification_events").doc(eventId);
+    const { title, body } = messageFor(eventType, cropName, supplierName, reason);
+    const inboxRef = db.collection("user_notifications").doc(resolved.userId).collection("items").doc(eventId);
+    const notification = {
+      id: eventId,
+      eventType,
+      title,
+      body,
+      route,
+      orderId,
+      bidId,
+      requestId,
+      listingId,
+      createdAt: Date.now(),
+      readAt: null,
+    };
     await db.runTransaction(async (transaction) => {
-      const previous = await transaction.get(eventRef);
-      if (previous.exists) return;
+      const [previous, existingInbox] = await Promise.all([
+        transaction.get(eventRef),
+        transaction.get(inboxRef),
+      ]);
+      if (previous.exists) {
+        if (!existingInbox.exists) transaction.create(inboxRef, notification);
+        return false;
+      }
       transaction.create(eventRef, {
         eventType,
         actorId,
         recipientUserId: resolved.userId,
         entityId: resolved.entityId,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: notification.createdAt,
       });
+      transaction.create(inboxRef, notification);
+      return true;
     });
 
     const recipientRef = db.collection("device_tokens").doc(resolved.userId);
@@ -379,7 +406,6 @@ export const sendNotification = functions.https.onCall(
       .map((document) => ({ ref: document.ref, token: stringField(document.data(), "token") }))
       .filter((device) => device.token.length > 0);
     if (tokens.length === 0) {
-      await eventRef.delete();
       return { ok: true, sent: false, reason: "NO_TOKEN", eventId };
     }
     const pendingTokens = (await Promise.all(tokens.map(async (device) => {
@@ -388,7 +414,6 @@ export const sendNotification = functions.https.onCall(
     }))).filter((device): device is { ref: FirebaseFirestore.DocumentReference; token: string } => device !== null);
     if (pendingTokens.length === 0) return { ok: true, sent: false, reason: "DUPLICATE", eventId };
 
-    const { title, body } = messageFor(eventType, cropName, supplierName, reason);
     const messageData: Record<string, string> = {
       event_type: eventType,
       event_id: eventId,
@@ -454,7 +479,8 @@ export const sendNotification = functions.https.onCall(
                 transaction.get(ownerRef),
               ]);
               if (current.get("token") === device.token) transaction.delete(device.ref);
-              if (owner.get("token") === device.token) transaction.delete(ownerRef);
+                if (owner.get("token") === device.token &&
+                  owner.get("installationId") === current.get("installationId")) transaction.delete(ownerRef);
             });
             await deliveryRef.set({ status: "INVALID", updatedAt: admin.firestore.FieldValue.serverTimestamp() });
             return;
@@ -473,3 +499,42 @@ export const sendNotification = functions.https.onCall(
     }
   }
 );
+
+export const getNotificationInbox = functions.https.onCall(async (data, context) => {
+  const userId = context.auth?.uid;
+  if (!userId) {
+    throw new functions.https.HttpsError("unauthenticated", "Sign in to view notifications.");
+  }
+  const requestedLimit = (data as { limit?: unknown })?.limit;
+  const limit = typeof requestedLimit === "number"
+    ? Math.min(100, Math.max(1, Math.floor(requestedLimit)))
+    : 50;
+  const snapshot = await db.collection("user_notifications").doc(userId)
+    .collection("items").orderBy("createdAt", "desc").limit(limit).get();
+  const items = snapshot.docs.map((document) => ({ ...document.data(), id: document.id }));
+  return {
+    items,
+    unreadCount: snapshot.docs.filter((document) => document.get("readAt") == null).length,
+  };
+});
+
+export const markNotificationRead = functions.https.onCall(async (data, context) => {
+  const userId = context.auth?.uid;
+  if (!userId) {
+    throw new functions.https.HttpsError("unauthenticated", "Sign in to update notifications.");
+  }
+  const notificationId = (data as { notificationId?: unknown })?.notificationId;
+  if (typeof notificationId !== "string" || !/^[a-f0-9]{64}$/.test(notificationId)) {
+    throw new functions.https.HttpsError("invalid-argument", "A valid notification ID is required.");
+  }
+  const notificationRef = db.collection("user_notifications").doc(userId)
+    .collection("items").doc(notificationId);
+  const notification = await notificationRef.get();
+  if (!notification.exists) {
+    throw new functions.https.HttpsError("not-found", "Notification not found.");
+  }
+  if (notification.get("readAt") == null) {
+    await notificationRef.update({ readAt: Date.now() });
+  }
+  return { ok: true, notificationId };
+});

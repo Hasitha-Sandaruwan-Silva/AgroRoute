@@ -71,6 +71,7 @@ internal val sharedSettingsRoutes = setOf(
     Screen.About.route,
     Screen.Privacy.route,
     Screen.NotificationSettings.route,
+    Screen.NotificationInbox.route,
     Screen.FarmerLeaderboard.route,
     Screen.SupplierLeaderboard.route,
     Screen.SubmitReview.route
@@ -86,7 +87,8 @@ internal fun roleHomeDestination(role: UserRole?): String? = when (role) {
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
     notificationRoute: String? = null,
-    onNotificationRouteHandled: () -> Unit = {}
+    notificationEventId: String? = null,
+    onNotificationRouteHandled: (String?) -> Unit = {}
 ) {
     var currentUserRole by remember { mutableStateOf<UserRole?>(null) }
     val authViewModel: AuthViewModel = hiltViewModel()
@@ -124,17 +126,18 @@ fun NavGraph(
         }
     }
 
-    LaunchedEffect(notificationRoute, authState.sessionResolved, authState.user?.role) {
+    LaunchedEffect(notificationRoute, notificationEventId, authState.sessionResolved, authState.user?.role) {
         val requestedRoute = notificationRoute ?: return@LaunchedEffect
         if (!authState.sessionResolved) return@LaunchedEffect
         val role = authState.user?.role
-        if (role != null && NotificationRoute.isAllowed(requestedRoute, role)) {
+        val allowed = role != null && NotificationRoute.isAllowed(requestedRoute, role)
+        if (allowed) {
             navController.navigate(requestedRoute) {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                 launchSingleTop = true
             }
         }
-        onNotificationRouteHandled()
+        onNotificationRouteHandled(notificationEventId.takeIf { allowed })
     }
 
     val hostContent: @Composable (PaddingValues) -> Unit = { paddingValues ->
@@ -300,6 +303,10 @@ fun NavGraph(
 
                 composable(Screen.NotificationSettings.route) {
                     com.agroroute.features.settings.NotificationSettingsScreen()
+                }
+
+                composable(Screen.NotificationInbox.route) {
+                    com.agroroute.features.settings.NotificationInboxScreen(navController)
                 }
 
                 composable(Screen.FarmerLeaderboard.route) {

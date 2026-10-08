@@ -312,7 +312,9 @@ internal val farmerRoutes = setOf(
     Screen.SubmitReview.route,
     Screen.HelpSupport.route,
     Screen.About.route,
-    Screen.Privacy.route
+    Screen.Privacy.route,
+    Screen.NotificationInbox.route,
+    Screen.NotificationSettings.route
 )
 
 internal fun farmerTitle(route: String): String = when {
@@ -328,6 +330,8 @@ internal fun farmerTitle(route: String): String = when {
     route == Screen.HelpSupport.route -> "Help & Support"
     route == Screen.About.route -> "About"
     route == Screen.Privacy.route -> "Privacy & Terms"
+    route == Screen.NotificationInbox.route -> "Notifications"
+    route == Screen.NotificationSettings.route -> "Notification Settings"
     route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Edit Listing"
     route.startsWith(Screen.ViewBids.route.substringBefore("{")) -> "Bids Received"
     route.startsWith(Screen.FarmerOrderDetail.route.substringBefore("{")) -> "Order Details"

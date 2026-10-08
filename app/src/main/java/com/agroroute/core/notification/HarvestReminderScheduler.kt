@@ -1,13 +1,9 @@
 package com.agroroute.core.notification
 
-import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.content.ContextCompat
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -40,7 +36,7 @@ class HarvestReminderScheduler @Inject constructor(
     fun schedule(listing: HarvestListing) {
         val harvestAt = listing.expectedHarvestAt
         if (listing.isDraft || listing.harvestStatus != HarvestStatus.EXPECTED ||
-            harvestAt == null || !hasNotificationPermission()
+            harvestAt == null || !NotificationHelper.areNotificationsEnabled(context)
         ) {
             cancel(listing.listingId)
             return
@@ -56,6 +52,10 @@ class HarvestReminderScheduler @Inject constructor(
             putExtra(EXTRA_LISTING_ID, listing.listingId)
             putExtra(EXTRA_CROP_NAME, listing.cropName)
             putExtra(EXTRA_FARMER_ID, listing.farmerId)
+            putExtra(
+                NotificationAction.EXTRA_EVENT_ID,
+                "${NotificationService.LOCAL_HARVEST_PREFIX}${listing.listingId}:$harvestAt"
+            )
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -80,13 +80,6 @@ class HarvestReminderScheduler @Inject constructor(
         context.getSystemService(AlarmManager::class.java).cancel(pendingIntent)
         pendingIntent.cancel()
     }
-
-    private fun hasNotificationPermission(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
 
     companion object {
         const val ACTION_HARVEST_REMINDER = "com.agroroute.action.HARVEST_REMINDER"

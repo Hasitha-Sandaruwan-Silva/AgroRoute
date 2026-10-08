@@ -37,6 +37,7 @@ object NotificationRoute {
 
     fun isAllowed(route: String, role: UserRole): Boolean {
         if (route.isBlank() || route.split('/').any(String::isBlank)) return false
+        if (route == Screen.NotificationInbox.route || route == Screen.NotificationSettings.route) return true
         return when (role) {
             UserRole.FARMER -> route == Screen.FarmerOrderRequests.route ||
                 route == Screen.HarvestCalendar.route ||

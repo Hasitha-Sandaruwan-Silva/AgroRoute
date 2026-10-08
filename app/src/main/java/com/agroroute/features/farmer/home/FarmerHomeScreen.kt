@@ -22,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -154,6 +155,21 @@ fun FarmerHomeScreen(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
+                    )
+                }
+
+                IconButton(
+                    onClick = { navController.navigate(Screen.NotificationInbox.route) },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(CardGreen)
+                ) {
+                    Icon(
+                        imageVector = Lucide.Bell,
+                        contentDescription = "Open notifications",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 

@@ -55,6 +55,8 @@ class NotificationRouteTest {
         assertNull(NotificationRoute.forEvent(NotificationEvent.BID_CREATED, UserRole.SUPPLIER, listingPayload))
         assertFalse(NotificationRoute.isAllowed(Screen.SupplierOrders.route, UserRole.FARMER))
         assertTrue(NotificationRoute.isAllowed(Screen.FarmerOrderRequests.route, UserRole.FARMER))
+        assertTrue(NotificationRoute.isAllowed(Screen.NotificationInbox.route, UserRole.FARMER))
+        assertTrue(NotificationRoute.isAllowed(Screen.NotificationInbox.route, UserRole.SUPPLIER))
     }
 
     @Test

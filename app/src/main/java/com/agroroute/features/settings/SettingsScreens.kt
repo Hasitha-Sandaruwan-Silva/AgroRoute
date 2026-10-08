@@ -213,21 +213,21 @@ fun AboutScreen() {
 @Composable
 fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
-    var permissionGranted by remember {
-        mutableStateOf(NotificationHelper.hasNotificationPermission(context))
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationHelper.areNotificationsEnabled(context))
     }
     var permissionDenied by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        permissionGranted = granted
+        notificationsEnabled = NotificationHelper.areNotificationsEnabled(context)
         permissionDenied = !granted
         if (granted) viewModel.rescheduleHarvestReminders()
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        permissionGranted = NotificationHelper.hasNotificationPermission(context)
-        if (permissionGranted) viewModel.rescheduleHarvestReminders()
+        notificationsEnabled = NotificationHelper.areNotificationsEnabled(context)
+        if (notificationsEnabled) viewModel.rescheduleHarvestReminders()
     }
 
     val appSettingsIntent = remember(context) {
@@ -241,14 +241,14 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
     ) {
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = if (permissionGranted) "Notification permission is allowed" else "Notifications are off",
+                text = if (notificationsEnabled) "Notifications are enabled" else "Notifications are off",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = if (permissionGranted) {
+                text = if (notificationsEnabled) {
                     "AgroRoute can alert you when another farmer or supplier updates a relevant order, bid or request. Harvest reminders are scheduled on this device."
                 } else {
                     "Allow notifications to receive relevant order, bid and harvest updates. If you previously denied access, open Android settings and enable notifications for AgroRoute."
@@ -265,7 +265,9 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
                 )
             }
             Spacer(Modifier.height(16.dp))
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !permissionGranted) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !NotificationHelper.hasNotificationPermission(context)
+            ) {
                 Button(
                     onClick = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
                     modifier = Modifier.fillMaxWidth()

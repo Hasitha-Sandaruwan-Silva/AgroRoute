@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -140,6 +141,20 @@ fun SupplierHomeScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.78f),
                                 modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { navController.navigate(Screen.NotificationInbox.route) },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.12f))
+                        ) {
+                            Icon(
+                                imageVector = Lucide.Bell,
+                                contentDescription = "Open notifications",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }

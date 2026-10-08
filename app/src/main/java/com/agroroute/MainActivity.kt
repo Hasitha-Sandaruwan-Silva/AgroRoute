@@ -19,6 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.agroroute.core.navigation.NavGraph
+import com.agroroute.core.notification.NotificationAction
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.theme.AgroRouteTheme
 import com.agroroute.core.theme.ThemeMode
 import com.agroroute.core.theme.ThemeViewModel
@@ -32,13 +34,15 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private var notificationRoute by mutableStateOf<String?>(null)
+    private var notificationEventId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // 1. Install System Native Splash Screen
         val splashScreen = installSplashScreen()
 
         super.onCreate(savedInstanceState)
-        notificationRoute = intent.getStringExtra(com.agroroute.core.notification.NotificationAction.EXTRA_ROUTE)
+        notificationRoute = intent.getStringExtra(NotificationAction.EXTRA_ROUTE)
+        notificationEventId = intent.getStringExtra(NotificationAction.EXTRA_EVENT_ID)
 
         // 2. Keep Splash Screen visible for 2.5 seconds
         var keepSplashScreen = true
@@ -86,7 +90,16 @@ class MainActivity : ComponentActivity() {
             AgroRouteTheme(darkTheme = darkTheme) {
                 NavGraph(
                     notificationRoute = notificationRoute,
-                    onNotificationRouteHandled = { notificationRoute = null }
+                    notificationEventId = notificationEventId,
+                    onNotificationRouteHandled = { eventId ->
+                        notificationRoute = null
+                        notificationEventId = null
+                        if (eventId != null) {
+                            lifecycleScope.launch {
+                                runCatching { NotificationService(this@MainActivity).markInboxItemRead(eventId) }
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -95,6 +108,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        notificationRoute = intent.getStringExtra(com.agroroute.core.notification.NotificationAction.EXTRA_ROUTE)
+        notificationRoute = intent.getStringExtra(NotificationAction.EXTRA_ROUTE)
+        notificationEventId = intent.getStringExtra(NotificationAction.EXTRA_EVENT_ID)
     }
 }

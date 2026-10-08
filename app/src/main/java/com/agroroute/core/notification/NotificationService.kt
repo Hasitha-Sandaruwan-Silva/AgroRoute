@@ -23,6 +23,63 @@ class NotificationService @Inject constructor(
     /** Returns the event encoded by a Firebase `data` map, or `null` if unknown. */
     fun fromData(data: Map<String, String>): NotificationEvent? = NotificationEvent.from(data)
 
+    suspend fun getInboxItems(limit: Int = 50): List<NotificationInboxItem> {
+        val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return emptyList()
+        val localItems = LocalNotificationInbox.items(context, userId)
+        val remoteItems = try {
+            val result = firebaseFunctions.getHttpsCallable("getNotificationInbox")
+                .call(mapOf("limit" to limit.coerceIn(1, 100)))
+                .await()
+            val response = result.data as? Map<*, *> ?: return localItems
+            val items = response["items"] as? List<*> ?: return localItems
+            items.mapNotNull { raw ->
+                (raw as? Map<*, *>)?.let(NotificationInboxItem::from)
+            }
+        } catch (error: Exception) {
+            if (localItems.isNotEmpty()) return localItems
+            throw error
+        }
+        return (remoteItems + localItems).distinctBy { it.id }
+            .sortedByDescending { it.createdAt }
+            .take(limit.coerceIn(1, 100))
+    }
+
+    suspend fun markInboxItemRead(notificationId: String) {
+        val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            ?: error("Sign in to update notifications.")
+        if (notificationId.startsWith(LOCAL_HARVEST_PREFIX)) {
+            LocalNotificationInbox.markRead(context, userId, notificationId)
+            return
+        }
+        firebaseFunctions.getHttpsCallable("markNotificationRead")
+            .call(mapOf("notificationId" to notificationId))
+            .await()
+    }
+
+    fun postHarvestReminder(farmerId: String, eventId: String, payload: NotificationEvent.Payload) {
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != farmerId) return
+        LocalNotificationInbox.upsert(
+            context,
+            farmerId,
+            NotificationInboxItem(
+                id = eventId,
+                eventType = NotificationEvent.HARVEST_REMINDER.name,
+                title = NotificationEvent.HARVEST_REMINDER.title,
+                body = NotificationEvent.HARVEST_REMINDER.content(context, payload),
+                route = com.agroroute.core.navigation.Screen.EditListing.createRoute(payload.listingId),
+                createdAt = System.currentTimeMillis(),
+                readAt = null,
+                listingId = payload.listingId
+            )
+        )
+        post(
+            event = NotificationEvent.HARVEST_REMINDER,
+            payload = payload,
+            route = com.agroroute.core.navigation.Screen.EditListing.createRoute(payload.listingId),
+            eventId = eventId
+        )
+    }
+
     fun post(
         event: NotificationEvent,
         payload: NotificationEvent.Payload,
@@ -31,7 +88,7 @@ class NotificationService @Inject constructor(
         body: String = event.content(context, payload),
         eventId: String = ""
     ) {
-        if (!NotificationHelper.hasNotificationPermission(context)) return
+        if (!NotificationHelper.areNotificationsEnabled(context)) return
         NotificationHelper.createOrGetChannel(context)
 
         val launchIntent = Intent(context, com.agroroute.MainActivity::class.java).apply {
@@ -40,6 +97,7 @@ class NotificationService @Inject constructor(
             putExtra(NotificationAction.EXTRA_ORDER_ID, payload.orderId)
             putExtra(NotificationAction.EXTRA_BID_ID, payload.bidId)
             putExtra(NotificationAction.EXTRA_LISTING_ID, payload.listingId)
+            putExtra(NotificationAction.EXTRA_EVENT_ID, eventId)
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
@@ -70,7 +128,10 @@ class NotificationService @Inject constructor(
     suspend fun registerDeviceToken(userId: String, token: String) {
         if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != userId) return
         try {
-            firebaseFunctions.getHttpsCallable("registerDeviceToken").call(mapOf("token" to token)).await()
+            val installationId = com.google.firebase.installations.FirebaseInstallations.getInstance().id.await()
+            firebaseFunctions.getHttpsCallable("registerDeviceToken").call(
+                mapOf("token" to token, "installationId" to installationId)
+            ).await()
         } catch (error: Exception) {
             Log.e("AgroRouteFCM", "Failed to register device token", error)
         }
@@ -80,8 +141,9 @@ class NotificationService @Inject constructor(
         if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != userId) return
         try {
             val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+            val installationId = com.google.firebase.installations.FirebaseInstallations.getInstance().id.await()
             firebaseFunctions.getHttpsCallable("unregisterDeviceToken").call(
-                mapOf("userId" to userId, "token" to token)
+                mapOf("userId" to userId, "token" to token, "installationId" to installationId)
             ).await()
         } catch (error: Exception) {
             Log.e("AgroRouteFCM", "Failed to unregister device token", error)
@@ -121,4 +183,8 @@ class NotificationService @Inject constructor(
     }
 
     private val firebaseFunctions get() = com.google.firebase.functions.FirebaseFunctions.getInstance()
+
+    companion object {
+        const val LOCAL_HARVEST_PREFIX = "local-harvest:"
+    }
 }

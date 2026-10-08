@@ -260,7 +260,7 @@ fun FarmerProfileScreen(
                 onHelp = { navController.navigate(Screen.HelpSupport.route) },
                 onAbout = { navController.navigate(Screen.About.route) },
                 onPrivacy = { navController.navigate(Screen.Privacy.route) },
-                onNotifications = { navController.navigate(Screen.NotificationSettings.route) }
+                onNotifications = { navController.navigate(Screen.NotificationInbox.route) }
             )
 
             Spacer(Modifier.height(24.dp))

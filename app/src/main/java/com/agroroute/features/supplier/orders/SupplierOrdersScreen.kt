@@ -84,6 +84,7 @@ fun SupplierOrdersScreen(
 
     val pendingRequests = uiState.requests.filter { it.status == OrderRequestStatus.PENDING }
     val rejectedRequests = uiState.requests.filter { it.status == OrderRequestStatus.REJECTED }
+    val cancelledRequests = uiState.requests.filter { it.status == OrderRequestStatus.CANCELLED }
     val isEmpty = uiState.requests.isEmpty() && uiState.orders.isEmpty()
 
     Column(
@@ -152,6 +153,20 @@ fun SupplierOrdersScreen(
                                     request = request,
                                     onCancel = null
                                 )
+                            }
+                        }
+                        if (cancelledRequests.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Cancelled requests",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                            items(cancelledRequests, key = { "req-${it.requestId}" }) { request ->
+                                OrderRequestCard(request = request, onCancel = null)
                             }
                         }
                     }
