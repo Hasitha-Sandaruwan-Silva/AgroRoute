@@ -7,7 +7,9 @@ import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.model.UserRole
-import com.agroroute.core.model.availableStock
+import com.agroroute.core.notification.NotificationEvent
+import com.agroroute.core.notification.NotificationEvent.Payload
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.FirestoreService
@@ -31,7 +33,8 @@ class OrderRequestRepositoryImpl @Inject constructor(
     internal val dao: OrderRequestDao,
     @PublishedApi
     internal val firestoreService: FirestoreService,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val notificationService: NotificationService
 ) : OrderRequestRepository {
 
     override fun getRequestsForFarmer(farmerId: String): Flow<Result<List<OrderRequest>>> =
@@ -126,6 +129,27 @@ class OrderRequestRepositoryImpl @Inject constructor(
             }
         }
         dao.upsertRequest(updated)
+
+        val payload = Payload(
+            cropName = updated.cropName,
+            supplierName = updated.supplierId,
+            orderId = updated.requestId,
+            reason = "Your order request was rejected."
+        )
+
+        when (status) {
+            OrderRequestStatus.REJECTED ->
+                notificationService.post(
+                    event = NotificationEvent.ORDER_REQUEST_REJECTED,
+                    payload = payload
+                )
+            OrderRequestStatus.CANCELLED ->
+                notificationService.post(
+                    event = NotificationEvent.ORDER_REQUEST_CANCELLED,
+                    payload = payload
+                )
+            else -> Unit
+        }
     }
 
     override suspend fun cancelRequest(requestId: String): Result<Unit> =

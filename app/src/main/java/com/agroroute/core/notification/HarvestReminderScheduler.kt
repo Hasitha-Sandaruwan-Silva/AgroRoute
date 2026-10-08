@@ -17,6 +17,21 @@ import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Pure helper for the harvest-reminder wall-clock time — fully testable without Android framework. */
+internal object HarvestReminderTime {
+
+    fun reminderEpochMillis(harvestAtMillis: Long): Long? {
+        val harvestDay = Instant.ofEpochMilli(harvestAtMillis)
+            .atZone(ZoneOffset.UTC)
+            .toLocalDate()
+        val reminderAt = harvestDay.atTime(LocalTime.of(9, 0))
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        return if (reminderAt <= System.currentTimeMillis()) null else reminderAt
+    }
+}
+
 @Singleton
 class HarvestReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context
@@ -25,14 +40,7 @@ class HarvestReminderScheduler @Inject constructor(
         val harvestAt = listing.expectedHarvestAt ?: return
         if (listing.isDraft || !hasNotificationPermission()) return
 
-        val harvestDay = Instant.ofEpochMilli(harvestAt)
-            .atZone(ZoneOffset.UTC)
-            .toLocalDate()
-        val reminderAt = harvestDay.atTime(LocalTime.of(9, 0))
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-        if (reminderAt <= System.currentTimeMillis()) return
+        val reminderAt = HarvestReminderTime.reminderEpochMillis(harvestAt) ?: return
 
         val intent = Intent(context, HarvestReminderReceiver::class.java).apply {
             action = ACTION_HARVEST_REMINDER

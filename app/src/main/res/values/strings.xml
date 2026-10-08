@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">AgroRoute</string>
     <string name="orders_payment_caption">Orders are not payments. No payment is processed in this app.</string>
+    <string name="harvest_reminder_title">Harvest reminder</string>
 </resources>

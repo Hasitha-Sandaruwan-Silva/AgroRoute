@@ -20,7 +20,9 @@ import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.model.UserRole
-import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.notification.NotificationEvent
+import com.agroroute.core.notification.NotificationEvent.Payload
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.model.releaseSale
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -47,7 +49,8 @@ class OrderRepositoryImpl @Inject constructor(
     private val orderRequestDao: OrderRequestDao,
     private val authRepository: AuthRepository,
     private val orderCompletionRecordDao: OrderCompletionRecordDao,
-    private val userProfileDao: UserProfileDao
+    private val userProfileDao: UserProfileDao,
+    private val notificationService: NotificationService
 ) : OrderRepository {
 
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
@@ -113,6 +116,15 @@ class OrderRepositoryImpl @Inject constructor(
         listingDao.upsertListing(updatedRecords.first)
         bidDao.upsertBid(updatedRecords.second)
         dao.upsertOrder(order)
+
+        notificationService.post(
+            event = NotificationEvent.BID_ACCEPTED,
+            payload = Payload(
+                cropName = order.cropName,
+                supplierName = order.supplierId,
+                orderId = order.orderId
+            )
+        )
     }
 
     override suspend fun acceptOrderRequestAndCreateOrder(requestId: String): Result<Unit> = safeCall {
@@ -173,6 +185,15 @@ class OrderRepositoryImpl @Inject constructor(
         listingDao.upsertListing(updatedRecords.first)
         dao.upsertOrder(updatedRecords.second)
         orderRequestDao.upsertRequest(updatedRecords.third)
+
+        notificationService.post(
+            event = NotificationEvent.ORDER_REQUEST_ACCEPTED,
+            payload = Payload(
+                cropName = order.cropName,
+                supplierName = request.supplierId,
+                orderId = order.orderId
+            )
+        )
     }
 
     override suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> = safeCall {
