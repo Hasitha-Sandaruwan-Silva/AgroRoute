@@ -31,7 +31,8 @@ internal object HarvestReminderTime {
 
 @Singleton
 class HarvestReminderScheduler @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val store: HarvestReminderStore
 ) {
     fun schedule(listing: HarvestListing) {
         val harvestAt = listing.expectedHarvestAt
@@ -65,6 +66,8 @@ class HarvestReminderScheduler @Inject constructor(
         )
         context.getSystemService(AlarmManager::class.java)
             .setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminderAt, pendingIntent)
+
+        store.upsert(listing.listingId, listing.cropName, harvestAt)
     }
 
     fun cancel(listingId: String) {
@@ -76,9 +79,42 @@ class HarvestReminderScheduler @Inject constructor(
             listingId.hashCode(),
             intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        ) ?: return
-        context.getSystemService(AlarmManager::class.java).cancel(pendingIntent)
-        pendingIntent.cancel()
+        )
+        if (pendingIntent != null) {
+            context.getSystemService(AlarmManager::class.java).cancel(pendingIntent)
+            pendingIntent.cancel()
+        }
+        store.remove(listingId)
+    }
+
+    fun rescheduleAllStored() {
+        if (!NotificationHelper.areNotificationsEnabled(context)) return
+        val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        store.all().forEach { reminder ->
+            val reminderAt = HarvestReminderTime.reminderEpochMillis(reminder.expectedHarvestAt)
+            if (reminderAt == null) {
+                store.remove(reminder.listingId)
+            } else {
+                val intent = Intent(context, HarvestReminderReceiver::class.java).apply {
+                    action = ACTION_HARVEST_REMINDER
+                    putExtra(EXTRA_LISTING_ID, reminder.listingId)
+                    putExtra(EXTRA_CROP_NAME, reminder.cropName)
+                    putExtra(EXTRA_FARMER_ID, currentUserId)
+                    putExtra(
+                        NotificationAction.EXTRA_EVENT_ID,
+                        "${NotificationService.LOCAL_HARVEST_PREFIX}${reminder.listingId}:${reminder.expectedHarvestAt}"
+                    )
+                }
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    reminder.listingId.hashCode(),
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                context.getSystemService(AlarmManager::class.java)
+                    .setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminderAt, pendingIntent)
+            }
+        }
     }
 
     companion object {
