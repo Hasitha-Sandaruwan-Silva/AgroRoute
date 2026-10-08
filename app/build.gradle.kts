@@ -95,6 +95,11 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.functions.ktx)
+    implementation(libs.kotlinx.serialization.json)
+
+    implementation(libs.firebase.storage.ktx)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)

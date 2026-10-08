@@ -1,24 +1,48 @@
 package com.agroroute.features.farmer.shell
 
 import android.app.Activity
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -34,14 +58,12 @@ import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
 import com.agroroute.features.auth.AuthViewModel
-import kotlinx.coroutines.delay
 
 @Composable
 fun FarmerTopBar(
     currentRoute: String,
     navController: NavController,
-    modifier: Modifier = Modifier,
-    hasNewNotification: Boolean = true
+    modifier: Modifier = Modifier
 ) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -49,101 +71,250 @@ fun FarmerTopBar(
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
 
+    // ─── STATUS BAR ICONS DYNAMIC COLOR ───
     val view = LocalView.current
     val isDarkTheme = isSystemInDarkTheme()
+
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            // Light theme = dark icons, Dark theme = light icons
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkTheme
         }
     }
 
     var showAvatarMenu by remember { mutableStateOf(false) }
 
-    // noti එකක් ආවම විතරක් shake
-    var triggerShake by remember { mutableStateOf(0) }
-    LaunchedEffect(hasNewNotification) { if (hasNewNotification) triggerShake++ }
-    val shakeAnim = remember { Animatable(0f) }
-    LaunchedEffect(triggerShake) {
-        if (hasNewNotification && triggerShake > 0) {
-            repeat(3) {
-                shakeAnim.animateTo(12f, tween(80))
-                shakeAnim.animateTo(-12f, tween(80))
-            }
-            shakeAnim.animateTo(0f, tween(80))
-        }
-    }
-
-    Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shadowElevation = 1.dp) {
-        Column(Modifier.fillMaxWidth().statusBarsPadding()) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface, // Automatically adapts to Dark/Light mode
+        shadowElevation = if (isTab) 2.dp else 4.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+        ) {
             Row(
-                Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                // ─── Left Section: Logo + Title / Back Button ───
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     if (!isTab) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", modifier = Modifier.size(26.dp))
+                        IconButton(
+                            onClick = { navController.popBackStack() },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
+                        Spacer(Modifier.width(12.dp))
                     } else {
+                        // App Logo
                         Image(
-                            painter = painterResource(id = R.drawable.agroroute),
-                            contentDescription = "Logo",
-                            modifier = Modifier.size(52.dp).clip(CircleShape).clickable {
-                                navController.navigate(Screen.FarmerHome.route) { popUpTo(Screen.FarmerHome.route) { inclusive = false }; launchSingleTop = true }
-                            }
+                            painter = painterResource(id = R.drawable.logo),
+                            contentDescription = "AgroRoute Logo",
+                            modifier = Modifier.size(38.dp)
                         )
-                        Spacer(Modifier.width(10.dp))
+                        Spacer(Modifier.width(12.dp))
                     }
-                    Column(Modifier.weight(1f)) {
+
+                    Column(modifier = Modifier.weight(1f)) {
                         if (isTab) {
-                            Text("AgroRoute", style = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary))
+                            // Brand Title
+                            Text(
+                                text = "AgroRoute",
+                                style = TextStyle(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 22.sp,
+                                    letterSpacing = (-0.3).sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
                         } else {
-                            Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.2.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (subtitle != null) {
+                                Text(
+                                    text = subtitle,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
 
-                // ICONS ONLY - BG නෑ, ලොකුයි
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // ─── Right Section: Beautiful Profile Icon ───
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Box {
-                        IconButton(onClick = { /* noti screen */ }, modifier = Modifier.size(48.dp)) {
+                        // Premium Profile Avatar
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .clickable { showAvatarMenu = true }
+                                .border(
+                                    width = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Icon(
-                                Icons.Filled.Notifications,
-                                "Notifications",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(28.dp).rotate(if (hasNewNotification) shakeAnim.value else 0f)
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
-                        if (hasNewNotification) {
-                            Box(Modifier.align(Alignment.TopEnd).offset(x = (-6).dp, y = 6.dp).size(10.dp).clip(CircleShape).background(Color.Red))
-                        }
-                    }
 
-                    Box {
-                        IconButton(onClick = { showAvatarMenu = true }, modifier = Modifier.size(48.dp)) {
-                            Icon(Icons.Filled.Person, "Profile", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp))
-                        }
-                        DropdownMenu(expanded = showAvatarMenu, onDismissRequest = { showAvatarMenu = false }) {
-                            DropdownMenuItem(text = { Text("Profile") }, onClick = { showAvatarMenu = false; navController.navigate(Screen.FarmerProfile.route) })
-                            DropdownMenuItem(text = { Text("Logout", color = MaterialTheme.colorScheme.error) }, onClick = { showAvatarMenu = false; authViewModel.logout { navController.navigate(Screen.Welcome.route) { popUpTo(0) { inclusive = true } } } })
+                        // Avatar Popup Dropdown Menu
+                        DropdownMenu(
+                            expanded = showAvatarMenu,
+                            onDismissRequest = { showAvatarMenu = false },
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(vertical = 4.dp)
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(
+                                            text = "Profile",
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    showAvatarMenu = false
+                                    navController.navigate(Screen.FarmerProfile.route)
+                                }
+                            )
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
+
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Logout,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(
+                                            text = "Logout",
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    showAvatarMenu = false
+                                    authViewModel.logout {
+                                        navController.navigate(Screen.Welcome.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(0.08f), thickness = 1.dp)
+
+            // Subtle divider at the bottom
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                thickness = 1.dp
+            )
         }
     }
 
     authState.error?.let { error ->
-        AlertDialog(onDismissRequest = authViewModel::clearError, title = { Text("Could not sign out") }, text = { Text(error) }, confirmButton = { TextButton(onClick = authViewModel::clearError) { Text("OK") } })
+        AlertDialog(
+            onDismissRequest = authViewModel::clearError,
+            title = { Text("Could not sign out") },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(onClick = authViewModel::clearError) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 
-internal val farmerTabRoutes = setOf(Screen.FarmerHome.route, Screen.MyListings.route, Screen.FarmerOrders.route, Screen.FarmerProfile.route)
-internal val farmerRoutes = setOf(*farmerTabRoutes.toTypedArray(), Screen.FarmerBids.route, Screen.HarvestCalendar.route, Screen.CreateListing.route, Screen.EditListing.route, Screen.ViewBids.route, Screen.FarmerOrderDetail.route, Screen.FarmerOrderRequests.route, Screen.FarmerLeaderboard.route, Screen.SubmitReview.route, Screen.HelpSupport.route, Screen.About.route, Screen.Privacy.route)
+// ─── Preserved internal route logic & functions (No Changes Here) ───
+
+internal val farmerTabRoutes = setOf(
+    Screen.FarmerHome.route,
+    Screen.MyListings.route,
+    Screen.FarmerOrders.route,
+    Screen.FarmerProfile.route
+)
+
+internal val farmerRoutes = setOf(
+    *farmerTabRoutes.toTypedArray(),
+    Screen.FarmerBids.route,
+    Screen.HarvestCalendar.route,
+    Screen.CreateListing.route,
+    Screen.EditListing.route,
+    Screen.ViewBids.route,
+    Screen.FarmerOrderDetail.route,
+    Screen.FarmerOrderRequests.route,
+    Screen.FarmerLeaderboard.route,
+    Screen.SubmitReview.route,
+    Screen.HelpSupport.route,
+    Screen.About.route,
+    Screen.Privacy.route
+)
+
 internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerHome.route -> "Home"
     route == Screen.MyListings.route -> "My Listings"
@@ -163,6 +334,7 @@ internal fun farmerTitle(route: String): String = when {
     route.startsWith(Screen.SubmitReview.route.substringBefore("{")) -> "Submit Review"
     else -> "Farmer"
 }
+
 private fun farmerSubtitle(route: String): String? = when {
     route == Screen.FarmerHome.route -> "Farm command center"
     route == Screen.MyListings.route -> "Harvest posts & bids"

@@ -13,6 +13,10 @@ import com.agroroute.core.model.markHarvestFailed
 import com.agroroute.core.model.markHarvestReady
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.model.setBiddingEnabled
+import com.agroroute.core.notification.NotificationEvent
+import com.agroroute.core.notification.NotificationEvent.Payload
+import com.agroroute.core.notification.NotificationService
+import com.agroroute.core.notification.HarvestReminderScheduler
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
 import com.agroroute.core.util.Result
@@ -38,11 +42,12 @@ class HarvestListingRepositoryImpl @Inject constructor(
     @PublishedApi
     internal val firestoreService: FirestoreService,
     private val authRepository: AuthRepository,
-    private val orderRequestDao: OrderRequestDao
+    private val orderRequestDao: OrderRequestDao,
+    private val notificationService: NotificationService,
+    private val harvestReminderScheduler: HarvestReminderScheduler
 ) : HarvestListingRepository {
 
     // ── Read operations (Room as source of truth) ──────────────────────────────
-
     override fun getAllListings(): Flow<Result<List<HarvestListing>>> =
         dao.getAllListings()
             .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
@@ -168,6 +173,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
             )
         )
         dao.upsertListing(updated)
+        if (estimateChanged) notifyPreHarvestRequests(updated, farmerId, NotificationEvent.HARVEST_UPDATE)
     }
 
     override suspend fun saveDraft(listing: HarvestListing): Result<Unit> = safeCall {
@@ -254,6 +260,8 @@ class HarvestListingRepositoryImpl @Inject constructor(
             )
         )
         dao.upsertListing(updated)
+        harvestReminderScheduler.schedule(updated)
+        notifyPreHarvestRequests(updated, farmerId, NotificationEvent.HARVEST_READY)
     }
 
     override suspend fun markHarvestFailed(listingId: String, reason: String?): Result<Unit> = safeCall {
@@ -303,6 +311,47 @@ class HarvestListingRepositoryImpl @Inject constructor(
             failedListing to cancelled
         }
         dao.upsertListing(updatedRecords.first)
+        harvestReminderScheduler.schedule(updatedRecords.first)
         updatedRecords.second.forEach { orderRequestDao.upsertRequest(it) }
+        updatedRecords.second.forEach { request ->
+            notificationService.sendPushToServer(
+                recipientUserId = request.supplierId,
+                event = NotificationEvent.HARVEST_FAILED,
+                payload = Payload(
+                    cropName = request.cropName,
+                    supplierName = request.supplierName,
+                    requestId = request.requestId,
+                    listingId = request.listingId,
+                    status = request.status.name
+                ),
+                actorUserId = farmerId
+            )
+        }
+    }
+
+    private suspend fun notifyPreHarvestRequests(
+        listing: HarvestListing,
+        farmerId: String,
+        event: NotificationEvent
+    ) {
+        val pendingRequests = firestoreService.queryFlow<OrderRequest>(
+            Constants.COLLECTION_ORDER_REQUESTS,
+            "listingId",
+            listing.listingId
+        ).first().filter { it.isPreHarvest && it.status == OrderRequestStatus.PENDING }
+        pendingRequests.forEach { request ->
+            notificationService.sendPushToServer(
+                recipientUserId = request.supplierId,
+                event = event,
+                payload = Payload(
+                    cropName = listing.cropName,
+                    supplierName = request.supplierName,
+                    requestId = request.requestId,
+                    listingId = listing.listingId,
+                    status = listing.harvestStatus.name
+                ),
+                actorUserId = farmerId
+            )
+        }
     }
 }

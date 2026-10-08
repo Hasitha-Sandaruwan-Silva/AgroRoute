@@ -20,7 +20,9 @@ import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.model.UserRole
-import com.agroroute.core.repository.AuthRepository
+import com.agroroute.core.notification.NotificationEvent
+import com.agroroute.core.notification.NotificationEvent.Payload
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.model.releaseSale
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -47,7 +49,8 @@ class OrderRepositoryImpl @Inject constructor(
     private val orderRequestDao: OrderRequestDao,
     private val authRepository: AuthRepository,
     private val orderCompletionRecordDao: OrderCompletionRecordDao,
-    private val userProfileDao: UserProfileDao
+    private val userProfileDao: UserProfileDao,
+    private val notificationService: NotificationService
 ) : OrderRepository {
 
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
@@ -113,6 +116,19 @@ class OrderRepositoryImpl @Inject constructor(
         listingDao.upsertListing(updatedRecords.first)
         bidDao.upsertBid(updatedRecords.second)
         dao.upsertOrder(order)
+
+        // Accepting a bid turns a supplier's bid into an order. The supplier is the
+        // recipient the farmer is not; the farmer (actorUserId) is excluded.
+        notificationService.sendPushToServer(
+            recipientUserId = order.supplierId,
+            event = NotificationEvent.BID_ACCEPTED,
+            payload = Payload(
+                cropName = order.cropName,
+                supplierName = order.supplierId,
+                orderId = order.orderId
+            ),
+            actorUserId = order.farmerId
+        )
     }
 
     override suspend fun acceptOrderRequestAndCreateOrder(requestId: String): Result<Unit> = safeCall {
@@ -173,6 +189,21 @@ class OrderRepositoryImpl @Inject constructor(
         listingDao.upsertListing(updatedRecords.first)
         dao.upsertOrder(updatedRecords.second)
         orderRequestDao.upsertRequest(updatedRecords.third)
+
+        // The farmer accepted a request placed by a supplier. The supplier is the
+        // recipient; the farmer (actorUserId) is excluded.
+        notificationService.sendPushToServer(
+            recipientUserId = updatedRecords.third.supplierId,
+            event = NotificationEvent.ORDER_REQUEST_ACCEPTED,
+            payload = Payload(
+                cropName = updatedRecords.second.cropName,
+                supplierName = updatedRecords.third.supplierName,
+                orderId = updatedRecords.second.orderId,
+                requestId = updatedRecords.third.requestId,
+                listingId = updatedRecords.second.listingId
+            ),
+            actorUserId = updatedRecords.third.farmerId
+        )
     }
 
     override suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> = safeCall {
@@ -204,6 +235,21 @@ class OrderRepositoryImpl @Inject constructor(
             dao.upsertOrder(updatedRecords.first)
             val updatedListing = updatedRecords.second
             if (updatedListing != null) listingDao.upsertListing(updatedListing)
+
+            // The counterparty of the order (not the actor who changed it) receives the
+            // notification so the sender is never alerted about their own status change.
+            val cancelledOrder = updatedRecords.first
+            val counterparty = if (profile.role == UserRole.FARMER) cancelledOrder.supplierId else cancelledOrder.farmerId
+            notificationService.sendPushToServer(
+                recipientUserId = counterparty,
+                event = NotificationEvent.ORDER_CANCELLED,
+                payload = Payload(
+                    cropName = cancelledOrder.cropName,
+                    supplierName = if (profile.role == UserRole.FARMER) cancelledOrder.supplierId else cancelledOrder.farmerId,
+                    orderId = cancelledOrder.orderId
+                ),
+                actorUserId = userId
+            )
         } else {
             val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
 
@@ -284,6 +330,23 @@ class OrderRepositoryImpl @Inject constructor(
             }
 
             dao.upsertOrder(updatedOrder)
+
+            val notification = when (status) {
+                OrderStatus.IN_TRANSIT -> updatedOrder.supplierId to NotificationEvent.ORDER_IN_TRANSIT
+                OrderStatus.DELIVERED -> updatedOrder.farmerId to NotificationEvent.ORDER_COMPLETED
+                else -> null
+            }
+            val (recipientUserId, event) = notification ?: return@safeCall
+            notificationService.sendPushToServer(
+                recipientUserId = recipientUserId,
+                event = event,
+                payload = Payload(
+                    cropName = updatedOrder.cropName,
+                    supplierName = updatedOrder.supplierId,
+                    orderId = updatedOrder.orderId
+                ),
+                actorUserId = userId
+            )
 
             completionRecordToSave?.let { orderCompletionRecordDao.upsertRecord(it) }
             updatedFarmerProfile?.let { userProfileDao.upsertUserProfile(it) }

@@ -49,6 +49,7 @@ fun SettingsSection(
     onHelp: () -> Unit,
     onAbout: () -> Unit,
     onPrivacy: () -> Unit,
+    onNotifications: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -121,6 +122,12 @@ fun SettingsSection(
             title = "Edit profile",
             subtitle = "Name, phone and location",
             onClick = onEditProfile
+        )
+        SettingsRow(
+            icon = Lucide.Bell,
+            title = "Notifications",
+            subtitle = "Inbox and alert settings",
+            onClick = onNotifications
         )
         SettingsRow(
             icon = Lucide.Info,
@@ -228,6 +235,7 @@ private fun SettingsSectionPreviewContent() {
         onHelp = {},
         onAbout = {},
         onPrivacy = {},
+        onNotifications = {},
         modifier = Modifier.padding(16.dp)
     )
 }

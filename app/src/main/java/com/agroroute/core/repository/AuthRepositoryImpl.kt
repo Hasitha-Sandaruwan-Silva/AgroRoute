@@ -3,6 +3,7 @@ package com.agroroute.core.repository
 import com.agroroute.core.database.UserProfileDao
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.remote.AuthService
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -28,7 +29,8 @@ import javax.inject.Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authService: AuthService,
     private val firestoreService: FirestoreService,
-    private val userProfileDao: UserProfileDao
+    private val userProfileDao: UserProfileDao,
+    private val notificationService: NotificationService
 ) : AuthRepository {
 
     override val isLoggedIn: Boolean get() = authService.isLoggedIn
@@ -129,6 +131,7 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun logout(): Result<Unit> = mapFirebaseFailure(safeCall {
         val userId = authService.currentUserId
+        if (userId != null) notificationService.unregisterDeviceToken(userId)
         authService.signOut()
         if (userId != null) userProfileDao.deleteUserProfile(userId)
     })

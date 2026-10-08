@@ -28,6 +28,7 @@ import com.agroroute.features.auth.AuthViewModel
 import com.agroroute.features.welcome.WelcomeScreen
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.util.Constants
+import com.agroroute.core.notification.NotificationRoute
 import com.agroroute.features.farmer.bids.ViewBidsScreen
 import com.agroroute.features.farmer.bids.FarmerBidsScreen
 import com.agroroute.features.farmer.home.FarmerHomeScreen
@@ -69,6 +70,8 @@ internal val sharedSettingsRoutes = setOf(
     Screen.HelpSupport.route,
     Screen.About.route,
     Screen.Privacy.route,
+    Screen.NotificationSettings.route,
+    Screen.NotificationInbox.route,
     Screen.FarmerLeaderboard.route,
     Screen.SupplierLeaderboard.route,
     Screen.SubmitReview.route
@@ -82,7 +85,10 @@ internal fun roleHomeDestination(role: UserRole?): String? = when (role) {
 
 @Composable
 fun NavGraph(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    notificationRoute: String? = null,
+    notificationEventId: String? = null,
+    onNotificationRouteHandled: (String?) -> Unit = {}
 ) {
     var currentUserRole by remember { mutableStateOf<UserRole?>(null) }
     val authViewModel: AuthViewModel = hiltViewModel()
@@ -95,12 +101,12 @@ fun NavGraph(
         authViewModel.restoreSession()
     }
 
-    LaunchedEffect(authState.user?.role, authState.sessionResolved, currentUserRole, currentRoute) {
+    LaunchedEffect(authState.user?.role, authState.sessionResolved, currentUserRole, currentRoute, notificationRoute) {
         if (authState.sessionResolved) currentUserRole = authState.user?.role
         val role = if (authState.sessionResolved) authState.user?.role else currentUserRole
         val destination = roleHomeDestination(role)
         when {
-            destination != null && currentRoute == Screen.Welcome.route -> {
+            destination != null && currentRoute == Screen.Welcome.route && notificationRoute == null -> {
                 navController.navigate(destination) {
                     popUpTo(Screen.Welcome.route) { inclusive = true }
                     launchSingleTop = true
@@ -118,6 +124,20 @@ fun NavGraph(
                 navController.navigate(Screen.Welcome.route) { popUpTo(0) { inclusive = true } }
             }
         }
+    }
+
+    LaunchedEffect(notificationRoute, notificationEventId, authState.sessionResolved, authState.user?.role) {
+        val requestedRoute = notificationRoute ?: return@LaunchedEffect
+        if (!authState.sessionResolved) return@LaunchedEffect
+        val role = authState.user?.role
+        val allowed = role != null && NotificationRoute.isAllowed(requestedRoute, role)
+        if (allowed) {
+            navController.navigate(requestedRoute) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+        onNotificationRouteHandled(notificationEventId.takeIf { allowed })
     }
 
     val hostContent: @Composable (PaddingValues) -> Unit = { paddingValues ->
@@ -279,6 +299,14 @@ fun NavGraph(
 
                 composable(Screen.Privacy.route) {
                     com.agroroute.features.settings.PrivacyScreen()
+                }
+
+                composable(Screen.NotificationSettings.route) {
+                    com.agroroute.features.settings.NotificationSettingsScreen()
+                }
+
+                composable(Screen.NotificationInbox.route) {
+                    com.agroroute.features.settings.NotificationInboxScreen(navController)
                 }
 
                 composable(Screen.FarmerLeaderboard.route) {

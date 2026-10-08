@@ -5,6 +5,9 @@ import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.UserRole
+import com.agroroute.core.notification.NotificationEvent
+import com.agroroute.core.notification.NotificationEvent.Payload
+import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.FirestoreService
@@ -28,7 +31,8 @@ class BidRepositoryImpl @Inject constructor(
     internal val dao: BidDao,
     @PublishedApi
     internal val firestoreService: FirestoreService,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val notificationService: NotificationService
 ) : BidRepository {
 
     override fun getBidsForListing(listingId: String): Flow<Result<List<Bid>>> =
@@ -57,13 +61,29 @@ class BidRepositoryImpl @Inject constructor(
         val firestore = firestoreService.firestore
         val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(pendingBid.listingId)
         val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(pendingBid.bidId)
-        firestoreService.runTransaction<Unit> { transaction ->
+        val listing = firestoreService.runTransaction<HarvestListing> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
                 ?: error("Listing ${pendingBid.listingId} not found")
             check(listing.acceptsNewBids()) { "This listing is not accepting bids" }
             transaction.set(bidRef, pendingBid)
+            listing
         }
         dao.upsertBid(pendingBid)
+
+        // A supplier placed a new bid against a farmer's listing. Notify the farmer,
+        // not the supplier (actorUserId), who is excluded.
+        notificationService.sendPushToServer(
+            recipientUserId = listing.farmerId,
+            event = NotificationEvent.BID_CREATED,
+            payload = Payload(
+                cropName = listing.cropName,
+                supplierName = pendingBid.supplierName,
+                bidId = pendingBid.bidId,
+                listingId = listing.listingId,
+                reason = "A new bid is awaiting the listing owner's review."
+            ),
+            actorUserId = pendingBid.supplierId
+        )
     }
 
     override suspend fun updateBidStatus(bidId: String, status: BidStatus): Result<Unit> = safeCall {
@@ -73,17 +93,17 @@ class BidRepositoryImpl @Inject constructor(
         check(profile.userId == userId) { "Account profile does not match the signed-in user" }
         val firestore = firestoreService.firestore
         val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(bidId)
-        val updated = firestoreService.runTransaction { transaction ->
+        val (updated, listing) = firestoreService.runTransaction<Pair<Bid, HarvestListing>> { transaction ->
             val existing = transaction.get(bidRef).toObject(Bid::class.java)
                 ?: error("Bid $bidId not found")
             check(existing.status == BidStatus.PENDING) { "Only pending bids can change status" }
+            val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS)
+                .document(existing.listingId)
+            val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
+                ?: error("Listing not found")
             when (status) {
                 BidStatus.REJECTED -> {
                     check(profile.role == UserRole.FARMER) { "Only Farmers can reject incoming bids" }
-                    val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS)
-                        .document(existing.listingId)
-                    val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
-                        ?: error("Listing not found")
                     check(listing.farmerId == userId) { "Only the listing's Farmer can reject this bid" }
                 }
                 BidStatus.WITHDRAWN -> {
@@ -93,11 +113,27 @@ class BidRepositoryImpl @Inject constructor(
                 }
                 else -> error("This bid status transition is not supported")
             }
-            existing.copy(status = status, updatedAt = System.currentTimeMillis()).also {
+            val updated = existing.copy(status = status, updatedAt = System.currentTimeMillis()).also {
                 transaction.set(bidRef, it)
             }
+            updated to listing
         }
         dao.upsertBid(updated)
+
+        val recipientUserId = if (status == BidStatus.REJECTED) updated.supplierId else listing.farmerId
+        val event = if (status == BidStatus.REJECTED) NotificationEvent.BID_REJECTED else NotificationEvent.BID_WITHDRAWN
+        notificationService.sendPushToServer(
+            recipientUserId = recipientUserId,
+            event = event,
+            payload = Payload(
+                cropName = listing.cropName,
+                supplierName = updated.supplierName,
+                bidId = updated.bidId,
+                listingId = listing.listingId,
+                status = status.name
+            ),
+            actorUserId = userId
+        )
     }
 
     override suspend fun withdrawBid(bidId: String): Result<Unit> =
