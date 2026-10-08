@@ -2,41 +2,24 @@ package com.agroroute.features.farmer.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,13 +29,6 @@ import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid
-import com.agroroute.core.theme.ForestSoft
-import com.agroroute.core.theme.GreenDeep
-import com.agroroute.core.theme.GreenEmerald
-import com.agroroute.core.theme.PureWhite
-import com.agroroute.core.theme.SoftMintBg
-import com.agroroute.core.theme.TextSecondary
-import com.agroroute.core.components.AppCard
 import com.agroroute.core.components.AgroSnackbarHost
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ShimmerBox
@@ -69,13 +45,6 @@ internal enum class FarmerHomeDestination(val route: String) {
     HARVEST_CALENDAR(Screen.HarvestCalendar.route)
 }
 
-// Custom Colors matching the UI design
-private val DarkGreenBg = ForestDeep
-private val CardGreen = ForestMid
-private val AccentGreen = GreenEmerald
-private val LightBg = SoftMintBg
-private val TextGray = TextSecondary
-
 @Composable
 fun FarmerHomeScreen(
     navController: NavController,
@@ -88,7 +57,6 @@ fun FarmerHomeScreen(
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ✅ LOGIC EXACTLY UNCHANGED
     LaunchedEffect(Unit) {
         listingViewModel.loadFarmerListings(listingViewModel.currentFarmerId)
         orderViewModel.loadOrdersForFarmer(orderViewModel.currentFarmerId)
@@ -103,366 +71,156 @@ fun FarmerHomeScreen(
     val totalOrders = orderState.orders.size
     val isLoading = listingState.isLoading && listingState.listings.isEmpty()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(LightBg)
-    ) {
-        // Top Dark Green Background Shape
+    // THEME AWARE - uses MaterialTheme.colorScheme which auto switches via AgroRouteTheme
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
-                .background(DarkGreenBg)
+            modifier = Modifier.fillMaxWidth().height(220.dp)
+                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), Color.Transparent)))
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // ── Header Section ─────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 24.dp)
-                    .padding(top = 16.dp), // Extra top padding for status bar if needed
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Dummy Profile Picture
-                Surface(
-                    shape = CircleShape,
-                    color = AccentGreen,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Lucide.User, contentDescription = null, tint = Color.White)
+            // HEADER - NO NOTIFICATION ICON - REMOVED AS REQUESTED
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp).shadow(6.dp, CircleShape)) {
+                        Box(contentAlignment = Alignment.Center) { Icon(Lucide.User, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp)) }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Hi, Farmer 👋", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Welcome back!", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 22.sp), color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
                     }
                 }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Hi, Farmer",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                    Text(
-                        text = "Welcome back!",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-
-                // Notification Bell
+                // Profile avatar only - notification removed
                 Surface(
-                    shape = CircleShape,
-                    color = CardGreen,
-                    modifier = Modifier.size(44.dp)
+                    shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(44.dp).clickable { navController.navigate(Screen.FarmerProfile.route) }
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Lucide.Bell,
-                            contentDescription = "Notifications",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Box(contentAlignment = Alignment.Center) { Icon(Lucide.User, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp)) }
                 }
             }
 
-            // ── Hero Overview Card (Weather Style) ─────────────────────────────────────────────
-            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
-                if (isLoading) {
-                    ShimmerBox(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                        cornerRadius = 24.dp
-                    )
-                } else {
-                    HeroStatCard(
-                        activeListings = activeListings.toString(),
-                        totalListings = totalListings.toString(),
-                        totalOrders = totalOrders.toString()
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(Modifier.height(12.dp))
-            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
-                AppCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { navController.navigate(Screen.FarmerLeaderboard.route) }
+            if (isLoading) {
+                ShimmerBox(modifier = Modifier.fillMaxWidth().height(190.dp), cornerRadius = 28.dp)
+            } else {
+                // FARM OVERVIEW - LINKED TO MY LISTINGS
+                Surface(
+                    modifier = Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(28.dp)).clickable { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
+                    shape = RoundedCornerShape(28.dp), color = ForestMid
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Lucide.Trophy,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Your points", style = MaterialTheme.typography.labelMedium)
-                            Text(
-                                "${authState.user?.points ?: 0} pts",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                                    Icon(Lucide.MapPin, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("Farm Overview", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                            }
+                            Icon(Lucide.Leaf, contentDescription = null, tint = Color.White.copy(alpha = 0.2f), modifier = Modifier.size(36.dp))
                         }
-                        Text("Farmer leaderboard", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text("$totalOrders", fontSize = 52.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                                Text("Orders", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                                Text("To fulfill", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Divider(color = Color.White.copy(alpha = 0.12f))
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column { Text("Active", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f)); Text("$activeListings listings", fontWeight = FontWeight.Bold, color = Color.White) }
+                            Column { Text("Total", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f)); Text("$totalListings listings", fontWeight = FontWeight.Bold, color = Color.White) }
+                            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primary) {
+                                Text("Live", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Navigation Shortcuts (Pill Filter Style) ─────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // POINTS - LINKED TO LEADERBOARD
+            Surface(
+                modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)).clickable { navController.navigate(Screen.FarmerLeaderboard.route) },
+                shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface
             ) {
-                Text(
-                    text = "Sell and fulfill",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = GreenDeep
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ChipItem("Orders", isActive = true) { navController.navigate(FarmerHomeDestination.ORDERS.route) }
-                ChipItem("Requests", isActive = false) { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) }
-                ChipItem("My Listings", isActive = false) { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) }
-                ChipItem("Calendar", isActive = false) { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── Action Cards (Large Card Style) ─────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Card 1: Create Listing
-                ActionLargeCard(
-                    modifier = Modifier.weight(1f),
-                    title = "New Listing",
-                    subtitle = "List harvest for buyers",
-                    icon = Lucide.Plus,
-                    iconBgColor = AccentGreen,
-                    onClick = { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) }
-                )
-
-                ActionLargeCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Review Requests",
-                    subtitle = "Respond to supplier orders",
-                    icon = Lucide.Receipt,
-                    iconBgColor = ForestSoft,
-                    onClick = { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) }
-                )
-            }
-
-            Spacer(Modifier.height(40.dp))
-        }
-
-        AgroSnackbarHost(
-            snackbarHostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// Custom UI Components matching the design
-// ──────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun HeroStatCard(
-    activeListings: String,
-    totalListings: String,
-    totalOrders: String
-) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardGreen),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp)
-        ) {
-            // Top Row
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Lucide.MapPin,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "Order Overview",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White
-                    )
-                }
-                Icon(
-                    imageVector = Lucide.Leaf, // Changed from Sprout to Leaf to prevent errors
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Middle Row (Big Stat)
-            Row(
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    text = totalOrders,
-                    fontSize = 56.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.alignByBaseline()
-                )
-                Spacer(Modifier.width(8.dp))
-                Column(modifier = Modifier.alignByBaseline()) {
-                    Text(
-                        text = "Orders",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = "To fulfill",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
-                    )
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+                        Icon(Lucide.Trophy, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Your points", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${authState.user?.points ?: 0} pts", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Text("Leaderboard →", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-            Divider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("Quick Actions", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Bottom Row (Small Stats)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatItem(label = "Active listings", value = activeListings)
-                StatItem(label = "All listings", value = totalListings)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                ActionCard(modifier = Modifier.weight(1f), title = "New\nListing", icon = Lucide.Plus, bg = MaterialTheme.colorScheme.primary) { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) }
+                ActionCard(modifier = Modifier.weight(1f), title = "My\nListings", icon = Icons.Filled.List, bg = ForestMid) { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) }
             }
+            Spacer(modifier = Modifier.height(14.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                ActionCard(modifier = Modifier.weight(1f), title = "Orders", icon = Lucide.Receipt, bg = Color(0xFF2E7D32)) { navController.navigate(FarmerHomeDestination.ORDERS.route) }
+                ActionCard(modifier = Modifier.weight(1f), title = "Requests", icon = Lucide.Mail, bg = Color(0xFF6A1B9A)) { navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route) }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) },
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(24.dp))
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Harvest Calendar", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Check upcoming harvest dates", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Lucide.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
         }
+
+        AgroSnackbarHost(snackbarHostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
 
 @Composable
-private fun StatItem(label: String, value: String) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = TextGray
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-    }
-}
-
-@Composable
-private fun ChipItem(
-    text: String,
-    isActive: Boolean,
-    onClick: () -> Unit
-) {
+private fun ActionCard(modifier: Modifier, title: String, icon: ImageVector, bg: Color, onClick: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(50),
-        color = if (isActive) AccentGreen else PureWhite,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .clickable(onClick = onClick)
+        modifier = modifier.height(110.dp).shadow(6.dp, RoundedCornerShape(20.dp)).clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-            color = if (isActive) PureWhite else GreenDeep,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
-        )
-    }
-}
-
-@Composable
-private fun ActionLargeCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    iconBgColor: Color,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(iconBgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color.White)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Box(modifier = Modifier.size(38.dp).clip(CircleShape).background(bg.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = bg, modifier = Modifier.size(20.dp))
+            }
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, lineHeight = 18.sp)
         }
-        Spacer(Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = GreenDeep
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextGray,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Icon(Lucide.ChevronRight, contentDescription = null, tint = GreenDeep)
     }
 }
