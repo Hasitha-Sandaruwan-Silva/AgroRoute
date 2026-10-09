@@ -1,5 +1,7 @@
 # AgroRoute — වෙනස්කම්, පරීක්ෂණ සහ run කරන පියවර
 
+නව order pickup/delivery snapshot implementation සහ අවසන් tests/migration විස්තර [ORDER_LOCATION_FLOW-SI.md](ORDER_LOCATION_FLOW-SI.md) තුළ ඇත. පහත කොටස් පෙර profile/points/provider audit එකේ විස්තර ද පවත්වා ගනී.
+
 ## Source සහ backup
 
 2026-10-09 දින workspace තුළ තිබූ project files source of truth ලෙස භාවිත කළා. ඔබගේ පසුකාලීන තේරීම අනුව අවසන් location picker එක **MapLibre + MapTiler** භාවිත කරයි. නව migration විස්තර සහ key setup සඳහා [MAPTILER_SETUP-SI.md](MAPTILER_SETUP-SI.md) බලන්න.
@@ -15,7 +17,7 @@ Existing `allDone` branch/commit `70c9bfe` වෙනස් නොකළා. ම�
 - Current location button එක ඔබ එබූ විට පමණක් fine/coarse runtime permission ඉල්ලයි. Approximate location එකටත් network provider භාවිත කළ හැක. Permission ප්‍රතික්ෂේප කළත් configured map/search භාවිත කළ හැක.
 - Recent position එකක් නැති විට fresh location request එකට තත්පර 15ක සීමාවක් තිබෙනවා. Dialog එක වැසීමෙන් location listener ඉවත් කරයි. Geocoder calls UI thread එකෙන් පිටත ධාවනය කරයි.
 - Confirm කිරීම form එක පුරවයි; profile/listing සඳහා එම form එකේ **Save/Publish** button එකත් එබිය යුතුයි. Delivery location එක order screen එකේ confirm කළ විට backend සහ Room වෙත save වේ.
-- Existing string fields තුළ `Address\n[latitude, longitude]` ලෙස coordinates ද රඳවා ගනී. Old address-only values rewrite නොකරයි. Listing location එකෙන් order pickup location එකට යන existing flow එක පවත්වා ගෙන තිබෙනවා. Room version 6 සහ entity schema වෙනස් කර නැහැ.
+- Existing string fields තුළ `Address\n[latitude, longitude]` ලෙස coordinates ද රඳවා ගනී. Old address-only values rewrite නොකරයි. Listing location එකෙන් order pickup location එකට යන existing flow එක පවත්වා ගෙන තිබෙනවා. පෙර provider phase එකේ Room version 6 පවත්වා ඇත; නව order flow එකේ v7 migration bids/requests සඳහා delivery columns දෙකක් එක් කරයි.
 
 **MapTiler key setup සඳහා [MAPTILER_SETUP-SI.md](MAPTILER_SETUP-SI.md) බලන්න.** Build configuration එක local.properties හි MAPTILER_API_KEY කියවයි. Search/reverse geocoding සඳහා Android Geocoder පවත්වා ඇත.
 
@@ -68,7 +70,7 @@ FCM delivery සහ live inbox navigation device දෙකක real/test accounts
 | `reviews` / ReviewDao | Review cache; Firestore `reviews` |
 | `order_completion_records` / OrderCompletionRecordDao | Existing local schema පවත්වා ඇත; නව awarding/idempotency සඳහා authoritative receipt එක backend තුළයි |
 
-Repositories සාමාන්‍යයෙන් backend write සාර්ථක වූ පසු Room mirror එක update කරයි. UI Room flows භාවිත කරයි; explicit sync backend rows cache කරයි. Room migrations 1→6 තිබෙනවා. Existing `fallbackToDestructiveMigration()` setting එක වෙනස් කළේ නැහැ; unknown schema upgrade එකක cache/drafts ගැන සැලකිලිමත් විය යුතුයි. මේ delivery එක Room schema upgrade එකක් නොකරයි. Notification inbox/reminders සහ theme preference Room entities නොවෙයි.
+Repositories සාමාන්‍යයෙන් backend write සාර්ථක වූ පසු Room mirror එක update කරයි. UI Room flows භාවිත කරයි; explicit sync backend rows cache කරයි. Room migrations 1→7 තිබෙනවා. නව order flow එකේ destructive fallback ඉවත් කර ඇත; supported upgrade එක additive migration එකෙන් සිදුවේ. Orders/listings/profile tables rewrite නොවේ. Notification inbox/reminders සහ theme preference Room entities නොවෙයි.
 
 ## Validation
 

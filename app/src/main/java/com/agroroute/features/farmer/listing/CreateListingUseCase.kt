@@ -30,6 +30,9 @@ class CreateListingUseCase @Inject constructor(
         if (listing.category == null) return Result.Error("Harvest category is required")
         if (listing.quantity <= 0) return Result.Error("Quantity must be greater than zero")
         if (listing.reservePrice < 0) return Result.Error("Reserve price cannot be negative")
+        if (com.agroroute.core.location.SelectedLocation.fromStoredText(listing.location) == null) {
+            return Result.Error("Select the farm / pickup location on the map before publishing")
+        }
         if (listing.harvestStatus == HarvestStatus.EXPECTED) {
             if (listing.expectedHarvestAt == null) {
                 return Result.Error("An estimated harvest date is required")

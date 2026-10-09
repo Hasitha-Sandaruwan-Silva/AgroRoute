@@ -4,6 +4,12 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 object DatabaseMigrations {
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE bids ADD COLUMN deliveryLocation TEXT NOT NULL DEFAULT ''")
+            database.execSQL("ALTER TABLE order_requests ADD COLUMN deliveryLocation TEXT NOT NULL DEFAULT ''")
+        }
+    }
     val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("ALTER TABLE harvest_listings ADD COLUMN category TEXT")

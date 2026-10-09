@@ -39,5 +39,8 @@ data class OrderRequest(
     val updatedAt: Long = System.currentTimeMillis(),
     /** True for a pre-harvest request on an EXPECTED (future-harvest) listing. */
     @ColumnInfo(defaultValue = "0")
-    val isPreHarvest: Boolean = false
+    val isPreHarvest: Boolean = false,
+    /** Supplier-selected address and coordinates for this request. */
+    @ColumnInfo(defaultValue = "''")
+    val deliveryLocation: String = ""
 )

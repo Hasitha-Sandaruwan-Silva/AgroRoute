@@ -1,4 +1,6 @@
-﻿# MapLibre + MapTiler — AgroRoute setup සහ verification
+# MapLibre + MapTiler — AgroRoute setup සහ verification
+
+නව order snapshots සහ Room 6→7 migration සඳහා [ORDER_LOCATION_FLOW-SI.md](ORDER_LOCATION_FLOW-SI.md) බලන්න. පහත report එක පෙර map-provider migration phase එක වාර්තා කරයි.
 
 ## Configuration
 

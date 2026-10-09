@@ -9,6 +9,8 @@ import com.agroroute.core.notification.NotificationEvent
 import com.agroroute.core.notification.NotificationEvent.Payload
 import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.model.acceptsNewBids
+import com.agroroute.core.model.requirePickupLocation
+import com.agroroute.core.model.requireDeliveryLocation
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -57,6 +59,7 @@ class BidRepositoryImpl @Inject constructor(
             "Only the signed-in Supplier can place bids"
         }
         val pendingBid = bid.copy(status = BidStatus.PENDING)
+        requireDeliveryLocation(pendingBid.deliveryLocation)
 
         val firestore = firestoreService.firestore
         val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(pendingBid.listingId)
@@ -65,6 +68,7 @@ class BidRepositoryImpl @Inject constructor(
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
                 ?: error("Listing ${pendingBid.listingId} not found")
             check(listing.acceptsNewBids()) { "This listing is not accepting bids" }
+            requirePickupLocation(listing.location)
             transaction.set(bidRef, pendingBid)
             listing
         }
@@ -114,7 +118,7 @@ class BidRepositoryImpl @Inject constructor(
                 else -> error("This bid status transition is not supported")
             }
             val updated = existing.copy(status = status, updatedAt = System.currentTimeMillis()).also {
-                transaction.set(bidRef, it)
+                transaction.update(bidRef, mapOf("status" to it.status.name, "updatedAt" to it.updatedAt))
             }
             updated to listing
         }

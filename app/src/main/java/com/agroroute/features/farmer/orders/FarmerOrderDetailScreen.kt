@@ -117,6 +117,7 @@ fun FarmerOrderDetailScreen(
                     }
 
                     OrderDetailCard(order = uiState.selectedOrder!!)
+                    com.agroroute.core.components.OrderLocationSection(uiState.selectedOrder!!, forSupplier = false)
 
                     Surface(
                         modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp)),
@@ -323,8 +324,6 @@ private fun OrderDetailCard(order: Order) {
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 DetailRow(label = "Order ID", value = order.orderId, icon = Lucide.Tag)
-                if (order.pickupLocation.isNotBlank()) DetailRow(label = "Pickup Location", value = order.pickupLocation, icon = Lucide.MapPin)
-                if (order.deliveryLocation.isNotBlank()) DetailRow(label = "Delivery Location", value = order.deliveryLocation, icon = Lucide.Truck)
                 if (order.notes.isNotBlank()) DetailRow(label = "Notes", value = order.notes, icon = Lucide.FileText)
             }
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))

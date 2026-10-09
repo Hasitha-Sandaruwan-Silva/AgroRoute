@@ -26,6 +26,7 @@ class CloudinaryUploadTest {
     private fun farmerAuth() = FakeAuthRepository(UserRole.FARMER, "farmer-uid")
 
     private fun baseListing(imageUrls: List<String> = emptyList()) = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
         listingId = "listing-cld",
         farmerId = "farmer-uid",
         farmerName = "Test Farmer",

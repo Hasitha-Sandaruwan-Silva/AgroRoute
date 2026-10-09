@@ -12,6 +12,8 @@ import com.agroroute.core.notification.NotificationEvent.Payload
 import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.model.availableStock
+import com.agroroute.core.model.requirePickupLocation
+import com.agroroute.core.model.requireDeliveryLocation
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.remote.FirestoreService
 import com.agroroute.core.util.Constants
@@ -65,6 +67,7 @@ class OrderRequestRepositoryImpl @Inject constructor(
             "Only the signed-in Supplier can place order requests"
         }
         val pendingRequest = request.copy(status = OrderRequestStatus.PENDING)
+        requireDeliveryLocation(pendingRequest.deliveryLocation)
 
         val firestore = firestoreService.firestore
         val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(pendingRequest.listingId)
@@ -78,6 +81,7 @@ class OrderRequestRepositoryImpl @Inject constructor(
             check(!listing.biddingEnabled) {
                 "This listing uses bidding; use the Place Bid flow instead"
             }
+            requirePickupLocation(listing.location)
             if (pendingRequest.isPreHarvest) {
                 // Pre-harvest request on an expected (future-harvest) listing: an estimate only.
                 // It must not reserve stock or create an order.
@@ -140,7 +144,7 @@ class OrderRequestRepositoryImpl @Inject constructor(
                 else -> error("This request status transition is not supported directly; use acceptRequestUseCase")
             }
             existing.copy(status = status, updatedAt = System.currentTimeMillis()).also {
-                transaction.set(requestRef, it)
+                transaction.update(requestRef, mapOf("status" to it.status.name, "updatedAt" to it.updatedAt))
             }
         }
         dao.upsertRequest(updated)

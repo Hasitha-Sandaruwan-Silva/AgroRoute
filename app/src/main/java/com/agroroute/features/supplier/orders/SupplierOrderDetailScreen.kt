@@ -108,6 +108,7 @@ fun SupplierOrderDetailScreen(
                     OrderHeroCard(order = uiState.selectedOrder!!)
                     OrderStatusTimeline(currentStatus = uiState.selectedOrder!!.status)
                     OrderDetailCard(order = uiState.selectedOrder!!)
+                    com.agroroute.core.components.OrderLocationSection(uiState.selectedOrder!!, forSupplier = true)
                     if (uiState.selectedOrder!!.status in listOf(OrderStatus.AWAITING_PICKUP, OrderStatus.IN_TRANSIT)) {
                         OutlinedButton(onClick = { showLocationPicker = true }, enabled = !uiState.isLoading,
                             modifier = Modifier.fillMaxWidth()) {
@@ -284,12 +285,6 @@ private fun OrderDetailCard(order: Order) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-        if (order.pickupLocation.isNotBlank()) {
-            DetailRow(label = "Pickup Location", value = order.pickupLocation, icon = Lucide.Store)
-        }
-        if (order.deliveryLocation.isNotBlank()) {
-            DetailRow(label = "Delivery Location", value = order.deliveryLocation, icon = Lucide.Truck)
-        }
         if (order.notes.isNotBlank()) {
             DetailRow(label = "Notes", value = order.notes, icon = Lucide.Description)
         }

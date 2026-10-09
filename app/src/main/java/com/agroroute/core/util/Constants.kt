@@ -20,7 +20,7 @@ object Constants {
 
     // ── Room database ──────────────────────────────────────────────────────────
     const val DATABASE_NAME    = "agroroute_db"
-    const val DATABASE_VERSION = 6
+    const val DATABASE_VERSION = 7
 
     // ── Navigation argument keys ───────────────────────────────────────────────
     const val ARG_LISTING_ID = "listingId"

@@ -39,6 +39,11 @@ service cloud.firestore {
       return data.get('isDraft', false) == false;
     }
 
+    // Compatible with SelectedLocation's address + bounded coordinate suffix.
+    function coordinateLocation(value) {
+      return value is string && value.size() <= 2000
+        && value.matches('(?s).*\\[-?([0-8]?[0-9](\\.[0-9]+)?|90(\\.0+)?),\\s*-?(([0-9]?[0-9]|1[0-7][0-9])(\\.[0-9]+)?|180(\\.0+)?)\\]$');
+    }
     function availableStock(data) {
       let savedStock = data.get('availableQuantity', null);
       return savedStock is number
@@ -90,6 +95,7 @@ service cloud.firestore {
         && request.resource.data.status == 'OPEN'
         && request.resource.data.get('isDraft', false) == false
         && request.resource.data.biddingEnabled is bool
+        && coordinateLocation(request.resource.data.get('location', ''))
         // Expected (future-harvest) listings start with zero actual stock — allow them when
         // estimatedQuantity is positive and availableQuantity is zero. All other listings need real available stock.
         && (isExpectedHarvest(request.resource.data)
@@ -147,6 +153,8 @@ service cloud.firestore {
         && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
         && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
         && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
+        && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
         && availableStock(get(listingPath(request.resource.data.listingId)).data) > 0;
 
       allow update: if signedIn()
@@ -188,6 +196,8 @@ service cloud.firestore {
         && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
         && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
         && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
+        && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
         && request.resource.data.farmerId
           == get(listingPath(request.resource.data.listingId)).data.farmerId
         && request.resource.data.listedPrice
@@ -251,10 +261,14 @@ service cloud.firestore {
         && request.resource.data.orderId == orderId
         && request.resource.data.farmerId == request.auth.uid
         && request.resource.data.status == 'AWAITING_PICKUP'
+        && coordinateLocation(request.resource.data.get('pickupLocation', ''))
+        && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
+        && request.resource.data.pickupLocation == get(listingPath(request.resource.data.listingId)).data.location
         && (
           (request.resource.data.orderId == request.resource.data.bidId
             && exists(/databases/$(database)/documents/bids/$(request.resource.data.bidId))
             && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'PENDING'
+            && request.resource.data.deliveryLocation == get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.get('deliveryLocation', '')
             && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.supplierId == request.resource.data.supplierId
             && get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.listingId == request.resource.data.listingId
             && exists(listingPath(request.resource.data.listingId))
@@ -262,6 +276,8 @@ service cloud.firestore {
             && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
             && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
             && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
+        && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
             // The harvest must be READY (confirmed) before an order can be created from a bid.
             && get(listingPath(request.resource.data.listingId)).data.get('harvestStatus', 'READY') == 'READY'
             && request.resource.data.quantity == availableStock(get(listingPath(request.resource.data.listingId)).data)
@@ -277,6 +293,7 @@ service cloud.firestore {
           || (request.resource.data.bidId == ''
             && exists(/databases/$(database)/documents/order_requests/$(orderId))
             && get(/databases/$(database)/documents/order_requests/$(orderId)).data.status == 'PENDING'
+            && request.resource.data.deliveryLocation == get(/databases/$(database)/documents/order_requests/$(orderId)).data.get('deliveryLocation', '')
             && get(/databases/$(database)/documents/order_requests/$(orderId)).data.requestId == orderId
             && get(/databases/$(database)/documents/order_requests/$(orderId)).data.farmerId == request.auth.uid
             && get(/databases/$(database)/documents/order_requests/$(orderId)).data.listingId == request.resource.data.listingId
@@ -288,6 +305,8 @@ service cloud.firestore {
             && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
             && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
             && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
+        && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
             // The harvest must be READY (confirmed) before an order can be created from a request.
             && get(listingPath(request.resource.data.listingId)).data.get('harvestStatus', 'READY') == 'READY'
             && request.resource.data.quantity > 0
@@ -315,7 +334,7 @@ service cloud.firestore {
             && resource.data.status in ['AWAITING_PICKUP', 'IN_TRANSIT']
             && request.resource.data.status == resource.data.status
             && request.resource.data.deliveryLocation is string
-            && request.resource.data.deliveryLocation.size() > 0
+            && coordinateLocation(request.resource.data.deliveryLocation)
             && request.resource.data.deliveryLocation.size() <= 2000
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryLocation', 'updatedAt'])))
         && (

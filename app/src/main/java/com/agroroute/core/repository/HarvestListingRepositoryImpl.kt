@@ -82,6 +82,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
             "Only the signed-in Farmer can publish this listing"
         }
         check(!listing.isDraft) { "Draft listings must remain in local storage" }
+        com.agroroute.core.model.requirePickupLocation(listing.location)
         firestoreService.set(Constants.COLLECTION_LISTINGS, listing.listingId, listing)
         dao.upsertListing(listing) // Mirror to Room on Firestore success
     }

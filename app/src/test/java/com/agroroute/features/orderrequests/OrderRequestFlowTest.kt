@@ -411,7 +411,22 @@ class OrderRequestFlowTest {
         assertEquals(listOf("order-1"), ownOrders.map { it.orderId })
     }
 
+    @Test
+    fun supplierMustChooseDeliveryAndFarmerPickupMustHaveCoordinates() = runBlocking {
+        for ((listing, request) in listOf(
+            fixedPriceListing().copy(location = "Legacy address") to validRequest(),
+            fixedPriceListing() to validRequest().copy(deliveryLocation = ""),
+            fixedPriceListing() to validRequest().copy(deliveryLocation = "Warehouse only")
+        )) {
+            val requests = FakeOrderRequestRepository()
+            val result = PlaceOrderRequestUseCase(requests, FakeListingRepository(listing),
+                FakeAuthRepository(UserRole.SUPPLIER, "supplier-1"))(request)
+            assertTrue(result is Result.Error)
+            assertEquals(0, requests.placedCount)
+        }
+    }
     private fun fixedPriceListing() = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
         listingId = "listing-1",
         farmerId = "farmer-1",
         farmerName = "Farmer One",
@@ -424,6 +439,7 @@ class OrderRequestFlowTest {
     )
 
     private fun expectedHarvestListing() = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
         listingId = "listing-1",
         farmerId = "farmer-1",
         farmerName = "Farmer One",
@@ -438,7 +454,7 @@ class OrderRequestFlowTest {
         reservePrice = 8.0
     )
 
-    private fun validRequest() = OrderRequest(
+    private fun validRequest() = OrderRequest(deliveryLocation = "Warehouse\n[6.900000, 79.900000]",
         requestId = "request-1",
         listingId = "listing-1",
         farmerId = "farmer-1",

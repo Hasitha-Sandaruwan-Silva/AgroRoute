@@ -46,6 +46,10 @@ class PlaceBidUseCase @Inject constructor(
         if (!listing.acceptsNewBids()) {
             return Result.Error("This listing is not accepting bids")
         }
+        if (com.agroroute.core.location.SelectedLocation.fromStoredText(listing.location) == null)
+            return Result.Error("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.")
+        if (com.agroroute.core.location.SelectedLocation.fromStoredText(bid.deliveryLocation) == null)
+            return Result.Error("Select a delivery location on the map before placing your bid")
 
         return bidRepository.placeBid(bid.copy(status = BidStatus.PENDING))
     }

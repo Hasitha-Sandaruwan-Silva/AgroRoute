@@ -24,11 +24,12 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +87,7 @@ fun PlaceOrderRequestScreen(
     val listingState by viewModel.listingState.collectAsStateWithLifecycle()
     val canPlaceRequests by viewModel.canPlaceRequests.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var deliveryLocation by rememberSaveable(listingId) { mutableStateOf("") }
 
     // Load listing details
     LaunchedEffect(listingId) {
@@ -176,6 +178,10 @@ fun PlaceOrderRequestScreen(
                     }
                 }
 
+                com.agroroute.core.components.DeliveryLocationField(deliveryLocation, { deliveryLocation = it }, !uiState.isLoading)
+                val pickupAvailable = com.agroroute.core.location.SelectedLocation.fromStoredText(listing.location) != null
+                if (!pickupAvailable) Text("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.",
+                    color = MaterialTheme.colorScheme.error)
                 LoadingButton(
                     text = if (isPreHarvest) "Send pre-harvest request" else "Request Order",
                     isLoading = uiState.isLoading,
@@ -186,7 +192,8 @@ fun PlaceOrderRequestScreen(
                             listingId = listingId,
                             supplierId = uiState.supplierId,
                             supplierName = uiState.supplierName,
-                            requestedQuantity = quantity
+                            requestedQuantity = quantity,
+                            deliveryLocation = deliveryLocation
                         )
                         val maxAllowed = if (isPreHarvest) listing.estimatedAvailable() else listing.availableStock()
                         viewModel.placeOrderRequest(request, maxAllowed)
@@ -194,7 +201,8 @@ fun PlaceOrderRequestScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    enabled = quantityText.isNotBlank()
+                    enabled = quantityText.isNotBlank() && pickupAvailable &&
+                        com.agroroute.core.location.SelectedLocation.fromStoredText(deliveryLocation) != null
                 )
             } else if (listingState is Result.Success && listingState.getOrNull() != null) {
                 Text(

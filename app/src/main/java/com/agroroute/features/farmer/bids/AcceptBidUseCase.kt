@@ -70,7 +70,7 @@ class AcceptBidUseCase @Inject constructor(
             agreedPrice  = bid.offerPrice,
             status       = OrderStatus.AWAITING_PICKUP,
             pickupLocation  = currentListing.location,
-            deliveryLocation = ""  // Supplier provides during fulfilment
+            deliveryLocation = bid.deliveryLocation
         )
         return orderRepository.acceptBidAndCreateOrder(order)
     }

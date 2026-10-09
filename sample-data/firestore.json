@@ -98,7 +98,8 @@
         "message": "Dummy offer",
         "status": "PENDING",
         "createdAt": 1791504000000,
-        "updatedAt": 1791504000000
+        "updatedAt": 1791504000000,
+        "deliveryLocation": "Dummy warehouse, Colombo\n[6.927100, 79.861200]"
       }
     },
     {
@@ -117,7 +118,8 @@
         "isPreHarvest": false,
         "requestId": "demo-order",
         "requestedQuantity": 10,
-        "status": "ACCEPTED"
+        "status": "ACCEPTED",
+        "deliveryLocation": "Dummy warehouse, Colombo\n[6.927100, 79.861200]"
       }
     },
     {
@@ -136,7 +138,8 @@
         "isPreHarvest": false,
         "requestId": "demo-request",
         "requestedQuantity": 5,
-        "status": "PENDING"
+        "status": "PENDING",
+        "deliveryLocation": "Dummy warehouse, Colombo\n[6.927100, 79.861200]"
       }
     },
     {
@@ -153,7 +156,7 @@
         "agreedPrice": 100,
         "status": "AWAITING_PICKUP",
         "pickupLocation": "Dummy farm, Kandy\n[7.290572, 80.633726]",
-        "deliveryLocation": "Dummy warehouse\n[6.927100, 79.861200]",
+        "deliveryLocation": "Dummy warehouse, Colombo\n[6.927100, 79.861200]",
         "notes": "Dummy order",
         "createdAt": 1791504000000,
         "updatedAt": 1791504000000

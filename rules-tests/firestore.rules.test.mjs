@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -65,6 +66,7 @@ beforeEach(async () => {
       soldQuantity: 0,
       reservePrice: 8,
       status: "OPEN",
+      location: "North Farm\n[7.000000, 80.000000]",
       biddingEnabled: true,
       isDraft: false
     });
@@ -77,6 +79,7 @@ beforeEach(async () => {
       soldQuantity: 0,
       reservePrice: 8,
       status: "OPEN",
+      location: "North Farm\n[7.000000, 80.000000]",
       biddingEnabled: false,
       isDraft: false
     });
@@ -91,6 +94,7 @@ beforeEach(async () => {
       estimatedQuantity: 20,
       reservePrice: 5,
       status: "OPEN",
+      location: "North Farm\n[7.000000, 80.000000]",
       biddingEnabled: false,
       harvestStatus: "EXPECTED",
       isDraft: false
@@ -155,6 +159,7 @@ test("farmer can set harvestFailureReason on their listing", async () => {
   await assertSucceeds(updateDoc(doc(db, "listings/listing-expected"), {
     harvestStatus: "FAILED",
     harvestFailureReason: "Flood",
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: false,
     harvestUpdatedAt: Date.now()
   }));
@@ -175,6 +180,7 @@ test("farmer can create an expected-harvest listing with no actual stock", async
     estimatedQuantity: 15,
     reservePrice: 6,
     status: "OPEN",
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: false,
     harvestStatus: "EXPECTED",
     isDraft: false
@@ -194,6 +200,7 @@ test("farmer cannot create an expected-harvest listing with zero estimatedQuanti
     estimatedQuantity: 0,
     reservePrice: 6,
     status: "OPEN",
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: false,
     harvestStatus: "EXPECTED",
     isDraft: false
@@ -210,6 +217,7 @@ function orderRequestDoc(requestId, overrides = {}) {
     farmerName: "Farmer One",
     supplierId: "supplier-1",
     supplierName: "Supplier One",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     cropName: "Rice",
     requestedQuantity: 5,
     quantityUnit: "KG",
@@ -230,6 +238,7 @@ function preHarvestRequestDoc(requestId, overrides = {}) {
     farmerName: "Farmer One",
     supplierId: "supplier-1",
     supplierName: "Supplier One",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     cropName: "Wheat",
     requestedQuantity: 12,
     quantityUnit: "KG",
@@ -253,8 +262,9 @@ function expectedListingDoc(listingId, overrides = {}) {
     quantityUnit: "KG",
     reservePrice: 5,
     imageUrls: [],
-    location: "North Farm",
+    location: "North Farm\n[7.000000, 80.000000]",
     status: "OPEN",
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: false,
     createdAt: 1,
     expiresAt: null,
@@ -282,6 +292,7 @@ function listingFixedAfterSale(availableQuantity, soldQuantity) {
     soldQuantity,
     reservePrice: 8,
     status: "OPEN",
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: false,
     isDraft: false
   };
@@ -299,8 +310,8 @@ function orderFromRequest(request, overrides = {}) {
     quantityUnit: request.quantityUnit,
     agreedPrice: request.listedPrice,
     status: "AWAITING_PICKUP",
-    pickupLocation: "North Farm",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     createdAt: 1,
     updatedAt: 1,
     ...overrides
@@ -550,6 +561,7 @@ test("accept batch fails when remaining stock cannot cover the requested quantit
       soldQuantity: 8,
       reservePrice: 8,
       status: "OPEN",
+      location: "North Farm\n[7.000000, 80.000000]",
       biddingEnabled: false,
       isDraft: false
     });
@@ -656,6 +668,7 @@ test("supplier cannot create a non-pre-harvest request on an expected listing", 
         farmerName: "Farmer One",
         supplierId: "supplier-1",
         supplierName: "Supplier One",
+        deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
         cropName: "Wheat",
         requestedQuantity: 5,
         quantityUnit: "KG",
@@ -694,6 +707,7 @@ test("farmer can cancel a pending pre-harvest request when marking harvest faile
   await assertSucceeds(
     updateDoc(doc(db, "listings/listing-expected"), {
       harvestStatus: "FAILED",
+      location: "North Farm\n[7.000000, 80.000000]",
       biddingEnabled: false,
       harvestFailureReason: "Flood damage",
       harvestUpdatedAt: 2
@@ -758,8 +772,8 @@ test("farmer cannot accept a pre-harvest request on an expected listing (harvest
     quantityUnit: "KG",
     agreedPrice: 5,
     status: "AWAITING_PICKUP",
-    pickupLocation: "",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     createdAt: 1,
     updatedAt: 2
   });
@@ -828,6 +842,7 @@ test("farmer can mark expected harvest failed", async () => {
   await assertSucceeds(
     updateDoc(doc(db, "listings/listing-expected"), {
       harvestStatus: "FAILED",
+      location: "North Farm\n[7.000000, 80.000000]",
       biddingEnabled: false,
       harvestFailureReason: "Flood damage",
       harvestUpdatedAt: 2
@@ -935,8 +950,8 @@ test("farmer can mark harvest ready and accept pre-harvest request in sequential
     quantityUnit: "KG",
     agreedPrice: 5,
     status: "AWAITING_PICKUP",
-    pickupLocation: "",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     notes: "",
     createdAt: 1,
     updatedAt: 2
@@ -986,8 +1001,8 @@ test("creating an order while listing is EXPECTED is REJECTED even if same batch
     quantityUnit: "KG",
     agreedPrice: 5,
     status: "AWAITING_PICKUP",
-    pickupLocation: "",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     notes: "",
     createdAt: 1,
     updatedAt: 2
@@ -1046,8 +1061,8 @@ test("multiple pre-harvest requests cannot all be accepted if they exceed real s
     quantityUnit: "KG",
     agreedPrice: 5,
     status: "AWAITING_PICKUP",
-    pickupLocation: "",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     notes: "",
     createdAt: 1,
     updatedAt: 2
@@ -1080,8 +1095,8 @@ test("multiple pre-harvest requests cannot all be accepted if they exceed real s
     quantityUnit: "KG",
     agreedPrice: 5,
     status: "AWAITING_PICKUP",
-    pickupLocation: "",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     notes: "",
     createdAt: 1,
     updatedAt: 3
@@ -1111,8 +1126,8 @@ function orderDoc(orderId, overrides = {}) {
     quantityUnit: "KG",
     agreedPrice: 8,
     status: "AWAITING_PICKUP",
-    pickupLocation: "North Farm",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     notes: "",
     createdAt: 1,
     updatedAt: 1,
@@ -1367,8 +1382,9 @@ function fullListingDoc(listingId, overrides = {}) {
     quantityUnit: "KG",
     reservePrice: 8,
     imageUrls: ["https://example.com/rice.jpg"],
-    location: "North Farm",
+    location: "North Farm\n[7.000000, 80.000000]",
     status: "OPEN",
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: true,
     createdAt: 1,
     expiresAt: null,
@@ -1398,7 +1414,7 @@ function updateListingFields(overrides = {}) {
     quantityUnit: "KG",
     reservePrice: 9,
     imageUrls: ["https://example.com/brown-rice.jpg"],
-    location: "North Farm",
+    location: "North Farm\n[7.000000, 80.000000]",
     category: "GRAINS",
     expectedHarvestAt: null,
     qualityGrade: "A+",
@@ -1439,6 +1455,7 @@ function fullOrderRequestDoc(requestId, overrides = {}) {
     farmerName: "Farmer One",
     supplierId: "supplier-1",
     supplierName: "Supplier One",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     cropName: "Rice",
     requestedQuantity: 5,
     quantityUnit: "KG",
@@ -1461,6 +1478,7 @@ function fullBidDoc(bidId, overrides = {}) {
     listingId: "listing-1",
     supplierId: "supplier-1",
     supplierName: "Supplier One",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     offerPrice: 9,
     message: "I'm interested in this listing",
     status: "PENDING",
@@ -1486,8 +1504,8 @@ function fullOrderDoc(orderId, overrides = {}) {
     quantityUnit: "KG",
     agreedPrice: 9,
     status: "AWAITING_PICKUP",
-    pickupLocation: "North Farm",
-    deliveryLocation: "",
+    pickupLocation: "North Farm\n[7.000000, 80.000000]",
+    deliveryLocation: "Warehouse\n[6.900000, 79.900000]",
     notes: "",
     createdAt: 1,
     updatedAt: 1,
@@ -1508,6 +1526,7 @@ function listingAfterSale(listingId, quantitySold, overrides = {}) {
     availableQuantity: remaining,
     soldQuantity: base.soldQuantity + quantitySold,
     status: isSoldOut ? "FULFILLED" : base.status,
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: isSoldOut ? false : base.biddingEnabled,
     ...overrides
   };
@@ -1531,6 +1550,7 @@ function listingAfterReleaseSale(listingId, quantityToRelease, overrides = {}) {
     availableQuantity: updatedAvailable,
     soldQuantity: updatedSold,
     status: reopen ? "OPEN" : base.status,
+    location: "North Farm\n[7.000000, 80.000000]",
     biddingEnabled: reopen ? true : base.biddingEnabled,
     ...overrides
   };
@@ -2119,4 +2139,86 @@ test("a user can save their own phone number without changing protected account 
   await assertSucceeds(updateDoc(doc(db, "users/farmer-1"), {
     phone: "+94771234567"
   }));
+});
+
+test("new requests and bids require a bounded delivery pin", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  for (const [index, value] of ["", "Warehouse only", "Bad\n[91.000000, 80.000000]", "Bad\n[7.000000, 181.000000]"].entries()) {
+    await assertFails(setDoc(doc(db, "order_requests", `missing-pin-${index}`), orderRequestDoc(`missing-pin-${index}`, { deliveryLocation: value })));
+    await assertFails(setDoc(doc(db, "bids", `missing-bid-pin-${index}`), fullBidDoc(`missing-bid-pin-${index}`, { deliveryLocation: value })));
+  }
+});
+
+test("address-only listing remains readable but cannot receive a new order request", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await updateDoc(doc(context.firestore(), "listings/listing-fixed"), { location: "Legacy farm address" });
+  });
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  await assertSucceeds(getDoc(doc(db, "listings/listing-fixed")));
+  await assertFails(setDoc(doc(db, "order_requests/legacy-pickup-request"), orderRequestDoc("legacy-pickup-request")));
+});
+
+test("acceptance rejects pickup tampering and a delivery different from the supplier request", async () => {
+  for (const [index, override] of [
+    { pickupLocation: "Wrong farm\n[8.000000, 81.000000]" },
+    { deliveryLocation: "Wrong warehouse\n[8.000000, 81.000000]" }
+  ].entries()) {
+    const requestId = `tampered-location-${index}`;
+    await seedRequest(requestId);
+    const request = orderRequestDoc(requestId);
+    const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+    const batch = writeBatch(db);
+    batch.set(doc(db, "listings/listing-fixed"), listingFixedAfterSale(5, 5));
+    batch.set(doc(db, "orders", requestId), orderFromRequest(request, override));
+    batch.update(doc(db, "order_requests", requestId), { status: "ACCEPTED", updatedAt: 2 });
+    await assertFails(batch.commit());
+    assert.deepEqual((await getDoc(doc(db, "listings/listing-fixed"))).data().availableQuantity, 10);
+  }
+});
+
+test("saved order destinations survive later listing and profile changes", async () => {
+  await seedRequest("frozen-order");
+  const farmerDb = testEnvironment.authenticatedContext("farmer-1").firestore();
+  const supplierDb = testEnvironment.authenticatedContext("supplier-1").firestore();
+  await assertSucceeds(buildAcceptBatch(farmerDb, orderRequestDoc("frozen-order")).commit());
+  const beforeOrder = (await getDoc(doc(farmerDb, "orders/frozen-order"))).data();
+  await assertSucceeds(updateDoc(doc(farmerDb, "listings/listing-fixed"), { location: "Another farm\n[8.000000, 81.000000]" }));
+  await assertSucceeds(updateDoc(doc(farmerDb, "users/farmer-1"), { location: "New farmer profile\n[8.100000, 81.100000]" }));
+  await assertSucceeds(updateDoc(doc(supplierDb, "users/supplier-1"), { location: "New supplier profile\n[8.200000, 81.200000]" }));
+  const afterOrder = (await getDoc(doc(farmerDb, "orders/frozen-order"))).data();
+  assert.deepEqual(afterOrder.pickupLocation, beforeOrder.pickupLocation);
+  assert.deepEqual(afterOrder.deliveryLocation, beforeOrder.deliveryLocation);
+  await assertFails(updateDoc(doc(farmerDb, "orders/frozen-order"), { pickupLocation: "New farm\n[8.000000, 81.000000]" }));
+});
+
+test("legacy proposals can be cancelled without adding a delivery default to their backend documents", async () => {
+  await seedRequest("legacy-cancel");
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const value = orderRequestDoc("legacy-cancel");
+    delete value.deliveryLocation;
+    await setDoc(doc(context.firestore(), "order_requests/legacy-cancel"), value);
+  });
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  await assertSucceeds(updateDoc(doc(db, "order_requests/legacy-cancel"), { status: "CANCELLED", updatedAt: 3 }));
+});
+
+test("bid acceptance validates the saved delivery and atomically freezes both locations", async () => {
+  const bidId = "bid-location-snapshot";
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "bids", bidId), fullBidDoc(bidId));
+  });
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  function acceptBid(deliveryLocation) {
+    const batch = writeBatch(db);
+    batch.update(doc(db, "listings/listing-1"), { availableQuantity: 0, soldQuantity: 10, status: "FULFILLED", biddingEnabled: false });
+    batch.update(doc(db, "bids", bidId), { status: "ACCEPTED", updatedAt: 2 });
+    batch.set(doc(db, "orders", bidId), fullOrderDoc(bidId, { bidId, quantity: 10, deliveryLocation }));
+    return batch;
+  }
+  await assertFails(acceptBid("Wrong delivery\n[8.000000, 81.000000]").commit());
+  assert.equal((await getDoc(doc(db, "listings/listing-1"))).data().availableQuantity, 10);
+  await assertSucceeds(acceptBid(fullBidDoc(bidId).deliveryLocation).commit());
+  const saved = (await getDoc(doc(db, "orders", bidId))).data();
+  assert.equal(saved.pickupLocation, "North Farm\n[7.000000, 80.000000]");
+  assert.equal(saved.deliveryLocation, fullBidDoc(bidId).deliveryLocation);
 });

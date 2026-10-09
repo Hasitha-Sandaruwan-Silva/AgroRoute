@@ -23,6 +23,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +83,7 @@ fun PlaceBidScreen(
     val listingState by viewModel.listingState.collectAsStateWithLifecycle()
     val canPlaceBids by viewModel.canPlaceBids.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var deliveryLocation by rememberSaveable(listingId) { mutableStateOf("") }
 
     // Load listing details
     LaunchedEffect(listingId) {
@@ -151,6 +153,10 @@ fun PlaceBidScreen(
                     )
                 }
 
+                com.agroroute.core.components.DeliveryLocationField(deliveryLocation, { deliveryLocation = it }, !uiState.isLoading)
+                val pickupAvailable = com.agroroute.core.location.SelectedLocation.fromStoredText(listingState.getOrNull()?.location.orEmpty()) != null
+                if (!pickupAvailable) Text("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.",
+                    color = MaterialTheme.colorScheme.error)
                 LoadingButton(
                     text = "Place Bid",
                     isLoading = uiState.isLoading,
@@ -161,14 +167,16 @@ fun PlaceBidScreen(
                             supplierId = uiState.supplierId,
                             supplierName = uiState.supplierName,
                             offerPrice = bidAmount.toDoubleOrNull() ?: 0.0,
-                            message = message
+                            message = message,
+                            deliveryLocation = deliveryLocation
                         )
                         viewModel.placeBid(bid)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    enabled = bidAmount.isNotBlank()
+                    enabled = bidAmount.isNotBlank() && pickupAvailable &&
+                        com.agroroute.core.location.SelectedLocation.fromStoredText(deliveryLocation) != null
                 )
             } else {
                 Text(

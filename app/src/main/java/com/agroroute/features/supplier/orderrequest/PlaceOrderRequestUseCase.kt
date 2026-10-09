@@ -58,6 +58,10 @@ class PlaceOrderRequestUseCase @Inject constructor(
         } else if (request.requestedQuantity > listing.availableStock()) {
             return Result.Error("Requested quantity exceeds available stock")
         }
+        if (com.agroroute.core.location.SelectedLocation.fromStoredText(listing.location) == null)
+            return Result.Error("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.")
+        if (com.agroroute.core.location.SelectedLocation.fromStoredText(request.deliveryLocation) == null)
+            return Result.Error("Select a delivery location on the map before confirming your order request")
 
         return orderRequestRepository.placeOrderRequest(
             request.copy(

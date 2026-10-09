@@ -18,6 +18,8 @@ import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.recordSale
 import com.agroroute.core.model.ListingStatus
 import com.agroroute.core.model.Order
+import com.agroroute.core.model.withLocationSnapshots
+import com.agroroute.core.model.requireDeliveryLocation
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.notification.NotificationEvent
@@ -70,6 +72,7 @@ class OrderRepositoryImpl @Inject constructor(
             .catch { e -> emit(Result.Error(e.message ?: "Failed to load order", e)) }
 
     override suspend fun createOrder(order: Order): Result<Unit> = safeCall {
+        order.withLocationSnapshots(order.pickupLocation, order.deliveryLocation)
         firestoreService.set(Constants.COLLECTION_ORDERS, order.orderId, order)
         dao.upsertOrder(order)
     }
@@ -85,7 +88,7 @@ class OrderRepositoryImpl @Inject constructor(
         val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(order.bidId)
         val orderRef = firestore.collection(Constants.COLLECTION_ORDERS).document(order.orderId)
 
-        val updatedRecords = firestoreService.runTransaction<Pair<HarvestListing, Bid>> { transaction ->
+        val updatedRecords = firestoreService.runTransaction<Triple<HarvestListing, Bid, Order>> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
                 ?: error("Listing ${order.listingId} not found")
             val bid = transaction.get(bidRef).toObject(Bid::class.java)
@@ -108,15 +111,16 @@ class OrderRepositoryImpl @Inject constructor(
 
             val updatedListing = listing.recordSale(order.quantity)
             val updatedBid = bid.copy(status = BidStatus.ACCEPTED, updatedAt = System.currentTimeMillis())
+            val snapshotOrder = order.withLocationSnapshots(listing.location, bid.deliveryLocation)
             transaction.set(listingRef, updatedListing)
             transaction.set(bidRef, updatedBid)
-            transaction.set(orderRef, order)
-            updatedListing to updatedBid
+            transaction.set(orderRef, snapshotOrder)
+            Triple(updatedListing, updatedBid, snapshotOrder)
         }
 
         listingDao.upsertListing(updatedRecords.first)
         bidDao.upsertBid(updatedRecords.second)
-        dao.upsertOrder(order)
+        dao.upsertOrder(updatedRecords.third)
 
         // Accepting a bid turns a supplier's bid into an order. The supplier is the
         // recipient the farmer is not; the farmer (actorUserId) is excluded.
@@ -175,7 +179,7 @@ class OrderRepositoryImpl @Inject constructor(
                 agreedPrice = request.listedPrice,
                 status = OrderStatus.AWAITING_PICKUP,
                 pickupLocation = listing.location
-            )
+            ).withLocationSnapshots(listing.location, request.deliveryLocation)
             val updatedListing = listing.recordSale(request.requestedQuantity)
             val updatedRequest = request.copy(
                 status = OrderRequestStatus.ACCEPTED,
@@ -323,6 +327,7 @@ class OrderRepositoryImpl @Inject constructor(
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()
         check(profile?.role == UserRole.SUPPLIER && profile.userId == userId) { "Only the supplier can edit delivery location" }
         require(location.isNotBlank() && location.length <= 2000) { "Choose a valid delivery location" }
+        requireDeliveryLocation(location)
         val ref = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
         val updated = firestoreService.runTransaction<Order> { transaction ->
             val order = transaction.get(ref).toObject(Order::class.java) ?: error("Order not found")

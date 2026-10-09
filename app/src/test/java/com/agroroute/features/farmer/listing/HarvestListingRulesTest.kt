@@ -61,6 +61,7 @@ class HarvestListingRulesTest {
     @Test
     fun recordingFullSaleMarksListingUnavailable() {
         val updated = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             status = ListingStatus.OPEN,
             biddingEnabled = true,
             quantity = 7.0,
@@ -77,6 +78,7 @@ class HarvestListingRulesTest {
     @Test
     fun cancellingCommittedQuantityRestoresStockAndReopensSoldOutListing() {
         val soldOut = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             status = ListingStatus.FULFILLED,
             biddingEnabled = false,
             quantity = 8.0,
@@ -123,6 +125,7 @@ class HarvestListingRulesTest {
     @Test
     fun onlySupplierRoleCanPassBidUseCase() = runBlocking {
         val listing = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             listingId = "listing-1",
             quantity = 10.0,
             availableQuantity = 10.0
@@ -156,6 +159,7 @@ class HarvestListingRulesTest {
             bidRepository,
             FakeListingRepository(
                 HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
                     listingId = "listing-1",
                     status = ListingStatus.OPEN,
                     quantity = 10.0,
@@ -200,7 +204,7 @@ class HarvestListingRulesTest {
             cropName = "Rice",
             quantity = 8.0,
             availableQuantity = 8.0,
-            location = "North Farm"
+            location = "North Farm\n[7.000000, 80.000000]"
         )
         val orders = FakeOrderRepository()
         val bid = validBid().copy(status = BidStatus.PENDING)
@@ -223,6 +227,7 @@ class HarvestListingRulesTest {
     @Test
     fun differentFarmerCannotAcceptBidOrCreateOrder() = runBlocking {
         val listing = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             listingId = "listing-1",
             farmerId = "listing-owner",
             cropName = "Rice",
@@ -258,6 +263,7 @@ class HarvestListingRulesTest {
         val expectedHarvestAt = 1_800_000_000_000L
         val repository = FakeListingRepository(HarvestListing())
         val listing = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             listingId = "listing-date",
             farmerId = "FARMER",
             cropName = "Rice",
@@ -288,6 +294,7 @@ class HarvestListingRulesTest {
     fun turningBiddingOnPersistsAndAllowsSupplierBid() = runBlocking {
         val farmerId = "farmer-owner"
         val listing = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             listingId = "listing-1",
             farmerId = farmerId,
             status = ListingStatus.OPEN,
@@ -323,6 +330,7 @@ class HarvestListingRulesTest {
         val existingBid = validBid().copy(bidId = "existing-bid", status = BidStatus.PENDING)
         val listingRepository = FakeListingRepository(
             HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
                 listingId = "listing-1",
                 farmerId = farmerId,
                 status = ListingStatus.OPEN,
@@ -354,6 +362,7 @@ class HarvestListingRulesTest {
     fun farmerCannotChangeAnotherFarmersListingBiddingState() = runBlocking {
         val listingRepository = FakeListingRepository(
             HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
                 listingId = "listing-1",
                 farmerId = "listing-owner",
                 status = ListingStatus.OPEN,
@@ -378,6 +387,7 @@ class HarvestListingRulesTest {
         val farmerId = "farmer-owner"
         val ineligibleListings = listOf(
             HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
                 listingId = "draft-listing",
                 farmerId = farmerId,
                 biddingEnabled = false,
@@ -386,6 +396,7 @@ class HarvestListingRulesTest {
                 availableQuantity = 10.0
             ),
             HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
                 listingId = "closed-listing",
                 farmerId = farmerId,
                 status = ListingStatus.CLOSED,
@@ -394,6 +405,7 @@ class HarvestListingRulesTest {
                 availableQuantity = 10.0
             ),
             HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
                 listingId = "sold-out-listing",
                 farmerId = farmerId,
                 biddingEnabled = false,
@@ -485,6 +497,7 @@ class HarvestListingRulesTest {
     fun categoryIsRequiredBeforeListingCanBePublished() = runBlocking {
         val repository = FakeListingRepository(HarvestListing())
         val incomplete = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             listingId = "listing-1",
             farmerId = "FARMER",
             cropName = "Rice",
@@ -508,6 +521,7 @@ class HarvestListingRulesTest {
         val repository = FakeListingRepository(HarvestListing())
         val storage = FakeListingPhotoStorage()
         val listing = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             listingId = "listing-photo",
             farmerId = "farmer-uid",
             cropName = "Rice",
@@ -541,6 +555,7 @@ class HarvestListingRulesTest {
             )
         )
         val listing = HarvestListing(
+        location = "North Farm\n[7.000000, 80.000000]",
             listingId = "listing-photo",
             farmerId = "farmer-uid",
             cropName = "Rice",
@@ -604,7 +619,7 @@ class HarvestListingRulesTest {
         assertEquals(0, bids.statusUpdateCount)
     }
 
-    private fun validBid() = Bid(
+    private fun validBid() = Bid(deliveryLocation = "Warehouse\n[6.900000, 79.900000]",
         bidId = "bid-1",
         listingId = "listing-1",
         supplierId = "supplier-1",

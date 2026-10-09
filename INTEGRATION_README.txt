@@ -1,5 +1,6 @@
-﻿AgroRoute split delivery — final provider: MapLibre + MapTiler
+AgroRoute split delivery — final provider: MapLibre + MapTiler
 
+See ORDER_LOCATION_FLOW-SI.md for order-specific pickup/delivery snapshots, Room 6->7 migration, updated rules and manual checks.
 See MAPTILER_SETUP-SI.md for the current map migration, key configuration and device checks.
 See DELIVERY_REPORT-SI.md for the earlier profile/points/notification audit and delivery instructions.
 
