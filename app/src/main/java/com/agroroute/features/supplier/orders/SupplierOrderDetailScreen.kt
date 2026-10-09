@@ -192,7 +192,7 @@ private fun OrderHeroCard(order: Order) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(ForestDeep, ForestMid, ForestSoft)

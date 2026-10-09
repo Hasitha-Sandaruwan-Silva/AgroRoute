@@ -7,9 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.rounded.FormatQuote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -67,8 +64,8 @@ fun ViewBidsScreen(
                 uiState.listing?.let { listing ->
                     item {
                         Surface(
-                            modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(24.dp)),
-                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(18.dp)),
+                            shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Column {
@@ -153,7 +150,7 @@ fun ViewBidsScreen(
                             if (bestPendingBid != null) {
                                 Surface(shape = RoundedCornerShape(50.dp), color = MaterialTheme.colorScheme.primary) {
                                     Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Star, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                                        Icon(Lucide.Star, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onPrimary)
                                         Spacer(Modifier.width(4.dp))
                                         Text("Best: Rs. ${bestPendingBid.offerPrice}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                                     }
@@ -215,7 +212,7 @@ private fun SuperbBidCard(
                             Text(bid.supplierName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                             if (isBestOffer) {
                                 Spacer(Modifier.width(6.dp))
-                                Icon(Icons.Default.Star, null, tint = Color(0xFFFFA000), modifier = Modifier.size(14.dp))
+                                Icon(Lucide.Star, null, tint = Color(0xFFFFA000), modifier = Modifier.size(14.dp))
                             }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -240,7 +237,7 @@ private fun SuperbBidCard(
                 if (isBestOffer) {
                     Surface(shape = RoundedCornerShape(50.dp), color = Color(0xFFFFA000).copy(alpha = 0.15f), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFA000).copy(alpha = 0.3f))) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, null, tint = Color(0xFFFFA000), modifier = Modifier.size(14.dp))
+                            Icon(Lucide.Star, null, tint = Color(0xFFFFA000), modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Top Bid", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp, color = Color(0xFF5D4037))
                         }
@@ -256,7 +253,7 @@ private fun SuperbBidCard(
                 ) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
                         Box(Modifier.size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.FormatQuote, null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                            Icon(Lucide.Quote, null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
                         }
                         Spacer(Modifier.width(10.dp))
                         Text(bid.message, style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp, fontSize = 13.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
@@ -270,7 +267,7 @@ private fun SuperbBidCard(
                         text = "Accept This Bid",
                         isLoading = isAccepting,
                         onClick = onAcceptClick,
-                        modifier = Modifier.fillMaxWidth().height(52.dp).shadow(8.dp, RoundedCornerShape(14.dp))
+                        modifier = Modifier.fillMaxWidth().height(52.dp).shadow(2.dp, RoundedCornerShape(14.dp))
                     )
                     TextButton(onClick = onRejectClick, enabled = !isAccepting, modifier = Modifier.align(Alignment.End).heightIn(min = 40.dp)) {
                         Text("Reject bid", color = if (isAccepting) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 13.sp)

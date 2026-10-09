@@ -7,10 +7,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
+import com.agroroute.features.settings.NotificationBell
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 
@@ -84,7 +81,7 @@ fun FarmerTopBar(
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     if (!isTab) {
                         IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.size(40.dp)) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+                            Icon(imageVector = Lucide.ArrowLeft, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
                         }
                         Spacer(Modifier.width(4.dp))
                     } else {
@@ -104,19 +101,17 @@ fun FarmerTopBar(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    IconButton(onClick = { navController.navigate(Screen.NotificationInbox.route) }, modifier = Modifier.size(44.dp)) {
-                        Icon(imageVector = Lucide.Bell, contentDescription = "Open notifications", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
-                    }
+                    NotificationBell(navController = navController)
 
                     Box {
                         IconButton(onClick = { showAvatarMenu = true }, modifier = Modifier.size(44.dp)) {
-                            Icon(imageVector = Icons.Default.Person, contentDescription = "Profile", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
+                            Icon(imageVector = Lucide.User, contentDescription = "Profile", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                         }
                         DropdownMenu(expanded = showAvatarMenu, onDismissRequest = { showAvatarMenu = false }) {
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                        Icon(imageVector = Lucide.User, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                         Spacer(Modifier.width(12.dp))
                                         Text("Profile", fontWeight = FontWeight.SemiBold)
                                     }
@@ -127,7 +122,7 @@ fun FarmerTopBar(
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                                        Icon(imageVector = Lucide.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                                         Spacer(Modifier.width(12.dp))
                                         Text("Logout", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                                     }

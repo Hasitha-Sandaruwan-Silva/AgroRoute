@@ -40,7 +40,7 @@ fun PhotoPicker(
 ) {
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let {
             runCatching {
@@ -68,7 +68,7 @@ fun PhotoPicker(
                 color = MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(20.dp)
             )
-            .clickable(enabled = enabled) { launcher.launch(arrayOf("image/*")) },
+            .clickable(enabled = enabled) { launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         contentAlignment = Alignment.Center
     ) {
         if (selectedUri != null && !imageFailed) {

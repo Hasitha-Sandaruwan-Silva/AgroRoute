@@ -61,7 +61,7 @@ class CloudinaryPhotoStorage @Inject constructor(
 
 
         // 1. Validate MIME type
-        val mimeType = context.contentResolver.getType(uri)
+        val mimeType = (context.contentResolver.getType(uri) ?: if (uri.scheme == "file") android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(uri.lastPathSegment?.substringAfterLast(".")?.lowercase()) else null)
             ?.lowercase()
             ?.takeIf { it in CloudinaryConfig.ALLOWED_MIME_TYPES }
             ?: throw ListingPhotoStorageException(

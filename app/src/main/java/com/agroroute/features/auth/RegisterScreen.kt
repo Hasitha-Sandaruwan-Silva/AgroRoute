@@ -99,7 +99,7 @@ fun RegisterScreen(
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     shadowElevation = 20.dp,
                     border = BorderStroke(1.dp, Color.White.copy(0.15f))

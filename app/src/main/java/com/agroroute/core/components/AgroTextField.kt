@@ -43,12 +43,12 @@ fun AgroTextField(
         isError = isError,
         supportingText = supportingText,
         visualTransformation = visualTransformation,
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.small,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            unfocusedBorderColor = com.agroroute.core.theme.LocalAgroExtendedColors.current.inputBorder,
             focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = com.agroroute.core.theme.LocalAgroExtendedColors.current.inputContainer,
             focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
             unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),

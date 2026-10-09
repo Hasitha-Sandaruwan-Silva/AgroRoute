@@ -102,7 +102,7 @@ fun FarmerOrdersScreen(
             Box(Modifier.size(140.dp).offset(x = 200.dp, y = (-40).dp).clip(CircleShape).background(Color.White.copy(alpha = 0.07f)).align(Alignment.TopEnd))
             Box(Modifier.size(90.dp).offset(x = (-20).dp, y = 70.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.05f)).align(Alignment.BottomStart))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.20f), modifier = Modifier.size(60.dp).shadow(8.dp, CircleShape)) {
+                Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.20f), modifier = Modifier.size(60.dp).shadow(2.dp, CircleShape)) {
                     Box(contentAlignment = Alignment.Center) { Icon(imageVector = Lucide.Receipt, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp)) }
                 }
                 Spacer(Modifier.width(16.dp))
@@ -140,7 +140,7 @@ fun FarmerOrdersScreen(
                         }
                     }
 
-                    Surface(modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))) {
+                    Surface(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))) {
                         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -250,7 +250,7 @@ fun FarmerOrdersScreen(
                     when {
                         uiState.isLoading && uiState.orders.isEmpty() -> ListSkeleton()
                         uiState.orders.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Surface(modifier = Modifier.padding(20.dp).shadow(8.dp, RoundedCornerShape(24.dp)), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))) {
+                            Surface(modifier = Modifier.padding(20.dp).shadow(2.dp, RoundedCornerShape(18.dp)), shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))) {
                                 Column(Modifier.padding(vertical = 36.dp, horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Box(Modifier.size(80.dp).clip(CircleShape).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.secondaryContainer))), contentAlignment = Alignment.Center) {
                                         Icon(imageVector = Lucide.Receipt, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -300,7 +300,7 @@ private fun PremiumSummaryCard(label: String, value: String, icon: androidx.comp
 
 @Composable
 private fun OrderCard(order: Order, supplierName: String?, onCardClick: () -> Unit) {
-    Surface(onClick = onCardClick, modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(22.dp)), shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))) {
+    Surface(onClick = onCardClick, modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(22.dp)), shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {

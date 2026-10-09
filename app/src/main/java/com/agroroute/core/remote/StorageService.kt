@@ -36,7 +36,7 @@ class StorageService @Inject constructor(
      */
     suspend fun uploadImage(localUri: Uri, storagePath: String): String {
         val ref = storage.reference.child(storagePath)
-        val contentType = context.contentResolver.getType(localUri)
+        val contentType = (context.contentResolver.getType(localUri) ?: if (localUri.scheme == "file") android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(localUri.lastPathSegment?.substringAfterLast(".")?.lowercase()) else null)
             ?.takeIf { it.startsWith("image/") }
             ?: error("Unable to determine the selected image type")
         val metadata = StorageMetadata.Builder().setContentType(contentType).build()

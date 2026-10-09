@@ -17,8 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -101,7 +99,7 @@ fun SupplierProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(
                         Brush.linearGradient(
                             colors = listOf(ForestDeep, ForestMid, ForestSoft)
@@ -121,9 +119,10 @@ fun SupplierProfileScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         UserProfileAvatar(
                             displayName = displayName,
-                            imageUrl = user?.profileImageUrl,
+                            imageUrl = uiState.photoPreviewUri?.toString() ?: user?.profileImageUrl,
+                        uploading = uiState.photoUploading,
                             size = 72.dp,
-                            editable = !uiState.isLoading,
+                            editable = !uiState.isLoading && !uiState.photoUploading,
                             onPhotoSelected = viewModel::uploadProfilePhoto
                         )
                         Spacer(Modifier.width(16.dp))
@@ -160,6 +159,13 @@ fun SupplierProfileScreen(
                 }
             }
 
+            if (uiState.photoUploading) {
+                Text("Uploading profile photo...", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(12.dp))
+            } else if (uiState.photoPreviewUri != null && uiState.error != null) {
+                androidx.compose.material3.TextButton(onClick = viewModel::retryProfilePhoto) { Text("Retry photo upload") }
+            } else if (uiState.photoUploadSucceeded) {
+                Text("Profile photo updated", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(12.dp))
+            }
             uiState.error?.let { error ->
                 Surface(
                     modifier = Modifier.padding(top = 12.dp),
@@ -241,7 +247,7 @@ fun SupplierProfileScreen(
                             text = "${user?.points ?: 0} pts",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
-                            color = LeafAccent,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
@@ -328,7 +334,7 @@ fun SupplierProfileScreen(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Logout,
+                        imageVector = Lucide.Logout,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )

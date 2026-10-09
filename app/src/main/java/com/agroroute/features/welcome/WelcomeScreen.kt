@@ -1,13 +1,12 @@
 package com.agroroute.features.welcome
 
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -94,14 +93,14 @@ fun WelcomeScreen(navController: NavController) {
             Spacer(Modifier.height(28.dp))
 
             Surface(
-                modifier = Modifier.fillMaxWidth().height(56.dp).shadow(12.dp, RoundedCornerShape(50.dp)),
+                modifier = Modifier.fillMaxWidth().height(56.dp).shadow(2.dp, RoundedCornerShape(50.dp)),
                 shape = RoundedCornerShape(50.dp),
                 color = Color(0xFF8BC34A),
                 onClick = { navController.navigate(Screen.Register.route) { launchSingleTop = true } }
             ) {
                 Row(Modifier.fillMaxSize().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(modifier = Modifier.size(44.dp), shape = CircleShape, color = Color.Black) {
-                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Filled.ArrowForward, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
+                        Box(contentAlignment = Alignment.Center) { Icon(Lucide.ArrowRight, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
                     }
                     Spacer(Modifier.weight(1f))
                     Text("Get Started", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)

@@ -59,7 +59,7 @@ fun HarvestCalendarScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Surface(
-                        modifier = Modifier.size(80.dp).shadow(8.dp, CircleShape),
+                        modifier = Modifier.size(80.dp).shadow(2.dp, CircleShape),
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
@@ -74,7 +74,7 @@ fun HarvestCalendarScreen(
                         onClick = { navController.navigate(Screen.CreateListing.route) },
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.height(48.dp).shadow(6.dp, RoundedCornerShape(14.dp))
+                        modifier = Modifier.height(48.dp).shadow(2.dp, RoundedCornerShape(14.dp))
                     ) {
                         Icon(Lucide.Plus, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -125,7 +125,7 @@ fun HarvestCalendarScreen(
 @Composable
 private fun PremiumHarvestCard(listing: HarvestListing) {
     Surface(
-        modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.06f), spotColor = Color.Black.copy(alpha = 0.06f)),
+        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.06f), spotColor = Color.Black.copy(alpha = 0.06f)),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))

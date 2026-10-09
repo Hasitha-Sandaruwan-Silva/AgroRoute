@@ -98,7 +98,7 @@ fun FarmerOrderDetailScreen(
                     OrderHeroCard(order = uiState.selectedOrder!!)
 
                     Surface(
-                        modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp)),
+                        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)),
                         shape = RoundedCornerShape(20.dp),
                         color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
@@ -120,7 +120,7 @@ fun FarmerOrderDetailScreen(
                     com.agroroute.core.components.OrderLocationSection(uiState.selectedOrder!!, forSupplier = false)
 
                     Surface(
-                        modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp)),
+                        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)),
                         shape = RoundedCornerShape(20.dp),
                         color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
@@ -160,7 +160,7 @@ fun FarmerOrderDetailScreen(
                         OrderStatus.IN_TRANSIT -> Button(
                             onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.CANCELLED) },
                             enabled = !uiState.isLoading,
-                            modifier = Modifier.fillMaxWidth().height(56.dp).shadow(8.dp, RoundedCornerShape(18.dp)),
+                            modifier = Modifier.fillMaxWidth().height(56.dp).shadow(2.dp, RoundedCornerShape(18.dp)),
                             shape = RoundedCornerShape(18.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
                         ) {
@@ -212,8 +212,8 @@ fun FarmerOrderDetailScreen(
             }
             else -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Surface(
-                    modifier = Modifier.padding(20.dp).shadow(12.dp, RoundedCornerShape(28.dp)),
-                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier.padding(20.dp).shadow(2.dp, RoundedCornerShape(18.dp)),
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
                 ) {
@@ -236,8 +236,8 @@ private fun OrderHeroCard(order: Order) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(16.dp, RoundedCornerShape(28.dp))
-            .clip(RoundedCornerShape(28.dp))
+            .shadow(2.dp, RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(Brush.linearGradient(listOf(ForestDeep, ForestMid, ForestSoft)))
     ) {
         Box(Modifier.size(180.dp).offset(x = 120.dp, y = (-40).dp).clip(CircleShape).background(Color.White.copy(alpha = 0.07f)).align(Alignment.TopEnd))
@@ -308,7 +308,7 @@ private fun OrderHeroCard(order: Order) {
 @Composable
 private fun OrderDetailCard(order: Order) {
     Surface(
-        modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(20.dp)),
+        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))

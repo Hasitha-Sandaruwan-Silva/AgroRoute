@@ -120,7 +120,7 @@ private fun LeaderboardHeader(role: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(
                     colors = listOf(ForestDeep, ForestMid, ForestSoft)
@@ -204,7 +204,8 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = when (rank) {
-                        1 -> Color.White
+                        1 -> com.agroroute.core.theme.GreenDeep
+                        2, 3 -> com.agroroute.core.theme.GreenDeep
                         else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
@@ -240,7 +241,7 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
                     Icon(
                         imageVector = Lucide.Star,
                         contentDescription = null,
-                        tint = LeafAccent,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(Modifier.width(4.dp))
@@ -259,7 +260,7 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
                     text = "${item.user.points} pts",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = LeafAccent
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

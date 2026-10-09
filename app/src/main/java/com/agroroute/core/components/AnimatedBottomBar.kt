@@ -57,8 +57,8 @@ fun AnimatedBottomBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(32.dp),
-        shadowElevation = 8.dp,
+        shape = RoundedCornerShape(20.dp),
+        shadowElevation = 2.dp,
         color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
@@ -77,6 +77,7 @@ fun AnimatedBottomBar(
                     selectedRoute.startsWith(item.route.substringBefore("{"))
 
                 BottomBarItem(
+                    modifier = Modifier.weight(1f),
                     item = item,
                     selected = selected,
                     onClick = { onItemSelected(item) }
@@ -89,6 +90,7 @@ fun AnimatedBottomBar(
 @Composable
 private fun BottomBarItem(
     item: BottomNavItem,
+    modifier: Modifier = Modifier,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -115,9 +117,9 @@ private fun BottomBarItem(
 
     val interactionSource = remember { MutableInteractionSource() }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+    androidx.compose.foundation.layout.Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
             .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(percent = 50))
             .background(pillColor)
@@ -126,7 +128,7 @@ private fun BottomBarItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 4.dp, vertical = 6.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
@@ -139,16 +141,18 @@ private fun BottomBarItem(
             )
         }
         AnimatedVisibility(
-            visible = selected,
+            visible = true,
             enter = fadeIn() + expandHorizontally(),
             exit = fadeOut() + shrinkHorizontally()
         ) {
             Text(
                 text = item.label,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 color = labelColor,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }

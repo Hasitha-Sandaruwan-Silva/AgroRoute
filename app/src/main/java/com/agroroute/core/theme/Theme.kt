@@ -39,7 +39,13 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = SurfaceVariant,
     onSurfaceVariant = TextSecondary,
     outline = OutlineGreen,
-    outlineVariant = OutlineSoft
+    outlineVariant = OutlineSoft,
+    surfaceTint = GreenEmerald,
+    surfaceContainerHighest = SurfaceVariant,
+    surfaceContainerHigh = Color(0xFFECEFE8),
+    surfaceContainer = Color(0xFFF0F3EC),
+    surfaceContainerLow = SoftMintBg,
+    surfaceContainerLowest = PureWhite
 )
 
 // Applied whenever the system (or caller) asks for dark mode
@@ -48,8 +54,8 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = GreenDeep,
     primaryContainer = DarkSurface2,
     onPrimaryContainer = MintAccent,
-    secondary = GreenEmerald,
-    onSecondary = GreenDeep,
+    secondary = Color(0xFFD8BF91),
+    onSecondary = Color(0xFF382C18),
     secondaryContainer = DarkSurface2,
     onSecondaryContainer = MintAccent,
     tertiary = MintAccent,
@@ -67,7 +73,13 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = DarkSurface2,
     onSurfaceVariant = DarkTextSecondary,
     outline = DarkOutline,
-    outlineVariant = DarkOutline
+    outlineVariant = DarkCardBorder,
+    surfaceTint = MintAccent,
+    surfaceContainerHighest = DarkSurface2,
+    surfaceContainerHigh = Color(0xFF253129),
+    surfaceContainer = DarkSurface,
+    surfaceContainerLow = Color(0xFF19221C),
+    surfaceContainerLowest = DarkBg
 )
 
 /**
@@ -90,8 +102,8 @@ val AgroShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
     small = RoundedCornerShape(14.dp),
     medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    large = RoundedCornerShape(18.dp),
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 /** Pill shape for buttons and chips. */
@@ -108,8 +120,8 @@ object AgroRadius {
     val xs = 10.dp
     val sm = 14.dp
     val md = 18.dp
-    val lg = 24.dp
-    val xl = 28.dp
+    val lg = 18.dp
+    val xl = 24.dp
     val hero = 30.dp
     // Tinted icon containers scale with the icon they hold.
     val iconSm = 12.dp
@@ -132,7 +144,7 @@ object AgroSpacing {
     val gutter = 16.dp
 
     /** Inner padding of an [com.agroroute.core.components.AppCard]. */
-    val cardPadding = 20.dp
+    val cardPadding = 16.dp
 
     /** Gap between a section header and the content it introduces. */
     val sectionGap = 12.dp

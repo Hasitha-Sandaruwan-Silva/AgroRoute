@@ -56,6 +56,7 @@ import com.agroroute.core.components.StatCardsSkeleton
 import com.agroroute.core.components.UserProfileAvatar
 import com.agroroute.features.supplier.marketplace.MarketplaceViewModel
 import com.agroroute.features.supplier.orders.SupplierOrderViewModel
+import com.agroroute.features.settings.NotificationBell
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 
@@ -97,7 +98,7 @@ fun SupplierHomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(
                         Brush.linearGradient(
                             colors = listOf(ForestDeep, ForestMid, ForestSoft)
@@ -161,20 +162,11 @@ fun SupplierHomeScreen(
                             onClick = { navController.navigate(Screen.SupplierProfile.route) }
                         )
                         Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { navController.navigate(Screen.NotificationInbox.route) },
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.12f))
-                        ) {
-                            Icon(
-                                imageVector = Lucide.Bell,
-                                contentDescription = "Open notifications",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        NotificationBell(
+                            navController = navController,
+                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.12f)),
+                            tint = Color.White
+                        )
                     }
 
                     Spacer(Modifier.height(20.dp))

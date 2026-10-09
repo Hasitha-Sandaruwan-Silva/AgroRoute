@@ -15,6 +15,11 @@ fun SupplierScaffold(
     onNavigate: (String) -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    // History owns its app bar and insets for both roles; avoid nested shell padding.
+    if (currentRoute == com.agroroute.core.navigation.Screen.NotificationInbox.route) {
+        content(PaddingValues())
+        return
+    }
     val showTopBar = currentRoute in supplierRoutes
     val showBottomBar = currentRoute in supplierTabRoutes
 

@@ -7,9 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +30,7 @@ import com.agroroute.core.components.AgroSnackbarHost
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ShimmerBox
 import com.agroroute.core.components.UserProfileAvatar
+import com.agroroute.features.settings.NotificationBell
 import com.agroroute.features.auth.AuthViewModel
 import com.agroroute.features.farmer.listing.ListingViewModel
 import com.agroroute.features.farmer.orders.FarmerOrderViewModel
@@ -86,7 +84,7 @@ fun FarmerHomeScreen(
             // Greeting, current profile contact, notifications and profile shortcut.
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp).shadow(6.dp, CircleShape)) {
+                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp).shadow(2.dp, CircleShape)) {
                         Box(contentAlignment = Alignment.Center) { Icon(Lucide.User, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp)) }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
@@ -107,9 +105,7 @@ fun FarmerHomeScreen(
                         )
                     }
                 }
-                IconButton(onClick = { navController.navigate(Screen.NotificationInbox.route) }) {
-                    Icon(Lucide.Bell, contentDescription = "Open notifications", tint = MaterialTheme.colorScheme.primary)
-                }
+                NotificationBell(navController, tint = MaterialTheme.colorScheme.primary)
                 UserProfileAvatar(
                     displayName = authState.user?.displayName ?: "Farmer",
                     imageUrl = authState.user?.profileImageUrl,
@@ -125,8 +121,8 @@ fun FarmerHomeScreen(
             } else {
                 // FARM OVERVIEW - LINKED TO MY LISTINGS
                 Surface(
-                    modifier = Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(28.dp)).clickable { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
-                    shape = RoundedCornerShape(28.dp), color = ForestMid
+                    modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(18.dp)).clickable { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
+                    shape = RoundedCornerShape(18.dp), color = ForestMid
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -166,7 +162,7 @@ fun FarmerHomeScreen(
 
             // POINTS - LINKED TO LEADERBOARD
             Surface(
-                modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)).clickable { navController.navigate(Screen.FarmerLeaderboard.route) },
+                modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)).clickable { navController.navigate(Screen.FarmerLeaderboard.route) },
                 shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -188,7 +184,7 @@ fun FarmerHomeScreen(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 ActionCard(modifier = Modifier.weight(1f), title = "New\nListing", icon = Lucide.Plus, bg = MaterialTheme.colorScheme.primary) { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) }
-                ActionCard(modifier = Modifier.weight(1f), title = "My\nListings", icon = Icons.Filled.List, bg = ForestMid) { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) }
+                ActionCard(modifier = Modifier.weight(1f), title = "My\nListings", icon = Lucide.List, bg = ForestMid) { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) }
             }
             Spacer(modifier = Modifier.height(14.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -206,7 +202,7 @@ fun FarmerHomeScreen(
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(24.dp))
+                        Icon(Lucide.Clock, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(24.dp))
                     }
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -227,7 +223,7 @@ fun FarmerHomeScreen(
 @Composable
 private fun ActionCard(modifier: Modifier, title: String, icon: ImageVector, bg: Color, onClick: () -> Unit) {
     Surface(
-        modifier = modifier.height(110.dp).shadow(6.dp, RoundedCornerShape(20.dp)).clickable(onClick = onClick),
+        modifier = modifier.height(110.dp).shadow(2.dp, RoundedCornerShape(20.dp)).clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface
     ) {

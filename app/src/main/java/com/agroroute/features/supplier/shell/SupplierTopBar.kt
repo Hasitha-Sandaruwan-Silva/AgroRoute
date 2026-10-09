@@ -20,9 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.github.thelacspace.icons.Lucide
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
+import com.agroroute.features.settings.NotificationBell
 import com.agroroute.features.auth.AuthViewModel
 
 @Composable
@@ -166,6 +164,8 @@ fun SupplierTopBar(
                     }
                 }
 
+                NotificationBell(navController = navController)
+
                 // ─── Right Section: Profile Avatar + Dropdown ───
                 Box {
                     Box(
@@ -182,7 +182,7 @@ fun SupplierTopBar(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Person,
+                            imageVector = Lucide.User,
                             contentDescription = "Profile",
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(24.dp)
@@ -206,7 +206,7 @@ fun SupplierTopBar(
                                     modifier = Modifier.height(24.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.Person,
+                                        Lucide.User,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
@@ -237,7 +237,7 @@ fun SupplierTopBar(
                                     modifier = Modifier.height(24.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.Logout,
+                                        Lucide.Logout,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(20.dp)

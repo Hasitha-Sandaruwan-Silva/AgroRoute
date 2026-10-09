@@ -1,5 +1,6 @@
 package com.agroroute.core.components
 
+import com.github.thelacspace.icons.Lucide
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -7,8 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -103,7 +102,7 @@ fun ProfilePhoneContact(
                     }
                 }
             ) {
-                Icon(Icons.Default.Call, contentDescription = null)
+                Icon(Lucide.Phone, contentDescription = null)
                 Spacer(Modifier.width(6.dp))
                 Text("Call", fontSize = 13.sp)
             }

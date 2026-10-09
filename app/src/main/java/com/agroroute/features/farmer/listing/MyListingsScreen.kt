@@ -99,7 +99,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.shadow(12.dp, RoundedCornerShape(16.dp))
+                    modifier = Modifier.shadow(2.dp, RoundedCornerShape(16.dp))
                 )
             },
             snackbarHost = { AgroSnackbarHost(snackbarHostState) },
@@ -292,8 +292,8 @@ private fun SuperbListingCard(
 ) {
     val isFailed = listing.harvestStatus == HarvestStatus.FAILED
     Surface(
-        modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surface,
         onClick = onCardClick
     ) {
@@ -342,6 +342,24 @@ private fun SuperbListingCard(
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Category", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(listing.category?.displayName ?: "-", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+                if (listing.status == ListingStatus.OPEN) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Allow bidding", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        if (isBiddingUpdating) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Switch(checked = listing.biddingEnabled, onCheckedChange = onToggleBidding, enabled = !isBiddingUpdating)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onEditClick, modifier = Modifier.weight(1f)) {
+                        Icon(Lucide.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Edit listing")
+                    }
+                    if (listing.status == ListingStatus.OPEN) {
+                        TextButton(onClick = onCloseClick) { Text("Close", color = MaterialTheme.colorScheme.error) }
                     }
                 }
                 if (listing.harvestStatus == HarvestStatus.EXPECTED) {

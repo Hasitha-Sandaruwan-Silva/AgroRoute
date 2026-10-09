@@ -25,6 +25,9 @@ data class AuthUiState(
     val requiresGoogleRole: Boolean = false,
     val sessionResolved: Boolean = false,
     val error: String? = null,
+    val photoUploading: Boolean = false,
+    val photoPreviewUri: Uri? = null,
+    val photoUploadSucceeded: Boolean = false,
     val passwordResetSent: Boolean = false
 )
 
@@ -161,7 +164,7 @@ class AuthViewModel @Inject constructor(
     }
 
     fun updateProfile(profile: UserProfile, onSuccess: () -> Unit = {}) {
-        if (_uiState.value.isLoading) return
+        if (_uiState.value.isLoading || _uiState.value.photoUploading) return
         val current = _uiState.value.user ?: return showError("Sign in to update your profile")
         val safeProfile = profile.copy(
             userId = current.userId,
@@ -184,25 +187,30 @@ class AuthViewModel @Inject constructor(
     }
 
     fun uploadProfilePhoto(uri: Uri) {
-        if (_uiState.value.isLoading) return
+        if (_uiState.value.photoUploading || _uiState.value.isLoading) return
         val current = _uiState.value.user ?: return showError("Sign in to update your profile photo")
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(photoUploading = true, photoPreviewUri = uri, photoUploadSucceeded = false, error = null) }
             try {
                 val url = storageService.upload(uri, current.userId)
-                val updated = current.copy(profileImageUrl = url)
+                val updated = (_uiState.value.user ?: current).copy(profileImageUrl = url)
                 when (val result = authRepository.updateProfile(updated)) {
-                    is Result.Success -> _uiState.update { it.copy(isLoading = false, user = updated) }
-                    is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                    is Result.Success -> _uiState.update { it.copy(user = updated, photoPreviewUri = null, photoUploadSucceeded = true) }
+                    is Result.Error -> _uiState.update { it.copy(error = result.message ?: "Photo uploaded, but your profile could not be saved. Try again.") }
                     Result.Loading -> Unit
                 }
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
             } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(isLoading = false, error = error.message ?: "Could not upload the profile photo")
-                }
+                android.util.Log.e("ProfilePhoto", "Profile photo upload failed", error)
+                _uiState.update { it.copy(error = error.cause?.message ?: error.message ?: "Could not upload the profile photo. Check your connection and retry.") }
+            } finally {
+                _uiState.update { it.copy(photoUploading = false) }
             }
         }
     }
+
+    fun retryProfilePhoto() { _uiState.value.photoPreviewUri?.let(::uploadProfilePhoto) }
 
     fun clearError() = _uiState.update { it.copy(error = null) }
 

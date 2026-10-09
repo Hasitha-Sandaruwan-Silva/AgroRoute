@@ -129,7 +129,7 @@ fun LoginScreen(
                 // GLASS CARD
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     shadowElevation = 20.dp,
                     border = BorderStroke(1.dp, Color.White.copy(0.15f))
@@ -201,7 +201,7 @@ fun LoginScreen(
 
     if (showPasswordResetDialog) {
         Dialog(onDismissRequest = { showPasswordResetDialog = false }, properties = DialogProperties(dismissOnClickOutside = true)) {
-            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                 Column(Modifier.padding(24.dp)) {
                     Text("Reset Password", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                     Spacer(Modifier.height(8.dp))

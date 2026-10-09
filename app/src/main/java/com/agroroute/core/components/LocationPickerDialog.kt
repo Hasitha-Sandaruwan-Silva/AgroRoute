@@ -1,5 +1,6 @@
 package com.agroroute.core.components
 
+import com.github.thelacspace.icons.Lucide
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -8,11 +9,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -118,7 +114,7 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
     }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = Color(0xFFF1F5F2)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
                 val panelMaxHeight = maxHeight * 0.55f
                 Column(Modifier.fillMaxSize()) {
@@ -126,11 +122,11 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                         LocationMap(location = selected.takeIf { hasSelection }, currentFix = currentFix,
                             focusRequest = focusRequest, onSelect = { select(it, focus = false) },
                             modifier = Modifier.fillMaxSize())
-                        Surface(onClick = onDismiss, shape = CircleShape, color = Color.White, shadowElevation = 4.dp,
+                        Surface(onClick = onDismiss, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp,
                             modifier = Modifier.align(Alignment.TopStart).padding(16.dp).size(48.dp)) {
-                            Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                            Box(contentAlignment = Alignment.Center) { Icon(Lucide.ArrowLeft, "Back") }
                         }
-                        Surface(shape = RoundedCornerShape(24.dp), color = Color.White.copy(alpha = 0.95f),
+                        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface,
                             modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)) {
                             Text("Tap to place a pin", style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
@@ -138,22 +134,22 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                         Surface(onClick = {
                             if (services.hasPermission()) locate() else permissionLauncher.launch(arrayOf(
                                 Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-                        }, shape = CircleShape, color = Color.White, shadowElevation = 4.dp,
+                        }, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp,
                             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(52.dp)) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (locating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-                                else Icon(Icons.Default.MyLocation, "Go to my current location", tint = MaterialTheme.colorScheme.primary)
+                                else Icon(Lucide.MyLocation, "Go to my current location", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
 
                     }
-                    Surface(shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), color = Color.White,
-                        shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth().heightIn(max = panelMaxHeight)) {
+                    Surface(shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth().heightIn(max = panelMaxHeight)) {
                         Column(Modifier.padding(20.dp)) {
                             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary)
                                     Text("Choose your location", style = MaterialTheme.typography.titleLarge)
                                 }
                                 Text(if (hasSelection) label.ifBlank { "Address unavailable — enter a place name below" }
@@ -164,7 +160,7 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                                     trailingIcon = {
                                         IconButton(onClick = { search() }, enabled = query.isNotBlank() && !searching) {
                                             if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                                            else Icon(Icons.Default.Search, "Search")
+                                            else Icon(Lucide.Search, "Search")
                                         }
                                     })
                                 results.forEach { result ->

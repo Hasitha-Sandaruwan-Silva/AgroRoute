@@ -96,7 +96,7 @@ fun FarmerProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(
                         Brush.linearGradient(listOf(ForestDeep, ForestMid, ForestSoft))
                     )
@@ -108,9 +108,10 @@ fun FarmerProfileScreen(
                 ) {
                     UserProfileAvatar(
                         displayName = displayName,
-                        imageUrl = user?.profileImageUrl,
+                        imageUrl = uiState.photoPreviewUri?.toString() ?: user?.profileImageUrl,
+                        uploading = uiState.photoUploading,
                         size = 88.dp,
-                        editable = !uiState.isLoading,
+                        editable = !uiState.isLoading && !uiState.photoUploading,
                         onPhotoSelected = viewModel::uploadProfilePhoto
                     )
                     Spacer(Modifier.height(16.dp))
@@ -133,6 +134,13 @@ fun FarmerProfileScreen(
                     Spacer(Modifier.height(12.dp))
                     RoleBadge(role = role)
                 }
+            }
+            if (uiState.photoUploading) {
+                Text("Uploading profile photo...", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(12.dp))
+            } else if (uiState.photoPreviewUri != null && uiState.error != null) {
+                androidx.compose.material3.TextButton(onClick = viewModel::retryProfilePhoto) { Text("Retry photo upload") }
+            } else if (uiState.photoUploadSucceeded) {
+                Text("Profile photo updated", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(12.dp))
             }
             uiState.error?.let { error ->
                 Surface(
@@ -220,7 +228,7 @@ fun FarmerProfileScreen(
                             text = "${user?.points ?: 0} pts",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
-                            color = LeafAccent,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }

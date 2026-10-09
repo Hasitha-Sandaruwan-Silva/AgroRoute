@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -48,12 +50,13 @@ fun UserProfileAvatar(
     imageUrl: String?,
     size: Dp = 72.dp,
     editable: Boolean = false,
+    uploading: Boolean = false,
     onClick: (() -> Unit)? = null,
     onPhotoSelected: (Uri) -> Unit = {}
 ) {
     val context = LocalContext.current
     var imageFailed by remember(imageUrl) { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(
@@ -73,10 +76,16 @@ fun UserProfileAvatar(
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primaryContainer)
             .clickable(enabled = editable || onClick != null) {
-                if (editable) launcher.launch(arrayOf("image/*")) else onClick?.invoke()
+                if (editable) launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) else onClick?.invoke()
             },
         contentAlignment = Alignment.Center
     ) {
+        Text(
+            text = initials,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
         if (!imageUrl.isNullOrBlank() && !imageFailed) {
             AsyncImage(
                 model = imageUrl,
@@ -85,13 +94,11 @@ fun UserProfileAvatar(
                 modifier = Modifier.matchParentSize(),
                 onError = { imageFailed = true }
             )
-        } else {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+        }
+        if (uploading) {
+            Box(Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+            }
         }
         if (editable) {
             Surface(
@@ -101,7 +108,7 @@ fun UserProfileAvatar(
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Edit, contentDescription = "Change profile photo", modifier = Modifier.size(14.dp))
+                    Icon(com.github.thelacspace.icons.Lucide.Camera, contentDescription = "Change profile photo", modifier = Modifier.size(14.dp))
                 }
             }
         }
@@ -133,7 +140,7 @@ fun ProfileEditDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         title = { Text("Edit profile", fontWeight = FontWeight.Bold) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = editedName,
                     onValueChange = { editedName = it },
