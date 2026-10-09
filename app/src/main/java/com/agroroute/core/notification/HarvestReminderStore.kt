@@ -15,14 +15,15 @@ class HarvestReminderStore @Inject constructor(
 ) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun upsert(listingId: String, cropName: String, expectedHarvestAt: Long) {
+    fun upsert(listingId: String, cropName: String, expectedHarvestAt: Long, farmerId: String) {
         prefs.edit {
             putString(key(listingId), "$expectedHarvestAt|$cropName")
+            putString("owner_$listingId", farmerId)
         }
     }
 
     fun remove(listingId: String) {
-        prefs.edit { remove(key(listingId)) }
+        prefs.edit { remove(key(listingId)); remove("owner_$listingId") }
     }
 
     fun all(): List<StoredHarvestReminder> =
@@ -34,7 +35,7 @@ class HarvestReminderStore @Inject constructor(
             if (sep <= 0) return@mapNotNull null
             val harvestAt = raw.substring(0, sep).toLongOrNull() ?: return@mapNotNull null
             val cropName = raw.substring(sep + 1)
-            StoredHarvestReminder(listingId, cropName, harvestAt)
+            StoredHarvestReminder(listingId, cropName, harvestAt, prefs.getString("owner_$listingId", null))
         }
 
     private fun key(listingId: String) = KEY_PREFIX + listingId
@@ -48,5 +49,6 @@ class HarvestReminderStore @Inject constructor(
 data class StoredHarvestReminder(
     val listingId: String,
     val cropName: String,
-    val expectedHarvestAt: Long
+    val expectedHarvestAt: Long,
+    val farmerId: String? = null
 )

@@ -62,7 +62,8 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.userId == userId
-        && request.resource.data.role in ['FARMER', 'SUPPLIER'];
+        && request.resource.data.role in ['FARMER', 'SUPPLIER']
+        && request.resource.data.get('points', 0) == 0;
       allow update: if signedIn()
         && resource.data.userId == userId
         && request.resource.data.userId == userId
@@ -73,10 +74,6 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               'displayName', 'email', 'phone', 'profileImageUrl', 'location'
             ]))
-          // Points increment by 1 during order completion
-          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points'])
-            && request.resource.data.points == resource.data.get('points', 0) + 1
-            && resource.data.get('points', 0) >= 0)
         );
       allow delete: if false;
     }
@@ -313,7 +310,14 @@ service cloud.firestore {
         && request.resource.data.listingId == resource.data.listingId
         && request.resource.data.farmerId == resource.data.farmerId
         && request.resource.data.supplierId == resource.data.supplierId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          || (supplier() && resource.data.supplierId == request.auth.uid
+            && resource.data.status in ['AWAITING_PICKUP', 'IN_TRANSIT']
+            && request.resource.data.status == resource.data.status
+            && request.resource.data.deliveryLocation is string
+            && request.resource.data.deliveryLocation.size() > 0
+            && request.resource.data.deliveryLocation.size() <= 2000
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryLocation', 'updatedAt'])))
         && (
           request.resource.data.status == resource.data.status
           || (resource.data.status == 'AWAITING_PICKUP'
@@ -325,10 +329,6 @@ service cloud.firestore {
             && ((farmer() && resource.data.farmerId == request.auth.uid)
               || (supplier() && resource.data.supplierId == request.auth.uid)))
           || (resource.data.status == 'IN_TRANSIT'
-            && request.resource.data.status == 'DELIVERED'
-            && supplier()
-            && resource.data.supplierId == request.auth.uid)
-          || (resource.data.status == 'IN_TRANSIT'
             && request.resource.data.status == 'CANCELLED'
             && ((farmer() && resource.data.farmerId == request.auth.uid)
               || (supplier() && resource.data.supplierId == request.auth.uid)))
@@ -338,25 +338,9 @@ service cloud.firestore {
     }
 
     match /order_completion_records/{recordId} {
-      // Creation only allowed when order is being marked as delivered (in transaction)
-      allow create: if signedIn()
-        && request.resource.data.orderId == recordId
-        && exists(/databases/$(database)/documents/orders/$(recordId))
-        && (get(/databases/$(database)/documents/orders/$(recordId)).data.status == 'DELIVERED'
-          || getAfter(/databases/$(database)/documents/orders/$(recordId)).data.status == 'DELIVERED')
-        && request.resource.data.farmerId == get(/databases/$(database)/documents/orders/$(recordId)).data.farmerId
-        && request.resource.data.supplierId == get(/databases/$(database)/documents/orders/$(recordId)).data.supplierId
-        // Only supplier can trigger this (they mark order as delivered)
-        && supplier()
-        && get(/databases/$(database)/documents/orders/$(recordId)).data.supplierId == request.auth.uid
-        // Only allow creation if record doesn't exist (idempotency)
-        && !exists(/databases/$(database)/documents/order_completion_records/$(recordId));
-      // No reads needed from client - internal collection
-      allow get, list: if false;
-      // No updates or deletes
-      allow update, delete: if false;
+      // Only the trusted completeOrder callable writes completion receipts and points.
+      allow read, write: if false;
     }
-
     match /reviews/{reviewId} {
       allow get, list: if signedIn();
 

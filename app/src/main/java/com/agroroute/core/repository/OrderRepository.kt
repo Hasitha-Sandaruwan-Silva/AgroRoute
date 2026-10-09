@@ -31,6 +31,9 @@ interface OrderRepository {
     /** Updates the [OrderStatus] for an existing order. */
     suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit>
 
+    /** Supplier selects the delivery address while the order is awaiting pickup/in transit. */
+    suspend fun updateDeliveryLocation(orderId: String, location: String): Result<Unit>
+
     /** Fetches all orders for a user from Firestore and refreshes Room cache. */
     suspend fun syncOrders(userId: String): Result<Unit>
 }

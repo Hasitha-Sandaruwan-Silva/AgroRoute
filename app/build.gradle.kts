@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,13 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
+
+val localConfig = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+val mapTilerApiKey = localConfig.getProperty("MAPTILER_API_KEY", "").trim()
+val mapTilerKeyLiteral = "\"" + mapTilerApiKey.replace("\\", "\\\\").replace("\"", "\\\"")
+    .replace("\r", "\\r").replace("\n", "\\n") + "\""
 
 android {
     namespace = "com.agroroute"
@@ -21,6 +30,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "MAPTILER_API_KEY", mapTilerKeyLiteral)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,6 +56,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {
@@ -119,6 +130,7 @@ dependencies {
 
     // ── OkHttp (Cloudinary unsigned multipart upload — no API secret) ─────────
     implementation(libs.okhttp)
+    implementation("org.maplibre.gl:android-sdk:11.8.0")
 
     // ── Testing ───────────────────────────────────────────────────────────────
     testImplementation(libs.junit)

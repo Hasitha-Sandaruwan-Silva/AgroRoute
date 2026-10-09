@@ -5,9 +5,8 @@ package com.agroroute.core.util
  *
  * These are **upload-only** settings, not secrets:
  *  - [CLOUD_NAME] is visible in every Cloudinary URL.
- *  - [UNSIGNED_PRESET] is an unsigned preset that grants write-only access to
- *    a restricted folder; it does NOT allow reading, transforming, or deleting
- *    files from a normal app client.
+ *  - [UNSIGNED_PRESET] permits uploads using restrictions configured in the Console.
+ *    Public image URLs remain readable. A preset is not authentication or a private ACL.
  *
  * ⚠️  Never add a Cloudinary API Secret or API Key to this file or anywhere
  *     in the Android source tree.  Unsigned presets are the correct approach
@@ -26,6 +25,9 @@ object CloudinaryConfig {
      * It must be set to "Unsigned" and scoped to the listing-photos folder.
      */
     const val UNSIGNED_PRESET = "agroroute_listing_photos"
+
+    /** Optional non-secret preset copied from your Cloudinary Console; blank keeps Firebase avatar storage. */
+    const val PROFILE_UNSIGNED_PRESET = ""
 
     /** Cloudinary unsigned upload endpoint. */
     val UPLOAD_URL get() = "https://api.cloudinary.com/v1_1/$CLOUD_NAME/image/upload"

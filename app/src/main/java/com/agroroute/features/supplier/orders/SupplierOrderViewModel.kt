@@ -146,4 +146,16 @@ class SupplierOrderViewModel @Inject constructor(
     }
 
     fun clearError() = _uiState.update { it.copy(error = null) }
+
+    fun updateDeliveryLocation(orderId: String, location: String) {
+        if (_uiState.value.isLoading) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = orderRepository.updateDeliveryLocation(orderId, location)) {
+                is Result.Success -> _uiState.update { it.copy(isLoading = false) }
+                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                Result.Loading -> Unit
+            }
+        }
+    }
 }

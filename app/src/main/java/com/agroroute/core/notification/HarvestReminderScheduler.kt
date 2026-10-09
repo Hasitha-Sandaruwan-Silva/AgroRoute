@@ -67,7 +67,7 @@ class HarvestReminderScheduler @Inject constructor(
         context.getSystemService(AlarmManager::class.java)
             .setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminderAt, pendingIntent)
 
-        store.upsert(listing.listingId, listing.cropName, harvestAt)
+        store.upsert(listing.listingId, listing.cropName, harvestAt, listing.farmerId)
     }
 
     fun cancel(listingId: String) {
@@ -91,6 +91,8 @@ class HarvestReminderScheduler @Inject constructor(
         if (!NotificationHelper.areNotificationsEnabled(context)) return
         val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
         store.all().forEach { reminder ->
+            // Older ownerless reminders are recreated by listing sync. Never assign them to a different account.
+            if (reminder.farmerId != currentUserId) return@forEach
             val reminderAt = HarvestReminderTime.reminderEpochMillis(reminder.expectedHarvestAt)
             if (reminderAt == null) {
                 store.remove(reminder.listingId)

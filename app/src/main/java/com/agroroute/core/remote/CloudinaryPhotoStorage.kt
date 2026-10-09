@@ -52,8 +52,13 @@ class CloudinaryPhotoStorage @Inject constructor(
         localUri: String,
         farmerId: String,
         listingId: String
-    ): String = withContext(Dispatchers.IO) {
-        val uri = Uri.parse(localUri)
+    ): String = uploadPhoto(Uri.parse(localUri), "listing_photos/$farmerId/$listingId", CloudinaryConfig.UNSIGNED_PRESET)
+
+    suspend fun uploadPhoto(uri: Uri, prefix: String, preset: String): String = withContext(Dispatchers.IO) {
+        require(CloudinaryConfig.CLOUD_NAME.isNotBlank() && preset.isNotBlank()) {
+            "Configure the Cloudinary cloud name and unsigned upload preset first."
+        }
+
 
         // 1. Validate MIME type
         val mimeType = context.contentResolver.getType(uri)
@@ -70,7 +75,14 @@ class CloudinaryPhotoStorage @Inject constructor(
         // 2. Read bytes — respect the size limit
         val imageBytes: ByteArray = try {
             context.contentResolver.openInputStream(uri)?.use { stream ->
-                val bytes = stream.readBytes()
+                val output = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
+                while (output.size().toLong() <= CloudinaryConfig.MAX_PHOTO_BYTES) {
+                    val count = stream.read(buffer, 0, minOf(buffer.size, (CloudinaryConfig.MAX_PHOTO_BYTES + 1 - output.size()).toInt()))
+                    if (count < 0) break
+                    output.write(buffer, 0, count)
+                }
+                val bytes = output.toByteArray()
                 if (bytes.size > CloudinaryConfig.MAX_PHOTO_BYTES) {
                     throw IOException(
                         "Photo is too large (${bytes.size / 1_024 / 1_024} MB). " +
@@ -86,10 +98,10 @@ class CloudinaryPhotoStorage @Inject constructor(
         // 3. Build and execute the Cloudinary unsigned multipart upload request.
         //    The public_id scopes the file to the farmer+listing so it is easy to
         //    identify, but it is not used as a secret path.
-        val publicId = "listing_photos/$farmerId/$listingId"
+        val publicId = "$prefix/${java.util.UUID.randomUUID()}"
         val requestBody: RequestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("upload_preset", CloudinaryConfig.UNSIGNED_PRESET)
+            .addFormDataPart("upload_preset", preset)
             .addFormDataPart("public_id", publicId)
             .addFormDataPart(
                 "file",
@@ -112,36 +124,37 @@ class CloudinaryPhotoStorage @Inject constructor(
             )
         }
 
-        // 4. Parse the JSON response and extract secure_url
-        if (!response.isSuccessful) {
-            val errorBody = try { response.body?.string() } catch (_: Exception) { null }
-            val cloudinaryMessage = try {
-                errorBody?.let { JSONObject(it).optJSONObject("error")?.optString("message") }
-            } catch (_: Exception) { null }
-            throw ListingPhotoStorageException(
-                ListingPhotoStorageException.Stage.UPLOAD,
-                IOException(
-                    cloudinaryMessage
-                        ?: "Cloudinary upload failed (HTTP ${response.code}). Check your connection and try again."
+        response.use { response ->
+            // 4. Parse the JSON response and extract secure_url
+            if (!response.isSuccessful) {
+                val errorBody = try { response.body?.string() } catch (_: Exception) { null }
+                val cloudinaryMessage = try {
+                    errorBody?.let { JSONObject(it).optJSONObject("error")?.optString("message") }
+                } catch (_: Exception) { null }
+                throw ListingPhotoStorageException(
+                    ListingPhotoStorageException.Stage.UPLOAD,
+                    IOException(
+                        cloudinaryMessage
+                            ?: "Cloudinary upload failed (HTTP ${response.code}). Check your connection and try again."
+                    )
                 )
-            )
-        }
+            }
 
-        val responseBody = try {
-            response.body?.string()
-                ?: throw IOException("Empty response from photo upload service.")
-        } catch (io: IOException) {
-            throw ListingPhotoStorageException(ListingPhotoStorageException.Stage.DOWNLOAD_URL, io)
-        }
+            val responseBody = try {
+                response.body?.string()
+                    ?: throw IOException("Empty response from photo upload service.")
+            } catch (io: IOException) {
+                throw ListingPhotoStorageException(ListingPhotoStorageException.Stage.DOWNLOAD_URL, io)
+            }
 
-        val secureUrl = try {
-            JSONObject(responseBody).optString("secure_url").takeIf { it.isNotBlank() }
-                ?: throw IOException("Photo upload succeeded but no URL was returned.")
-        } catch (io: IOException) {
-            throw ListingPhotoStorageException(ListingPhotoStorageException.Stage.DOWNLOAD_URL, io)
-        }
+            val secureUrl = try {
+                JSONObject(responseBody).optString("secure_url").takeIf { it.isNotBlank() }
+                    ?: throw IOException("Photo upload succeeded but no URL was returned.")
+            } catch (io: IOException) {
+                throw ListingPhotoStorageException(ListingPhotoStorageException.Stage.DOWNLOAD_URL, io)
+            }
 
-        secureUrl
+            secureUrl
+        }
     }
 }
-

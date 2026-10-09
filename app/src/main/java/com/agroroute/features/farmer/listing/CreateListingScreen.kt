@@ -163,6 +163,14 @@ fun CreateListingScreen(
     var price by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
+    var showLocationPicker by remember { mutableStateOf(false) }
+    if (showLocationPicker) {
+        com.agroroute.core.components.LocationPickerDialog(
+            initialValue = location,
+            onDismiss = { showLocationPicker = false },
+            onConfirm = { location = it; showLocationPicker = false }
+        )
+    }
     var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var listingId by remember { mutableStateOf(UUID.randomUUID().toString()) }
     var selectedCategory by remember { mutableStateOf<ListingCategory?>(null) }
@@ -822,6 +830,9 @@ fun CreateListingScreen(
                     leadingIcon = Lucide.MapPin,
                     supportingText = { Text("Nearest town or farm area.") }
                 )
+                TextButton(onClick = { showLocationPicker = true }, enabled = !uiState.isLoading) {
+                    Text("Choose pickup location on map")
+                }
             }
 
             FormDivider()

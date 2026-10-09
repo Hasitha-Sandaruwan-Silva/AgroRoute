@@ -110,7 +110,7 @@ fun FarmerProfileScreen(
                         displayName = displayName,
                         imageUrl = user?.profileImageUrl,
                         size = 88.dp,
-                        editable = true,
+                        editable = !uiState.isLoading,
                         onPhotoSelected = viewModel::uploadProfilePhoto
                     )
                     Spacer(Modifier.height(16.dp))
@@ -269,10 +269,12 @@ fun FarmerProfileScreen(
                     phone = user.phone,
                     location = user.location,
                     isSaving = uiState.isLoading,
+                    errorMessage = uiState.error,
                     onDismiss = { showProfileEditor = false },
                     onSave = { name, phoneNumber, locationText ->
-                        viewModel.updateProfile(user.copy(displayName = name, phone = phoneNumber, location = locationText))
-                        showProfileEditor = false
+                        viewModel.updateProfile(user.copy(displayName = name, phone = phoneNumber, location = locationText)) {
+                            showProfileEditor = false
+                        }
                     }
                 )
             }

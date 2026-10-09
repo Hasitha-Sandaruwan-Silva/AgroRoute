@@ -106,7 +106,8 @@ class OrderSyncTest {
             authRepository = auth,
             orderCompletionRecordDao = mockk<OrderCompletionRecordDao>(relaxed = true),
             userProfileDao = mockk<UserProfileDao>(relaxed = true),
-            notificationService = mockk<NotificationService>(relaxed = true)
+            notificationService = mockk<NotificationService>(relaxed = true),
+            completionService = mockk(relaxed = true)
         )
 
     private fun mockOrderQuery(order: Order): Query {

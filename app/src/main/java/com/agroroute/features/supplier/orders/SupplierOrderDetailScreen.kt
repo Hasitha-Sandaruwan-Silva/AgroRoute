@@ -25,6 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +71,17 @@ fun SupplierOrderDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showLocationPicker by remember { mutableStateOf(false) }
+    if (showLocationPicker && uiState.selectedOrder != null) {
+        com.agroroute.core.components.LocationPickerDialog(
+            initialValue = uiState.selectedOrder!!.deliveryLocation,
+            onDismiss = { showLocationPicker = false },
+            onConfirm = {
+                viewModel.updateDeliveryLocation(orderId, it)
+                showLocationPicker = false
+            }
+        )
+    }
 
     // Load order details
     LaunchedEffect(orderId) {
@@ -95,6 +108,12 @@ fun SupplierOrderDetailScreen(
                     OrderHeroCard(order = uiState.selectedOrder!!)
                     OrderStatusTimeline(currentStatus = uiState.selectedOrder!!.status)
                     OrderDetailCard(order = uiState.selectedOrder!!)
+                    if (uiState.selectedOrder!!.status in listOf(OrderStatus.AWAITING_PICKUP, OrderStatus.IN_TRANSIT)) {
+                        OutlinedButton(onClick = { showLocationPicker = true }, enabled = !uiState.isLoading,
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text("Choose / edit delivery location")
+                        }
+                    }
                     ProfilePhoneContact(userId = uiState.selectedOrder!!.farmerId, personLabel = "Farmer")
 
                     Text(

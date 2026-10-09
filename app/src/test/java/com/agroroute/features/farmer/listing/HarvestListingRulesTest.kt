@@ -673,6 +673,7 @@ class HarvestListingRulesTest {
         override suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> =
             Result.Success(Unit)
 
+        override suspend fun updateDeliveryLocation(orderId: String, location: String): Result<Unit> = Result.Success(Unit)
         override suspend fun syncOrders(userId: String): Result<Unit> = Result.Success(Unit)
     }
 

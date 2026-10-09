@@ -25,7 +25,7 @@ before(async () => {
   testEnvironment = await initializeTestEnvironment({
     projectId,
     firestore: {
-      rules: await readFile(path.join(rootDir, "firestore.rules"), "utf8"),
+      rules: await readFile(path.join(rootDir, "..", "firestore.rules"), "utf8"),
       host,
       port
     }
@@ -1153,11 +1153,11 @@ test("supplier cannot mark order as IN_TRANSIT from AWAITING_PICKUP", async () =
   );
 });
 
-test("supplier can mark order as DELIVERED from IN_TRANSIT", async () => {
+test("supplier cannot bypass trusted completion callable", async () => {
   await seedOrder("order-1", { status: "IN_TRANSIT" });
   const db = testEnvironment.authenticatedContext("supplier-1").firestore();
 
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(db, "orders/order-1"), {
       status: "DELIVERED",
       updatedAt: 2
@@ -1723,7 +1723,7 @@ test("farmer can cancel order with releaseSale transaction (order + full listing
 
 // ── Tests: Order Completion, Points Awarding & Idempotency ─────────────────────
 
-test("supplier can complete order in transaction: DELIVERED, completion record, award 1 pt to farmer and 1 pt to supplier", async () => {
+test("client cannot award points even in a completion batch", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     await setDoc(doc(db, "users/farmer-1"), {
@@ -1743,7 +1743,7 @@ test("supplier can complete order in transaction: DELIVERED, completion record, 
   });
 
   const db = testEnvironment.authenticatedContext("supplier-1").firestore();
-  await assertSucceeds(
+  await assertFails(
     runTransaction(db, async (tx) => {
       tx.update(doc(db, "orders/order-complete-1"), {
         status: "DELIVERED",
@@ -1844,6 +1844,36 @@ test("users cannot arbitrarily modify their own or others points outside +1 incr
   const db = testEnvironment.authenticatedContext("farmer-1").firestore();
   // Arbitrary jump by 10 points fails
   await assertFails(updateDoc(doc(db, "users/farmer-1"), { points: 100 }));
+  await assertFails(updateDoc(doc(db, "users/farmer-1"), { points: 1 }));
+  await assertFails(updateDoc(doc(db, "users/supplier-1"), { points: 1 }));
+});
+
+test("new profile cannot choose nonzero initial points", async () => {
+  const db = testEnvironment.authenticatedContext("new-farmer").firestore();
+  await assertFails(setDoc(doc(db, "users/new-farmer"), { userId: "new-farmer", role: "FARMER", points: 5 }));
+  await assertSucceeds(setDoc(doc(db, "users/new-farmer"), { userId: "new-farmer", role: "FARMER", points: 0 }));
+});
+
+test("only order supplier can save delivery location without changing status, identity or price", async () => {
+  await seedOrder("delivery-edit", { status: "AWAITING_PICKUP" });
+  const supplierDb = testEnvironment.authenticatedContext("supplier-1").firestore();
+  const farmerDb = testEnvironment.authenticatedContext("farmer-1").firestore();
+  const strangerDb = testEnvironment.authenticatedContext("supplier-2").firestore();
+  const fields = { deliveryLocation: "Dummy warehouse\n[7.000000, 80.000000]", updatedAt: 2 };
+  await assertSucceeds(updateDoc(doc(supplierDb, "orders/delivery-edit"), fields));
+  await assertFails(updateDoc(doc(farmerDb, "orders/delivery-edit"), { ...fields, deliveryLocation: "Another address" }));
+  await assertFails(updateDoc(doc(strangerDb, "orders/delivery-edit"), fields));
+  await assertFails(updateDoc(doc(supplierDb, "orders/delivery-edit"), { ...fields, agreedPrice: 1 }));
+  await assertFails(updateDoc(doc(supplierDb, "orders/delivery-edit"), { ...fields, status: "DELIVERED" }));
+  await assertFails(updateDoc(doc(supplierDb, "orders/delivery-edit"), { deliveryLocation: "" }));
+});
+
+test("delivery location is immutable after completion or cancellation", async () => {
+  const db = testEnvironment.authenticatedContext("supplier-1").firestore();
+  for (const status of ["DELIVERED", "CANCELLED"]) {
+    await seedOrder(`delivery-${status}`, { status });
+    await assertFails(updateDoc(doc(db, `orders/delivery-${status}`), { deliveryLocation: "New place" }));
+  }
 });
 
 // ── Tests: Reviews & Ratings ───────────────────────────────────────────────────

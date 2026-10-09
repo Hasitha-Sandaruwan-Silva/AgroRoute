@@ -1,0 +1,4 @@
+# Copy the MAPS_API_KEY line into your existing local.properties (preserve sdk.dir).
+# Use your own Android-restricted key from Google Cloud Console. Do not commit the actual key.
+MAPS_API_KEY=local.properties
+MAPTILER_API_KEY=YOUR_NEW_KEY=EWhhX4qvgEcusnMkju8V

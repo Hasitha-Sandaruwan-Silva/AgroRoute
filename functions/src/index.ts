@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { createHash } from "crypto";
+import { completeOrderTransaction } from "./orderCompletion";
 import {
   NotificationEventType,
   NotificationResource,
@@ -14,6 +15,19 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 const fcm = admin.messaging();
+
+export const completeOrder = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in to complete an order.");
+  const orderId = data?.orderId;
+  if (typeof orderId !== "string" || !orderId.trim() || orderId.length > 128 || orderId.includes("/")) {
+    throw new functions.https.HttpsError("invalid-argument", "A valid order ID is required.");
+  }
+  try {
+    return await completeOrderTransaction(db, orderId, context.auth.uid);
+  } catch (error) {
+    throw new functions.https.HttpsError("failed-precondition", error instanceof Error ? error.message : "Could not complete the order.");
+  }
+});
 
 /**
  * Trusted backend for AgroRoute push notifications.

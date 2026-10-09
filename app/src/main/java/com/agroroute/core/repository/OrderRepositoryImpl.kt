@@ -50,7 +50,8 @@ class OrderRepositoryImpl @Inject constructor(
     private val authRepository: AuthRepository,
     private val orderCompletionRecordDao: OrderCompletionRecordDao,
     private val userProfileDao: UserProfileDao,
-    private val notificationService: NotificationService
+    private val notificationService: NotificationService,
+    private val completionService: com.agroroute.core.remote.OrderCompletionService
 ) : OrderRepository {
 
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
@@ -211,6 +212,25 @@ class OrderRepositoryImpl @Inject constructor(
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()
             ?: error("Account profile is unavailable")
         check(profile.userId == userId) { "Account profile does not match the signed-in user" }
+        if (status == OrderStatus.DELIVERED) {
+            check(profile.role == UserRole.SUPPLIER) { "Only the supplier can mark the order as delivered" }
+            completionService.complete(orderId)
+            val completed = firestoreService.getOnce<Order>(Constants.COLLECTION_ORDERS, orderId)
+                ?: error("Completed order not found")
+            dao.upsertOrder(completed)
+            // Refresh trusted points without allowing the client to write them.
+            for (participantId in listOf(completed.farmerId, completed.supplierId)) {
+                firestoreService.getOnce<UserProfile>(Constants.COLLECTION_USERS, participantId)
+                    ?.let { userProfileDao.upsertUserProfile(it) }
+            }
+            notificationService.sendPushToServer(
+                recipientUserId = completed.farmerId,
+                event = NotificationEvent.ORDER_COMPLETED,
+                payload = Payload(cropName = completed.cropName, supplierName = completed.supplierId, orderId = orderId),
+                actorUserId = userId
+            )
+            return@safeCall
+        }
         if (status == OrderStatus.CANCELLED) {
             val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
             val updatedRecords = firestoreService.runTransaction<Pair<Order, HarvestListing?>> { transaction ->
@@ -253,10 +273,6 @@ class OrderRepositoryImpl @Inject constructor(
         } else {
             val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
 
-            var completionRecordToSave: OrderCompletionRecord? = null
-            var updatedFarmerProfile: UserProfile? = null
-            var updatedSupplierProfile: UserProfile? = null
-
             val updatedOrder = firestoreService.runTransaction<Order> { transaction ->
                 val existing = transaction.get(orderRef).toObject(Order::class.java)
                     ?: error("Order $orderId not found")
@@ -271,55 +287,6 @@ class OrderRepositoryImpl @Inject constructor(
                         }
                         check(existing.status == OrderStatus.AWAITING_PICKUP) {
                             "Order must be awaiting pickup to be marked as in transit"
-                        }
-                    }
-                    OrderStatus.DELIVERED -> {
-                        check(profile.role == UserRole.SUPPLIER && existing.supplierId == userId) {
-                            "Only the supplier can mark the order as delivered"
-                        }
-                        check(existing.status == OrderStatus.IN_TRANSIT) {
-                            "Order must be in transit to be marked as delivered"
-                        }
-
-                        val completionRecordRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDER_COMPLETION_RECORDS).document(orderId)
-                        val existingRecord = transaction.get(completionRecordRef)
-                        if (!existingRecord.exists()) {
-                            val farmerRef = firestoreService.firestore.collection(Constants.COLLECTION_USERS).document(existing.farmerId)
-                            val supplierRef = firestoreService.firestore.collection(Constants.COLLECTION_USERS).document(existing.supplierId)
-
-                            val farmerDoc = transaction.get(farmerRef)
-                            val supplierDoc = transaction.get(supplierRef)
-
-                            val farmerProfile = checkNotNull(farmerDoc.toObject(UserProfile::class.java)) {
-                                "Farmer account profile is unavailable"
-                            }
-                            val supplierProfile = checkNotNull(supplierDoc.toObject(UserProfile::class.java)) {
-                                "Supplier account profile is unavailable"
-                            }
-                            check(farmerProfile.userId == existing.farmerId && farmerProfile.role == UserRole.FARMER) {
-                                "Farmer account profile does not match the order"
-                            }
-                            check(supplierProfile.userId == existing.supplierId && supplierProfile.role == UserRole.SUPPLIER) {
-                                "Supplier account profile does not match the order"
-                            }
-
-                            val updatedFarmer = farmerProfile.copy(points = farmerProfile.points + 1)
-                            val updatedSupplier = supplierProfile.copy(points = supplierProfile.points + 1)
-
-                            val completionRecord = OrderCompletionRecord(
-                                orderId = orderId,
-                                farmerId = existing.farmerId,
-                                supplierId = existing.supplierId,
-                                pointsAwardedAt = System.currentTimeMillis()
-                            )
-
-                            transaction.set(completionRecordRef, completionRecord)
-                            transaction.set(farmerRef, updatedFarmer)
-                            transaction.set(supplierRef, updatedSupplier)
-
-                            completionRecordToSave = completionRecord
-                            updatedFarmerProfile = updatedFarmer
-                            updatedSupplierProfile = updatedSupplier
                         }
                     }
                     else -> error("Invalid status transition")
@@ -348,12 +315,25 @@ class OrderRepositoryImpl @Inject constructor(
                 actorUserId = userId
             )
 
-            completionRecordToSave?.let { orderCompletionRecordDao.upsertRecord(it) }
-            updatedFarmerProfile?.let { userProfileDao.upsertUserProfile(it) }
-            updatedSupplierProfile?.let { userProfileDao.upsertUserProfile(it) }
         }
     }
 
+    override suspend fun updateDeliveryLocation(orderId: String, location: String): Result<Unit> = safeCall {
+        val userId = authRepository.currentUserId ?: error("Sign in to choose a delivery location")
+        val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+        check(profile?.role == UserRole.SUPPLIER && profile.userId == userId) { "Only the supplier can edit delivery location" }
+        require(location.isNotBlank() && location.length <= 2000) { "Choose a valid delivery location" }
+        val ref = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
+        val updated = firestoreService.runTransaction<Order> { transaction ->
+            val order = transaction.get(ref).toObject(Order::class.java) ?: error("Order not found")
+            check(order.supplierId == userId) { "You can only update your own order" }
+            check(order.status in listOf(OrderStatus.AWAITING_PICKUP, OrderStatus.IN_TRANSIT)) { "This order can no longer be edited" }
+            val result = order.copy(deliveryLocation = location.trim(), updatedAt = System.currentTimeMillis())
+            transaction.update(ref, mapOf("deliveryLocation" to result.deliveryLocation, "updatedAt" to result.updatedAt))
+            result
+        }
+        dao.upsertOrder(updated)
+    }
     override suspend fun syncOrders(userId: String): Result<Unit> = safeCall {
         check(authRepository.currentUserId == userId) { "Cannot sync another account's orders" }
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()

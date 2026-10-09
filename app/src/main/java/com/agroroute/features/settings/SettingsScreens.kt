@@ -301,16 +301,16 @@ fun PrivacyScreen() {
         }
         PrivacyCard(icon = Lucide.Image, heading = "Photos") {
             Text(
-                text = "Listing photos you pick are uploaded to Cloudinary and served from " +
-                    "their CDN so buyers can see your harvest.",
+                text = "Listing photos are uploaded to Cloudinary. Profile photos use Firebase Storage, " +
+                    "or Cloudinary when a profile upload preset is configured. Your chosen address and coordinates are saved with your profile or order.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         PrivacyCard(icon = Lucide.Lock, heading = "How it is shared") {
             Text(
-                text = "Your data is readable only by your own account and the farmers or " +
-                    "suppliers you transact with, as enforced by the app's database security rules. " +
+                text = "Signed-in users can read profiles, including saved phone numbers, locations and leaderboard points. " +
+                    "Orders are restricted to their participants by database security rules. " +
                     "No payment details are collected because the app never processes payments.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

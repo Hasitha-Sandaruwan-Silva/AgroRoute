@@ -1,0 +1,163 @@
+{
+  "projectId": "demo-agroroute-sample",
+  "documents": [
+    {
+      "path": "users/demo-farmer",
+      "data": {
+        "userId": "demo-farmer",
+        "displayName": "Dummy Farmer",
+        "email": "demo-farmer@example.invalid",
+        "role": "FARMER",
+        "phone": "+94000000001",
+        "location": "Dummy farm, Kandy\n[7.290572, 80.633726]",
+        "points": 0,
+        "profileImageUrl": null,
+        "createdAt": 1791504000000
+      }
+    },
+    {
+      "path": "users/demo-supplier",
+      "data": {
+        "userId": "demo-supplier",
+        "displayName": "Dummy Supplier",
+        "email": "demo-supplier@example.invalid",
+        "role": "SUPPLIER",
+        "phone": "+94000000002",
+        "location": "Dummy warehouse, Colombo\n[6.927100, 79.861200]",
+        "points": 0,
+        "profileImageUrl": null,
+        "createdAt": 1791504000000
+      }
+    },
+    {
+      "path": "listings/demo-fixed",
+      "data": {
+        "farmerId": "demo-farmer",
+        "farmerName": "Dummy Farmer",
+        "cropName": "Dummy Rice",
+        "description": "Dummy fixture for local testing only",
+        "quantity": 30,
+        "quantityUnit": "KG",
+        "reservePrice": 100,
+        "imageUrls": [],
+        "location": "Dummy farm, Kandy\n[7.290572, 80.633726]",
+        "status": "OPEN",
+        "biddingEnabled": false,
+        "createdAt": 1791504000000,
+        "expiresAt": null,
+        "category": "ORGANIC",
+        "expectedHarvestAt": null,
+        "qualityGrade": null,
+        "availableQuantity": 20,
+        "soldQuantity": 10,
+        "isDraft": false,
+        "harvestStatus": "READY",
+        "estimatedQuantity": null,
+        "harvestFailureReason": null,
+        "harvestUpdatedAt": null,
+        "listingId": "demo-fixed"
+      }
+    },
+    {
+      "path": "listings/demo-bidding",
+      "data": {
+        "farmerId": "demo-farmer",
+        "farmerName": "Dummy Farmer",
+        "cropName": "Dummy Rice",
+        "description": "Dummy fixture for local testing only",
+        "quantity": 30,
+        "quantityUnit": "KG",
+        "reservePrice": 100,
+        "imageUrls": [],
+        "location": "Dummy farm, Kandy\n[7.290572, 80.633726]",
+        "status": "OPEN",
+        "biddingEnabled": true,
+        "createdAt": 1791504000000,
+        "expiresAt": null,
+        "category": "ORGANIC",
+        "expectedHarvestAt": null,
+        "qualityGrade": null,
+        "availableQuantity": 30,
+        "soldQuantity": 0,
+        "isDraft": false,
+        "harvestStatus": "READY",
+        "estimatedQuantity": null,
+        "harvestFailureReason": null,
+        "harvestUpdatedAt": null,
+        "listingId": "demo-bidding"
+      }
+    },
+    {
+      "path": "bids/demo-bid",
+      "data": {
+        "bidId": "demo-bid",
+        "listingId": "demo-bidding",
+        "supplierId": "demo-supplier",
+        "supplierName": "Dummy Supplier",
+        "offerPrice": 105,
+        "message": "Dummy offer",
+        "status": "PENDING",
+        "createdAt": 1791504000000,
+        "updatedAt": 1791504000000
+      }
+    },
+    {
+      "path": "order_requests/demo-order",
+      "data": {
+        "listingId": "demo-fixed",
+        "farmerId": "demo-farmer",
+        "farmerName": "Dummy Farmer",
+        "supplierId": "demo-supplier",
+        "supplierName": "Dummy Supplier",
+        "cropName": "Dummy Rice",
+        "quantityUnit": "KG",
+        "listedPrice": 100,
+        "createdAt": 1791504000000,
+        "updatedAt": 1791504000000,
+        "isPreHarvest": false,
+        "requestId": "demo-order",
+        "requestedQuantity": 10,
+        "status": "ACCEPTED"
+      }
+    },
+    {
+      "path": "order_requests/demo-request",
+      "data": {
+        "listingId": "demo-fixed",
+        "farmerId": "demo-farmer",
+        "farmerName": "Dummy Farmer",
+        "supplierId": "demo-supplier",
+        "supplierName": "Dummy Supplier",
+        "cropName": "Dummy Rice",
+        "quantityUnit": "KG",
+        "listedPrice": 100,
+        "createdAt": 1791504000000,
+        "updatedAt": 1791504000000,
+        "isPreHarvest": false,
+        "requestId": "demo-request",
+        "requestedQuantity": 5,
+        "status": "PENDING"
+      }
+    },
+    {
+      "path": "orders/demo-order",
+      "data": {
+        "orderId": "demo-order",
+        "listingId": "demo-fixed",
+        "bidId": "",
+        "farmerId": "demo-farmer",
+        "supplierId": "demo-supplier",
+        "cropName": "Dummy Rice",
+        "quantity": 10,
+        "quantityUnit": "KG",
+        "agreedPrice": 100,
+        "status": "AWAITING_PICKUP",
+        "pickupLocation": "Dummy farm, Kandy\n[7.290572, 80.633726]",
+        "deliveryLocation": "Dummy warehouse\n[6.927100, 79.861200]",
+        "notes": "Dummy order",
+        "createdAt": 1791504000000,
+        "updatedAt": 1791504000000
+      }
+    }
+  ]
+}

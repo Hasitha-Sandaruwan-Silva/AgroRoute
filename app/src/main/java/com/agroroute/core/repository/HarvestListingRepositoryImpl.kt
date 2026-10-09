@@ -221,6 +221,8 @@ class HarvestListingRepositoryImpl @Inject constructor(
             ).first().filterNot { it.isDraft }
         }
         dao.upsertListings(listings)
+          if (profile.role == UserRole.FARMER) listings.forEach(harvestReminderScheduler::schedule)
+          if (profile.role == UserRole.FARMER) listings.forEach(harvestReminderScheduler::schedule)
     }
 
     override suspend fun toggleBiddingMode(listingId: String, enabled: Boolean): Result<Unit> = safeCall {
