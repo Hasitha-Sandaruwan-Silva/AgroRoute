@@ -26,15 +26,15 @@ private val LightColorScheme = lightColorScheme(
     onSecondaryContainer = AmberDeepText,
     tertiary = OliveLeaf,
     onTertiary = PureWhite,
-    tertiaryContainer = MintContainer,
-    onTertiaryContainer = GreenDeep,
+    tertiaryContainer = HarvestCream,
+    onTertiaryContainer = SoilBrown,
     error = ErrorRed,
     onError = PureWhite,
     errorContainer = Color(0xFFFFDAD6),
     onErrorContainer = Color(0xFF410002),
     background = SoftMintBg,
     onBackground = TextDarkGreen,
-    surface = PureWhite,
+    surface = CreamCard,
     onSurface = TextDarkGreen,
     surfaceVariant = SurfaceVariant,
     onSurfaceVariant = TextSecondary,
@@ -42,8 +42,8 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant = OutlineSoft,
     surfaceTint = GreenEmerald,
     surfaceContainerHighest = SurfaceVariant,
-    surfaceContainerHigh = Color(0xFFECEFE8),
-    surfaceContainer = Color(0xFFF0F3EC),
+    surfaceContainerHigh = Color(0xFFEAE5D8),
+    surfaceContainer = Color(0xFFF0EBDF),
     surfaceContainerLow = SoftMintBg,
     surfaceContainerLowest = PureWhite
 )
@@ -54,11 +54,11 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = GreenDeep,
     primaryContainer = DarkSurface2,
     onPrimaryContainer = MintAccent,
-    secondary = Color(0xFFD8BF91),
+    secondary = WarmSand,
     onSecondary = Color(0xFF382C18),
-    secondaryContainer = DarkSurface2,
-    onSecondaryContainer = MintAccent,
-    tertiary = MintAccent,
+    secondaryContainer = Color(0xFF4A342B),
+    onSecondaryContainer = HarvestCream,
+    tertiary = WarmSand,
     onTertiary = GreenDeep,
     tertiaryContainer = DarkSurface2,
     onTertiaryContainer = MintAccent,
@@ -76,9 +76,9 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = DarkCardBorder,
     surfaceTint = MintAccent,
     surfaceContainerHighest = DarkSurface2,
-    surfaceContainerHigh = Color(0xFF253129),
+    surfaceContainerHigh = Color(0xFF294237),
     surfaceContainer = DarkSurface,
-    surfaceContainerLow = Color(0xFF19221C),
+    surfaceContainerLow = Color(0xFF132A22),
     surfaceContainerLowest = DarkBg
 )
 
@@ -102,7 +102,7 @@ val AgroShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
     small = RoundedCornerShape(14.dp),
     medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(24.dp),
     extraLarge = RoundedCornerShape(24.dp)
 )
 
@@ -120,7 +120,7 @@ object AgroRadius {
     val xs = 10.dp
     val sm = 14.dp
     val md = 18.dp
-    val lg = 18.dp
+    val lg = 24.dp
     val xl = 24.dp
     val hero = 30.dp
     // Tinted icon containers scale with the icon they hold.

@@ -40,6 +40,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Order
+import com.agroroute.core.model.HarvestListing
+import com.agroroute.core.components.ListingImage
+import com.agroroute.core.components.profileLocationLabel
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.navigation.Screen
@@ -68,6 +71,7 @@ fun SupplierOrdersScreen(
     viewModel: SupplierOrderViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listingPresentation = orderListingPresentation()
     val snackbarHostState = remember { SnackbarHostState() }
     var ordersLoaded by remember { mutableStateOf(false) }
 
@@ -135,6 +139,7 @@ fun SupplierOrdersScreen(
                         items(pendingRequests, key = { "req-${it.requestId}" }) { request ->
                             OrderRequestCard(
                                 request = request,
+                                listing = listingPresentation[request.listingId],
                                 onCancel = { viewModel.cancelRequest(request.requestId) }
                             )
                         }
@@ -151,6 +156,7 @@ fun SupplierOrdersScreen(
                             items(rejectedRequests, key = { "req-${it.requestId}" }) { request ->
                                 OrderRequestCard(
                                     request = request,
+                                listing = listingPresentation[request.listingId],
                                     onCancel = null
                                 )
                             }
@@ -166,7 +172,8 @@ fun SupplierOrdersScreen(
                                 )
                             }
                             items(cancelledRequests, key = { "req-${it.requestId}" }) { request ->
-                                OrderRequestCard(request = request, onCancel = null)
+                                OrderRequestCard(request = request,
+                                listing = listingPresentation[request.listingId], onCancel = null)
                             }
                         }
                     }
@@ -190,6 +197,7 @@ fun SupplierOrdersScreen(
                     items(uiState.orders, key = { "order-${it.orderId}" }) { order ->
                         OrderCard(
                             order = order,
+                            listing = listingPresentation[order.listingId],
                             onCardClick = {
                                 navController.navigate(Screen.SupplierOrderDetail.createRoute(order.orderId))
                             }
@@ -208,9 +216,12 @@ fun SupplierOrdersScreen(
 @Composable
 private fun OrderRequestCard(
     request: OrderRequest,
+    listing: HarvestListing?,
     onCancel: (() -> Unit)?
 ) {
     AppCard {
+        ListingImage(listing?.imageUrls?.firstOrNull(), height = 120.dp)
+        Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -248,7 +259,7 @@ private fun OrderRequestCard(
                 )
             }
             Spacer(Modifier.width(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.End) {
                 if (request.isPreHarvest) {
                     StatusChip(label = "Pre-harvest", tone = ChipTone.Tertiary)
                 }
@@ -339,9 +350,12 @@ private fun OrderRequestCard(
 @Composable
 private fun OrderCard(
     order: Order,
+    listing: HarvestListing?,
     onCardClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
+        ListingImage(listing?.imageUrls?.firstOrNull(), height = 144.dp)
+        Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -359,6 +373,9 @@ private fun OrderCard(
             Spacer(Modifier.width(8.dp))
             OrderStatusChip(order.status)
         }
+        Text("Farmer: ${listing?.farmerName?.takeIf(String::isNotBlank) ?: "Name unavailable"}",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(14.dp))
         OrderProgressStrip(currentStatus = order.status)
         Spacer(Modifier.height(14.dp))
@@ -397,7 +414,7 @@ private fun OrderCard(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "Pickup: ${order.pickupLocation}",
+                    text = "Pickup: ${profileLocationLabel(order.pickupLocation)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -418,7 +435,7 @@ private fun OrderCard(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "Delivery: ${order.deliveryLocation}",
+                    text = "Delivery: ${profileLocationLabel(order.deliveryLocation)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,

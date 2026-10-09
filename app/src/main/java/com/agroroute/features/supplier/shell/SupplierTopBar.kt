@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -54,6 +55,7 @@ import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
 import com.agroroute.features.settings.NotificationBell
+import com.agroroute.core.components.UserProfileAvatar
 import com.agroroute.features.auth.AuthViewModel
 
 @Composable
@@ -68,7 +70,7 @@ fun SupplierTopBar(
 
     // ─── STATUS BAR ICONS කළු පැහැයට හැරවීම ───
     val view = LocalView.current
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
@@ -82,7 +84,7 @@ fun SupplierTopBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = if (isTab) 2.dp else 4.dp
+        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
@@ -105,7 +107,7 @@ fun SupplierTopBar(
                         IconButton(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f))
                         ) {
@@ -154,7 +156,7 @@ fun SupplierTopBar(
                         )
                         if (isTab) {
                             Text(
-                                text = supplierTitle(currentRoute),
+                                text = "SUPPLIER",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -168,25 +170,9 @@ fun SupplierTopBar(
 
                 // ─── Right Section: Profile Avatar + Dropdown ───
                 Box {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable { showAvatarMenu = true }
-                            .border(
-                                width = 2.dp,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Lucide.User,
-                            contentDescription = "Profile",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        UserProfileAvatar(authState.user?.displayName ?: "Supplier", authState.user?.profileImageUrl,
+                            size = 40.dp, onClick = { showAvatarMenu = true })
                     }
 
                     DropdownMenu(

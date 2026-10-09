@@ -57,6 +57,8 @@ import com.agroroute.core.components.RoleBadge
 import com.agroroute.core.components.SettingsSection
 import com.agroroute.core.components.ProfileEditDialog
 import com.agroroute.core.components.UserProfileAvatar
+import com.agroroute.core.components.ProfileLocationCard
+import com.agroroute.core.theme.AgroGradients
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 import kotlinx.coroutines.launch
@@ -99,11 +101,9 @@ fun SupplierProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(26.dp))
                     .background(
-                        Brush.linearGradient(
-                            colors = listOf(ForestDeep, ForestMid, ForestSoft)
-                        )
+                        AgroGradients.forest
                     )
                     .padding(22.dp)
             ) {
@@ -121,7 +121,8 @@ fun SupplierProfileScreen(
                             displayName = displayName,
                             imageUrl = uiState.photoPreviewUri?.toString() ?: user?.profileImageUrl,
                         uploading = uiState.photoUploading,
-                            size = 72.dp,
+                            size = 88.dp,
+                            selected = true,
                             editable = !uiState.isLoading && !uiState.photoUploading,
                             onPhotoSelected = viewModel::uploadProfilePhoto
                         )
@@ -223,9 +224,6 @@ fun SupplierProfileScreen(
                 Spacer(Modifier.height(10.dp))
                 Text("Phone", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(user?.phone?.ifBlank { "Add your phone number" } ?: "Add your phone number", style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(8.dp))
-                Text("Location", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(user?.location?.ifBlank { "Add your location" } ?: "Add your location", style = MaterialTheme.typography.bodyMedium)
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
                     thickness = 1.dp,
@@ -268,6 +266,8 @@ fun SupplierProfileScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            ProfileLocationCard(user?.location, onClick = { showProfileEditor = true })
+            Spacer(Modifier.height(16.dp))
             SettingsSection(
                 themeMode = themeMode,
                 onThemeModeChange = themeViewModel::setMode,

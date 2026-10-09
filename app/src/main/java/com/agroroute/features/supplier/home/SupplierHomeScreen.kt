@@ -17,6 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +61,9 @@ import com.agroroute.features.supplier.orders.SupplierOrderViewModel
 import com.agroroute.features.settings.NotificationBell
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
+import com.agroroute.core.components.*
+import com.agroroute.core.theme.*
+import com.agroroute.features.leaderboard.HomeLeaderboard
 
 @Composable
 fun SupplierHomeScreen(
@@ -83,267 +88,56 @@ fun SupplierHomeScreen(
     val isLoading = (marketState.isLoading && marketState.listings.isEmpty()) ||
         (orderState.isLoading && orderState.orders.isEmpty())
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 18.dp)
-        ) {
-            // ── Forest gradient hero: greeting + key stats ──────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(ForestDeep, ForestMid, ForestSoft)
-                        )
-                    )
-                    .padding(22.dp)
-            ) {
-                // Decorative leaf watermark
-                Icon(
-                    imageVector = Lucide.Leaf,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.08f),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(96.dp)
-                )
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = LeafAccent.copy(alpha = 0.22f),
-                            modifier = Modifier.size(46.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Lucide.Store,
-                                    contentDescription = null,
-                                    tint = LeafAccent,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Good day, ${authState.user?.displayName?.takeIf(String::isNotBlank) ?: "Supplier"}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Browse harvests and manage your orders.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.78f),
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
-                            Text(
-                                text = authState.user?.phone?.takeIf(String::isNotBlank)?.let { "Phone: $it" } ?: "Add phone number in profile",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.82f),
-                                maxLines = 1,
-                                modifier = Modifier
-                                    .padding(top = 4.dp)
-                                    .clickable { navController.navigate(Screen.SupplierProfile.route) }
-                            )
-                        }
-                        UserProfileAvatar(
-                            displayName = authState.user?.displayName ?: "Supplier",
-                            imageUrl = authState.user?.profileImageUrl,
-                            size = 42.dp,
-                            onClick = { navController.navigate(Screen.SupplierProfile.route) }
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        NotificationBell(
-                            navController = navController,
-                            modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.12f)),
-                            tint = Color.White
-                        )
-                    }
-
-                    Spacer(Modifier.height(20.dp))
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp)
-                    Spacer(Modifier.height(14.dp))
-
-                    Text(
-                        text = "Overview",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = LeafAccent
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    if (isLoading) {
-                        StatCardsSkeleton()
-                    } else {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            HeroStatItem(
-                                label = "Open listings",
-                                value = marketState.listings.size.toString(),
-                                icon = Lucide.ShoppingBag,
-                                modifier = Modifier.weight(1f)
-                            )
-                            HeroStatItem(
-                                label = "My orders",
-                                value = orderState.orders.size.toString(),
-                                icon = Lucide.Receipt,
-                                modifier = Modifier.weight(1f)
-                            )
-                            HeroStatItem(
-                                label = "Pending requests",
-                                value = pendingRequests.toString(),
-                                icon = Lucide.Receipt,
-                                highlight = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            PremiumHero {
+                Text("FROM HARVEST TO BUSINESS", style = MaterialTheme.typography.labelSmall, color = LeafAccent)
+                Text("Good day, ${authState.user?.displayName?.takeIf(String::isNotBlank) ?: "Supplier"}",
+                    style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Find fresh opportunities. Keep trade moving.", style = MaterialTheme.typography.bodyMedium,
+                    color = CreamInk.copy(alpha = 0.85f))
+                HorizontalDivider(color = CreamInk.copy(alpha = 0.18f))
+                if (isLoading) ShimmerBox(Modifier.fillMaxWidth().height(72.dp))
+                else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SupplierMetric("Open listings", "${marketState.listings.size}", Modifier.weight(1f))
+                    SupplierMetric("My orders", "${orderState.orders.size}", Modifier.weight(1f))
+                    SupplierMetric("Pending", "$pendingRequests", Modifier.weight(1f))
                 }
             }
-
-            Spacer(Modifier.height(12.dp))
-            AppCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { navController.navigate(Screen.SupplierLeaderboard.route) }
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Lucide.Trophy,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Your points", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            "${authState.user?.points ?: 0} pts",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Text("Supplier leaderboard", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            HomeLeaderboard("SUPPLIER", onViewAll = { navController.navigate(Screen.SupplierLeaderboard.route) })
+            Text("Your trading desk", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            PremiumHero(brush = AgroGradients.earth) {
+                Icon(Lucide.ShoppingBag, null, Modifier.size(26.dp))
+                Text("Discover the next harvest", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Request at the listed price; bidding is optional.", style = MaterialTheme.typography.bodyMedium)
+                FilledTonalButton(onClick = { navController.navigate(Screen.SupplierMarketplace.route) },
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = CreamInk, contentColor = SoilBrown)) {
+                    Text("Open Marketplace"); Spacer(Modifier.width(8.dp)); Icon(Lucide.ArrowRight, null, Modifier.size(18.dp))
                 }
             }
-
-            Spacer(Modifier.height(24.dp))
-            SectionTitle(title = "Buying and orders")
-
-            // ── Shortcut tiles ───────────────────────────────────────────────
-            ShortcutTile(
-                icon = Lucide.ShoppingBag,
-                title = "Browse harvest listings",
-                subtitle = "Request at the listed price; bidding is optional",
-                actionLabel = "Open Marketplace",
-                onClick = { navController.navigate(Screen.SupplierMarketplace.route) }
-            )
-            Spacer(Modifier.height(12.dp))
-            ShortcutTile(
-                icon = Lucide.Receipt,
-                title = "View My Orders",
-                subtitle = null,
-                actionLabel = null,
-                onClick = { navController.navigate(Screen.SupplierOrders.route) }
-            )
-            Spacer(Modifier.height(20.dp))
+            DashboardAction("My orders", "Track requests, pickups and deliveries", Lucide.Truck) { navController.navigate(Screen.SupplierOrders.route) }
+            AppCard(onClick = { navController.navigate(Screen.SupplierLeaderboard.route) }, containerColor = MaterialTheme.colorScheme.secondaryContainer) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(Lucide.Award, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Column(Modifier.weight(1f)) {
+                        Text("Your community points", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text("${authState.user?.points ?: 0} pts", style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                    Icon(Lucide.ChevronRight, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
         }
-        AgroSnackbarHost(
-            snackbarHostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+        AgroSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 }
 
 @Composable
-private fun HeroStatItem(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    highlight: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (highlight) LeafAccent else Color.White.copy(alpha = 0.7f),
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = value,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (highlight) LeafAccent else Color.White
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.72f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-@Composable
-private fun ShortcutTile(
-    icon: ImageVector,
-    title: String,
-    subtitle: String?,
-    actionLabel: String?,
-    onClick: () -> Unit
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-                if (actionLabel != null) {
-                    Text(
-                        text = actionLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            Icon(
-                imageVector = Lucide.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
+private fun SupplierMetric(label: String, value: String, modifier: Modifier) {
+    Column(modifier) {
+        Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CreamInk)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = CreamInk.copy(alpha = 0.8f))
     }
 }

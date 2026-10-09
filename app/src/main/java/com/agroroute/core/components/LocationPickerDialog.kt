@@ -5,6 +5,9 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import com.agroroute.core.theme.AgroGradients
+import com.agroroute.core.theme.CreamInk
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -113,71 +116,79 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
         }
     }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
-                val panelMaxHeight = maxHeight * 0.55f
+            BoxWithConstraints(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+                val panelMaxHeight = maxHeight * 0.52f
+                val resultsMaxHeight = maxHeight * 0.22f
                 Column(Modifier.fillMaxSize()) {
+                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledTonalIconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) { Icon(Lucide.ArrowLeft, "Back") }
+                        OutlinedTextField(query, { query = it }, placeholder = { Text("Search a place or address") },
+                            singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.weight(1f),
+                            trailingIcon = {
+                                IconButton(onClick = { search() }, enabled = query.isNotBlank() && !searching) {
+                                    if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                                    else Icon(Lucide.Search, "Search")
+                                }
+                            })
+                    }
+                    if (results.isNotEmpty()) {
+                        Column(Modifier.fillMaxWidth().heightIn(max = resultsMaxHeight)
+                            .verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
+                            results.forEach { result ->
+                                TextButton(onClick = { select(result, focus = true) }, modifier = Modifier.fillMaxWidth()) {
+                                    Text(result.address.ifBlank { result.coordinates() })
+                                }
+                            }
+                        }
+                    }
                     Box(Modifier.fillMaxWidth().weight(1f).clipToBounds()) {
                         LocationMap(location = selected.takeIf { hasSelection }, currentFix = currentFix,
                             focusRequest = focusRequest, onSelect = { select(it, focus = false) },
                             modifier = Modifier.fillMaxSize())
-                        Surface(onClick = onDismiss, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp,
-                            modifier = Modifier.align(Alignment.TopStart).padding(16.dp).size(48.dp)) {
-                            Box(contentAlignment = Alignment.Center) { Icon(Lucide.ArrowLeft, "Back") }
-                        }
                         Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)) {
+                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp)) {
                             Text("Tap to place a pin", style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
                         }
                         Surface(onClick = {
                             if (services.hasPermission()) locate() else permissionLauncher.launch(arrayOf(
                                 Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-                        }, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp,
+                        }, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp,
                             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(52.dp)) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (locating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                                 else Icon(Lucide.MyLocation, "Go to my current location", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
-
                     }
-                    Surface(shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth().heightIn(max = panelMaxHeight)) {
-                        Column(Modifier.padding(20.dp)) {
+                    Surface(shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp), color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 3.dp, modifier = Modifier.fillMaxWidth().heightIn(max = panelMaxHeight)) {
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                            Box(Modifier.align(Alignment.CenterHorizontally).width(34.dp).height(4.dp)
+                                .background(MaterialTheme.colorScheme.outlineVariant, CircleShape))
+                            Spacer(Modifier.height(12.dp))
                             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary)
-                                    Text("Choose your location", style = MaterialTheme.typography.titleLarge)
+                                    Text("Your selected location", style = MaterialTheme.typography.titleMedium)
                                 }
-                                Text(if (hasSelection) label.ifBlank { "Address unavailable — enter a place name below" }
+                                Text(if (hasSelection) label.ifBlank { "Address unavailable ? enter a place name below" }
                                     else "Tap the map or search for your pickup / delivery location.",
                                     style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-                                OutlinedTextField(query, { query = it }, label = { Text("Search a place or address") },
-                                    singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(),
-                                    trailingIcon = {
-                                        IconButton(onClick = { search() }, enabled = query.isNotBlank() && !searching) {
-                                            if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                                            else Icon(Lucide.Search, "Search")
-                                        }
-                                    })
-                                results.forEach { result ->
-                                    TextButton(onClick = { select(result, focus = true) }, modifier = Modifier.fillMaxWidth()) {
-                                        Text(result.address.ifBlank { result.coordinates() })
-                                    }
-                                }
                                 OutlinedTextField(label, { label = it; addressEdited = true },
                                     label = { Text("Selected address / place name") }, maxLines = 2,
-                                    shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth())
+                                    shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
                                 if (hasSelection) Text(selected.coordinates(), style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                                message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                             }
                             Spacer(Modifier.height(12.dp))
                             Button(onClick = { onConfirm(selected.toStoredText()) }, enabled = hasSelection,
-                                shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                                shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                                 Text("Use this location")
                             }
                         }

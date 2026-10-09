@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
 import com.agroroute.features.settings.NotificationBell
+import com.agroroute.core.components.UserProfileAvatar
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
 
@@ -50,20 +51,9 @@ fun FarmerTopBar(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-            WindowCompat.setDecorFitsSystemWindows(window, true)
-            window.statusBarColor = surfaceColor.toArgb()
-            window.navigationBarColor = surfaceColor.toArgb()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                WindowCompat.getInsetsController(window, view).apply {
-                    // Force based on actual surface luminance, not just system theme
-                    // Light surface (white) -> dark icons (black wifi/battery) visible
-                    // Dark surface (black) -> light icons (white wifi/battery) visible
-                    isAppearanceLightStatusBars = isSurfaceLight
-                    isAppearanceLightNavigationBars = isSurfaceLight
-                }
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = isSurfaceLight
+                isAppearanceLightNavigationBars = isSurfaceLight
             }
         }
     }
@@ -80,7 +70,7 @@ fun FarmerTopBar(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     if (!isTab) {
-                        IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.size(40.dp)) {
+                        IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.size(48.dp)) {
                             Icon(imageVector = Lucide.ArrowLeft, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
                         }
                         Spacer(Modifier.width(4.dp))
@@ -91,6 +81,7 @@ fun FarmerTopBar(
                     Column(modifier = Modifier.weight(1f)) {
                         if (isTab) {
                             Text("AgroRoute", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.3).sp, color = MaterialTheme.colorScheme.primary)
+                            Text("FARMER", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (subtitle != null) {
@@ -104,8 +95,9 @@ fun FarmerTopBar(
                     NotificationBell(navController = navController)
 
                     Box {
-                        IconButton(onClick = { showAvatarMenu = true }, modifier = Modifier.size(44.dp)) {
-                            Icon(imageVector = Lucide.User, contentDescription = "Profile", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
+                        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                            UserProfileAvatar(authState.user?.displayName ?: "Farmer", authState.user?.profileImageUrl,
+                                size = 40.dp, onClick = { showAvatarMenu = true })
                         }
                         DropdownMenu(expanded = showAvatarMenu, onDismissRequest = { showAvatarMenu = false }) {
                             DropdownMenuItem(

@@ -45,6 +45,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.navigation.Screen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.agroroute.features.auth.AuthViewModel
 
 private data class SupplierTab(
     val route: String,
@@ -65,8 +68,14 @@ fun SupplierBottomBar(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     com.agroroute.core.components.AnimatedBottomBar(
-        items = supplierTabs.map { com.agroroute.core.components.BottomNavItem(it.route, it.label, it.icon) },
+        items = supplierTabs.map {
+            com.agroroute.core.components.BottomNavItem(it.route, it.label, it.icon,
+                profileName = if (it.route == Screen.SupplierProfile.route) authState.user?.displayName ?: "Supplier" else null,
+                profileImageUrl = if (it.route == Screen.SupplierProfile.route) authState.user?.profileImageUrl else null)
+        },
         selectedRoute = selectedRoute,
         onItemSelected = { onNavigate(it.route) },
         modifier = modifier

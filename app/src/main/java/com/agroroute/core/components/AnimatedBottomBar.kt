@@ -1,29 +1,14 @@
 package com.agroroute.core.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,14 +18,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+
 
 data class BottomNavItem(
     val route: String,
     val label: String,
     val icon: ImageVector,
-    val selectedIcon: ImageVector = icon
+    val selectedIcon: ImageVector = icon,
+    val profileName: String? = null,
+    val profileImageUrl: String? = null
 )
+
 
 @Composable
 fun AnimatedBottomBar(
@@ -49,111 +43,177 @@ fun AnimatedBottomBar(
     onItemSelected: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val selectedIndex = items.indexOfFirst { selectedRoute.startsWith(it.route.substringBefore("/")) }
+
+    val selectedIndex = items
+        .indexOfFirst {
+            selectedRoute.startsWith(
+                it.route.substringBefore("/")
+            )
+        }
         .coerceAtLeast(0)
 
-    Surface(
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(20.dp),
-        shadowElevation = 2.dp,
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-        )
+            .padding(
+                horizontal = 16.dp,
+                vertical = 10.dp
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEachIndexed { index, item ->
-                val selected = index == selectedIndex ||
-                    selectedRoute.startsWith(item.route.substringBefore("{"))
 
-                BottomBarItem(
-                    modifier = Modifier.weight(1f),
-                    item = item,
-                    selected = selected,
-                    onClick = { onItemSelected(item) }
-                )
+        Surface(
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+
+            // Automatically changes with Light / Dark theme
+            color = MaterialTheme.colorScheme.surface,
+
+            contentColor = MaterialTheme.colorScheme.onSurface,
+
+            tonalElevation = 3.dp,
+            shadowElevation = 6.dp
+        ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .padding(
+                        horizontal = 6.dp,
+                        vertical = 6.dp
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+
+                items.forEachIndexed { index, item ->
+
+                    val selected =
+                        index == selectedIndex ||
+                                selectedRoute.startsWith(
+                                    item.route.substringBefore("{")
+                                )
+
+                    BottomNavigationItem(
+                        item = item,
+                        selected = selected,
+                        onClick = {
+                            onItemSelected(item)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
 }
 
+
 @Composable
-private fun BottomBarItem(
+private fun BottomNavigationItem(
     item: BottomNavItem,
-    modifier: Modifier = Modifier,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
+
+
     val scale by animateFloatAsState(
-        targetValue = if (selected) 1.1f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "iconScale"
-    )
-    val iconTint by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "iconTint"
-    )
-    val pillColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
-        else androidx.compose.ui.graphics.Color.Transparent,
-        label = "itemPill"
-    )
-    val labelColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "labelTint"
+        targetValue = if (selected) {
+            1.05f
+        } else {
+            1f
+        },
+        animationSpec = tween(
+            durationMillis = 160
+        ),
+        label = "bottomNavScale"
     )
 
-    val interactionSource = remember { MutableInteractionSource() }
 
-    androidx.compose.foundation.layout.Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    val contentColor = if (selected) {
+
+        // Selected icon + text
+        MaterialTheme.colorScheme.primary
+
+    } else {
+
+        // Unselected icon + text
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+
+    Column(
         modifier = modifier
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(percent = 50))
-            .background(pillColor)
+            .fillMaxHeight()
+            .clip(
+                RoundedCornerShape(20.dp)
+            )
+            .semantics {
+                this.selected = selected
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 4.dp, vertical = 6.dp)
+                role = Role.Tab
+            ) {
+                onClick()
+            }
+            .padding(
+                vertical = 7.dp
+            ),
+
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = if (selected) item.selectedIcon else item.icon,
-                contentDescription = item.label,
-                tint = iconTint,
-                modifier = Modifier
-                    .size(22.dp)
-                    .scale(scale)
-            )
-        }
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn() + expandHorizontally(),
-            exit = fadeOut() + shrinkHorizontally()
-        ) {
-            Text(
-                text = item.label,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                color = labelColor,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
+
+        // =====================================================
+        // ICON
+        // =====================================================
+
+        Icon(
+            imageVector = if (selected) {
+                item.selectedIcon
+            } else {
+                item.icon
+            },
+            contentDescription = item.label,
+            tint = contentColor,
+            modifier = Modifier
+                .size(24.dp)
+                .scale(scale)
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(4.dp)
+        )
+
+
+        // =====================================================
+        // LABEL
+        // =====================================================
+
+        Text(
+            text = item.label,
+            color = contentColor,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (selected) {
+                FontWeight.Bold
+            } else {
+                FontWeight.Medium
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

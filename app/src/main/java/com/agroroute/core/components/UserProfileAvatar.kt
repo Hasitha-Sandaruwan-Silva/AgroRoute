@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import com.agroroute.core.theme.AgroGradients
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +54,8 @@ fun UserProfileAvatar(
     editable: Boolean = false,
     uploading: Boolean = false,
     onClick: (() -> Unit)? = null,
-    onPhotoSelected: (Uri) -> Unit = {}
+    onPhotoSelected: (Uri) -> Unit = {},
+    selected: Boolean = false
 ) {
     val context = LocalContext.current
     var imageFailed by remember(imageUrl) { mutableStateOf(false) }
@@ -75,14 +78,17 @@ fun UserProfileAvatar(
             .size(size)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primaryContainer)
-            .clickable(enabled = editable || onClick != null) {
+            .border(if (selected) 2.dp else 1.dp, AgroGradients.avatar, CircleShape)
+            .padding(if (selected) 4.dp else 3.dp)
+            .clip(CircleShape)
+            .then(if (editable || onClick != null) Modifier.clickable {
                 if (editable) launcher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) else onClick?.invoke()
-            },
+            } else Modifier),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = initials,
-            style = MaterialTheme.typography.titleLarge,
+            style = if (size < 48.dp) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )

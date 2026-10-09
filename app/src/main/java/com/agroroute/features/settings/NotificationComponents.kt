@@ -29,6 +29,8 @@ import com.agroroute.core.navigation.Screen
 import com.agroroute.core.notification.NotificationInboxItem
 import com.agroroute.features.auth.AuthViewModel
 import com.github.thelacspace.icons.Lucide
+import com.agroroute.core.theme.AgroGradients
+import com.agroroute.core.theme.CreamInk
 import java.text.DateFormat
 import java.util.Date
 
@@ -134,13 +136,13 @@ fun NotificationBell(
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp),
+                    Modifier.fillMaxWidth().background(AgroGradients.forest).padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Notifications", style = MaterialTheme.typography.titleMedium,
+                    Text("Notifications", color = CreamInk, style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     IconButton(onClick = refresh, enabled = !state.isLoading) {
-                        Icon(Lucide.RefreshCw, "Refresh notifications", Modifier.size(20.dp))
+                        Icon(Lucide.RefreshCw, "Refresh notifications", Modifier.size(20.dp), tint = CreamInk)
                     }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

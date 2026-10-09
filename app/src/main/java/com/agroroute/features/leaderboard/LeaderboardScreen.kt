@@ -43,6 +43,8 @@ import com.agroroute.core.components.EmptyState
 import com.agroroute.core.components.ListSkeleton
 import com.agroroute.core.components.UserProfileAvatar
 import com.github.thelacspace.icons.Lucide
+import com.agroroute.core.theme.AgroGradients
+import com.agroroute.core.theme.LocalAgroExtendedColors
 import java.util.Locale
 
 /**
@@ -74,7 +76,7 @@ fun LeaderboardScreen(
                 EmptyState(
                     icon = Lucide.Award,
                     title = "Leaderboard unavailable",
-                    subtitle = uiState.error ?: "Check your connection and try again"
+                    subtitle = "Check your connection and try again"
                 )
                 TextButton(onClick = { viewModel.clearError(); viewModel.loadLeaderboard(role) }) {
                     Text("Try again")
@@ -100,7 +102,7 @@ fun LeaderboardScreen(
                     uiState.error?.let { error ->
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "Showing saved rankings. Refresh failed: $error",
+                            text = "Showing saved rankings. Refresh is currently unavailable.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(horizontal = 4.dp)
@@ -120,11 +122,9 @@ private fun LeaderboardHeader(role: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(
-                Brush.linearGradient(
-                    colors = listOf(ForestDeep, ForestMid, ForestSoft)
-                )
+                AgroGradients.forest
             )
             .padding(22.dp)
     ) {
@@ -170,7 +170,7 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = when (rank) {
-                1 -> MaterialTheme.colorScheme.primaryContainer
+                1 -> LocalAgroExtendedColors.current.goldSoft
                 2 -> MaterialTheme.colorScheme.secondaryContainer
                 3 -> MaterialTheme.colorScheme.tertiaryContainer
                 else -> MaterialTheme.colorScheme.surface
@@ -191,10 +191,10 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
                     .clip(CircleShape)
                     .background(
                         when (rank) {
-                            1 -> LeafAccent
-                            2 -> Color(0xFFC0C0C0) // Silver
-                            3 -> Color(0xFFCD7F32) // Bronze
-                            else -> MaterialTheme.colorScheme.outline
+                            1 -> LocalAgroExtendedColors.current.goldAccent
+                            2 -> MaterialTheme.colorScheme.secondaryContainer
+                            3 -> MaterialTheme.colorScheme.tertiaryContainer
+                            else -> MaterialTheme.colorScheme.surfaceVariant
                         }
                     ),
                 contentAlignment = Alignment.Center
@@ -205,7 +205,7 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
                     fontWeight = FontWeight.Bold,
                     color = when (rank) {
                         1 -> com.agroroute.core.theme.GreenDeep
-                        2, 3 -> com.agroroute.core.theme.GreenDeep
+                        2, 3 -> MaterialTheme.colorScheme.onSecondaryContainer
                         else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
@@ -216,7 +216,8 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
             UserProfileAvatar(
                 displayName = item.user.displayName,
                 imageUrl = item.user.profileImageUrl,
-                size = 42.dp
+                size = if (rank == 1) 50.dp else 40.dp,
+                selected = rank == 1
             )
 
             Spacer(Modifier.width(12.dp))
@@ -258,7 +259,7 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "${item.user.points} pts",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )

@@ -56,6 +56,8 @@ import com.agroroute.core.components.OrderStatusChip
 import com.agroroute.core.components.OrderStatusTimeline
 import com.agroroute.core.components.ProfilePhoneContact
 import com.github.thelacspace.icons.Lucide
+import com.agroroute.core.theme.AgroGradients
+import com.agroroute.core.components.ListingImage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,6 +72,7 @@ fun SupplierOrderDetailScreen(
     viewModel: SupplierOrderViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listingPresentation = orderListingPresentation()
     val snackbarHostState = remember { SnackbarHostState() }
     var showLocationPicker by remember { mutableStateOf(false) }
     if (showLocationPicker && uiState.selectedOrder != null) {
@@ -105,6 +108,7 @@ fun SupplierOrderDetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    ListingImage(listingPresentation[uiState.selectedOrder!!.listingId]?.imageUrls?.firstOrNull(), height = 180.dp)
                     OrderHeroCard(order = uiState.selectedOrder!!)
                     OrderStatusTimeline(currentStatus = uiState.selectedOrder!!.status)
                     OrderDetailCard(order = uiState.selectedOrder!!)
@@ -192,11 +196,9 @@ private fun OrderHeroCard(order: Order) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(26.dp))
             .background(
-                Brush.linearGradient(
-                    colors = listOf(ForestDeep, ForestMid, ForestSoft)
-                )
+                AgroGradients.forest
             )
             .padding(22.dp)
     ) {
