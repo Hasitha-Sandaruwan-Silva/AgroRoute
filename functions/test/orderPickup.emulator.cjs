@@ -1,7 +1,7 @@
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const admin = require('firebase-admin');
-const { orderPickupTransaction, ORDER_PICKUP_POINTS } = require('../lib/orderPickup');
+const { orderPickupTransaction, FARMER_HANDOVER_POINTS, SUPPLIER_PICKUP_POINTS } = require('../lib/orderPickup');
 const { completeOrderTransaction } = require('../lib/orderCompletion');
 if (!/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST || '')) {
   throw new Error('Pickup tests require a local emulator. Never run against production.');
@@ -37,7 +37,7 @@ test('correct farmer verification awards only farmer once under concurrent retri
   const f = await seed(), { code } = await call(f, f.supplier, 'view');
   const result = await Promise.all(Array.from({ length: 6 }, () => call(f, f.farmer, 'verify', code)));
   assert.ok(result.every(r => r.farmerConfirmed && !r.supplierConfirmed));
-  assert.equal(await points(f.farmer), 5 + ORDER_PICKUP_POINTS);
+  assert.equal(await points(f.farmer), 5 + FARMER_HANDOVER_POINTS);
   assert.equal(await points(f.supplier), 2);
   assert.equal((await db.doc(`orders/${f.id}`).get()).get('status'), 'AWAITING_PICKUP');
   assert.equal((await db.doc(`order_pickup_verifications/${f.id}`).get()).get('code'), null);
@@ -57,12 +57,12 @@ test('supplier collection awards only supplier once, moves to IN_TRANSIT, and pe
   const f = await seed(), { code } = await call(f, f.supplier, 'view');
   const results = await Promise.all(Array.from({ length: 6 }, () => call(f, f.supplier, 'collect')));
   assert.ok(results.every(r => r.supplierConfirmed && !r.farmerConfirmed));
-  assert.equal(await points(f.supplier), 2 + ORDER_PICKUP_POINTS);
+  assert.equal(await points(f.supplier), 2 + SUPPLIER_PICKUP_POINTS);
   assert.equal(await points(f.farmer), 5);
   assert.equal((await db.doc(`orders/${f.id}`).get()).get('status'), 'IN_TRANSIT');
   assert.equal((await call(f, f.supplier, 'view')).code, code);
   assert.equal((await call(f, f.farmer, 'verify', code)).farmerConfirmed, true);
-  assert.equal(await points(f.farmer), 5 + ORDER_PICKUP_POINTS);
+  assert.equal(await points(f.farmer), 5 + FARMER_HANDOVER_POINTS);
 });
 test('independent simultaneous confirmations and delivery never duplicate pickup rewards or mutate locations', async () => {
   const f = await seed(), { code } = await call(f, f.supplier, 'view');
@@ -74,16 +74,16 @@ test('independent simultaneous confirmations and delivery never duplicate pickup
   assert.equal(order.status, 'DELIVERED');
   assert.equal(order.pickupLocation, f.order.pickupLocation);
   assert.equal(order.deliveryLocation, f.order.deliveryLocation);
-  assert.equal(await points(f.farmer), 6);
-  assert.equal(await points(f.supplier), 3);
+  assert.equal(await points(f.farmer), 14);
+  assert.equal(await points(f.supplier), 12);
 });
 test('supplier delivery does not prevent still-valid independent farmer verification', async () => {
   const f = await seed(), { code } = await call(f, f.supplier, 'view');
   await call(f, f.supplier, 'collect');
   await completeOrderTransaction(db, f.id, f.supplier);
-  assert.equal(await points(f.farmer), 5);
+  assert.equal(await points(f.farmer), 11);
   await call(f, f.farmer, 'verify', code);
-  assert.equal(await points(f.farmer), 6);
+  assert.equal(await points(f.farmer), 14);
 });
 test('unauthorized participants, incorrect roles, and cross-order code are rejected without rewards', async () => {
   const f = await seed(), other = await seed();
@@ -117,8 +117,8 @@ test('legacy transit/delivered/cancelled orders cannot earn new pickup rewards a
     await assert.rejects(call(f, f.supplier, 'collect'));
     await assert.rejects(call(f, f.farmer, 'verify', '000000'));
     if (status === 'IN_TRANSIT') await completeOrderTransaction(db, f.id, f.supplier);
-    assert.equal(await points(f.farmer), 5);
-    assert.equal(await points(f.supplier), 2);
+    assert.equal(await points(f.farmer), status === 'IN_TRANSIT' ? 11 : 5);
+    assert.equal(await points(f.supplier), status === 'IN_TRANSIT' ? 8 : 2);
   }
 });
 test('cancelled enrolled orders cannot verify or collect, and legacy completion receipt cannot re-enroll', async () => {
@@ -136,7 +136,7 @@ test('existing role-filtered points ordering reflects independent pickup reward'
   await call(f, f.farmer, 'verify', code);
   const ranked = await db.collection('users').where('role', '==', 'FARMER').orderBy('points', 'desc').get();
   const values = ranked.docs.map(doc => doc.get('points'));
-  assert.ok(values.includes(6));
+  assert.ok(values.includes(8));
   assert.deepEqual(values, [...values].sort((a, b) => b - a));
 });
 
@@ -148,10 +148,10 @@ test('expired post-pickup code can be renewed by owning supplier without rewards
   await db.doc(`order_pickup_verifications/${f.id}`).update({ expiresAt: Date.now() - 1 });
   const renewed = await call(f, f.supplier, 'view');
   assert.match(renewed.code, /^\d{6}$/);
-  assert.equal(await points(f.supplier), 3);
-  assert.equal(await points(f.farmer), 5);
+  assert.equal(await points(f.supplier), 12);
+  assert.equal(await points(f.farmer), 11);
   await call(f, f.farmer, 'verify', renewed.code);
-  assert.equal(await points(f.farmer), 6);
+  assert.equal(await points(f.farmer), 14);
 });
 test('concurrent incorrect attempts cannot bypass five-attempt limit', async () => {
   const f = await seed(), { code } = await call(f, f.supplier, 'view');

@@ -18,21 +18,21 @@ async function seed(status = 'IN_TRANSIT') {
   return { id, farmerId, supplierId };
 }
 after(() => app.delete());
-test('delivery preserves pickup points and profile fields', async () => {
+test('delivery awards separate six points and preserves profile fields', async () => {
   const { id, farmerId, supplierId } = await seed();
   assert.equal((await completeOrderTransaction(db, id, supplierId)).alreadyCompleted, false);
   assert.equal((await db.doc(`orders/${id}`).get()).get('status'), 'DELIVERED');
-  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 5);
+  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 11);
   assert.equal((await db.doc(`users/${farmerId}`).get()).get('phone'), '+94000000001');
-  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 2);
+  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 8);
   assert.equal((await db.doc(`order_completion_records/${id}`).get()).get('orderId'), id);
 });
-test('concurrent delivery retries complete once without points', async () => {
+test('concurrent delivery retries award six points once', async () => {
   const { id, farmerId, supplierId } = await seed();
   const results = await Promise.all(Array.from({ length: 4 }, () => completeOrderTransaction(db, id, supplierId)));
   assert.equal(results.filter(r => !r.alreadyCompleted).length, 1);
-  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 5);
-  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 2);
+  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 11);
+  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 8);
 });
 test('farmer and unrelated supplier cannot complete order', async () => {
   const { id, farmerId } = await seed();

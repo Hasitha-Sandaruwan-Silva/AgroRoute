@@ -18,14 +18,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class OrderPickupRepositoryTest {
-    private class Fixture(role: UserRole) {
+    private class Fixture(role: UserRole, status: OrderStatus = OrderStatus.IN_TRANSIT) {
         val dao = mockk<OrderDao>(relaxed = true)
         val users = mockk<UserProfileDao>(relaxed = true)
         val remote = mockk<FirestoreService>(relaxed = true)
         val completion = mockk<OrderCompletionService>()
         val firestore = mockk<FirebaseFirestore>(relaxed = true)
         val order = Order(orderId = "order-1", farmerId = "farmer-1", supplierId = "supplier-1",
-            status = OrderStatus.IN_TRANSIT, pickupLocation = "Farm\n[7, 80]", deliveryLocation = "Destination\n[6, 79]")
+            status = status, listingId = "listing-1", pickupLocation = "Farm\n[7, 80]", deliveryLocation = "Destination\n[6, 79]")
         val repository: OrderRepositoryImpl
         init {
             val auth = mockk<AuthRepository>()
@@ -75,6 +75,23 @@ class OrderPickupRepositoryTest {
         val f = Fixture(UserRole.SUPPLIER)
         coEvery { f.completion.pickup("order-1", "view", null) } returns OrderPickupVerification(code = "123456")
         assertEquals("123456", f.repository.getPickupVerification("order-1").getOrNull()?.code)
+        coVerify(exactly = 0) { f.dao.upsertOrder(any()); f.users.upsertUserProfile(any()) }
+    }
+    @Test fun cancellationUsesTrustedServerAndNeverComputesPenaltyOnClient() = runTest {
+        val f = Fixture(UserRole.SUPPLIER, OrderStatus.CANCELLED)
+        coEvery { f.completion.cancel("order-1") } returns Unit
+        val listingSnapshot = mockk<DocumentSnapshot>()
+        every { f.firestore.collection("listings").document("listing-1").get() } returns Tasks.forResult(listingSnapshot)
+        every { listingSnapshot.toObject(HarvestListing::class.java) } returns HarvestListing(listingId = "listing-1")
+        assertTrue(f.repository.updateOrderStatus("order-1", OrderStatus.CANCELLED) is Result.Success)
+        coVerify(exactly = 1) { f.completion.cancel("order-1") }
+        coVerify(exactly = 0) { f.remote.runTransaction<Any>(any()) }
+        coVerify { f.dao.upsertOrder(f.order); f.users.upsertUserProfile(match { it.points == 7 }) }
+    }
+    @Test fun rejectedTransitCancellationDoesNotChangeCachedStateOrPoints() = runTest {
+        val f = Fixture(UserRole.FARMER)
+        coEvery { f.completion.cancel("order-1") } throws IllegalStateException("Orders cannot be cancelled after pickup")
+        assertTrue(f.repository.updateOrderStatus("order-1", OrderStatus.CANCELLED) is Result.Error)
         coVerify(exactly = 0) { f.dao.upsertOrder(any()); f.users.upsertUserProfile(any()) }
     }
 }

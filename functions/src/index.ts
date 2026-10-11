@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import { createHash } from "crypto";
 import { completeOrderTransaction } from "./orderCompletion";
 import { orderPickupTransaction } from "./orderPickup";
+import { awardOrderAcceptance, cancelOrderTransaction } from "./orderScoring";
 import {
   NotificationEventType,
   NotificationResource,
@@ -16,6 +17,25 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 const fcm = admin.messaging();
+
+// Only newly created confirmed orders generate acceptance rewards. No historical backfill.
+export const rewardOrderAcceptance = functions.runWith({ failurePolicy: true }).firestore
+  .document("orders/{orderId}").onCreate(async (snapshot, context) => {
+    if (snapshot.get("status") !== "AWAITING_PICKUP") return;
+    await awardOrderAcceptance(db, context.params.orderId);
+  });
+
+export const cancelOrder = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in to cancel an order.");
+  const orderId = data?.orderId;
+  if (typeof orderId !== "string" || !orderId.trim() || orderId.length > 128 || orderId.includes("/")) {
+    throw new functions.https.HttpsError("invalid-argument", "A valid order ID is required.");
+  }
+  try { return await cancelOrderTransaction(db, orderId, context.auth.uid); }
+  catch (error) {
+    throw new functions.https.HttpsError("failed-precondition", error instanceof Error ? error.message : "Could not cancel order.");
+  }
+});
 
 export const orderPickup = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in to confirm pickup.");

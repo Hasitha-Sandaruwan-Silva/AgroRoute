@@ -1192,11 +1192,11 @@ test("farmer cannot mark order as DELIVERED from IN_TRANSIT", async () => {
   );
 });
 
-test("farmer can cancel order from AWAITING_PICKUP", async () => {
+test("farmer cannot bypass trusted cancellation for order from AWAITING_PICKUP", async () => {
   await seedOrder("order-1");
   const db = testEnvironment.authenticatedContext("farmer-1").firestore();
 
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(db, "orders/order-1"), {
       status: "CANCELLED",
       updatedAt: 2
@@ -1204,11 +1204,11 @@ test("farmer can cancel order from AWAITING_PICKUP", async () => {
   );
 });
 
-test("supplier can cancel order from AWAITING_PICKUP", async () => {
+test("supplier cannot bypass trusted cancellation for order from AWAITING_PICKUP", async () => {
   await seedOrder("order-1");
   const db = testEnvironment.authenticatedContext("supplier-1").firestore();
 
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(db, "orders/order-1"), {
       status: "CANCELLED",
       updatedAt: 2
@@ -1216,11 +1216,11 @@ test("supplier can cancel order from AWAITING_PICKUP", async () => {
   );
 });
 
-test("farmer can cancel order from IN_TRANSIT", async () => {
+test("farmer cannot bypass trusted cancellation for order from IN_TRANSIT", async () => {
   await seedOrder("order-1", { status: "IN_TRANSIT" });
   const db = testEnvironment.authenticatedContext("farmer-1").firestore();
 
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(db, "orders/order-1"), {
       status: "CANCELLED",
       updatedAt: 2
@@ -1228,11 +1228,11 @@ test("farmer can cancel order from IN_TRANSIT", async () => {
   );
 });
 
-test("supplier can cancel order from IN_TRANSIT", async () => {
+test("supplier cannot bypass trusted cancellation for order from IN_TRANSIT", async () => {
   await seedOrder("order-1", { status: "IN_TRANSIT" });
   const db = testEnvironment.authenticatedContext("supplier-1").firestore();
 
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(db, "orders/order-1"), {
       status: "CANCELLED",
       updatedAt: 2
@@ -1710,7 +1710,7 @@ test("farmer can accept order request with full transaction writes (request, lis
 
 // ── Test: Cancel order with releaseSale (full listing write) ───────────────────
 
-test("farmer can cancel order with releaseSale transaction (order + full listing)", async () => {
+test("farmer cannot bypass trusted cancellation for order with releaseSale transaction (order + full listing)", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     await setDoc(
       doc(context.firestore(), "orders/order-cancel"),
@@ -1738,7 +1738,7 @@ test("farmer can cancel order with releaseSale transaction (order + full listing
     listingAfterReleaseSale("listing-cancel", 5)
   );
 
-  await assertSucceeds(batch.commit());
+  await assertFails(batch.commit());
 });
 
 // ── Tests: Order Completion, Points Awarding & Idempotency ─────────────────────

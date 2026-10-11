@@ -268,33 +268,13 @@ class OrderRepositoryImpl @Inject constructor(
             return@safeCall
         }
         if (status == OrderStatus.CANCELLED) {
-            val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
-            val updatedRecords = firestoreService.runTransaction<Pair<Order, HarvestListing?>> { transaction ->
-                val existing = transaction.get(orderRef).toObject(Order::class.java)
-                    ?: error("Order $orderId not found")
-                check(
-                    (profile.role == UserRole.FARMER && existing.farmerId == userId) ||
-                        (profile.role == UserRole.SUPPLIER && existing.supplierId == userId)
-                ) { "Only an order participant can update this order" }
-                if (existing.status == OrderStatus.CANCELLED) return@runTransaction existing to null
-
-                val listingRef = firestoreService.firestore
-                    .collection(Constants.COLLECTION_LISTINGS)
-                    .document(existing.listingId)
-                val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
-                val updatedListing = listing?.releaseSale(existing.quantity)
-                val updatedOrder = existing.copy(status = status, updatedAt = System.currentTimeMillis())
-                transaction.set(orderRef, updatedOrder)
-                if (updatedListing != null) transaction.set(listingRef, updatedListing)
-                updatedOrder to updatedListing
-            }
-            dao.upsertOrder(updatedRecords.first)
-            val updatedListing = updatedRecords.second
-            if (updatedListing != null) listingDao.upsertListing(updatedListing)
+            completionService.cancel(orderId)
+            val cancelledOrder = refreshTrustedOrder(orderId)
+            firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, cancelledOrder.listingId)
+                ?.let { listingDao.upsertListing(it) }
 
             // The counterparty of the order (not the actor who changed it) receives the
             // notification so the sender is never alerted about their own status change.
-            val cancelledOrder = updatedRecords.first
             val counterparty = if (profile.role == UserRole.FARMER) cancelledOrder.supplierId else cancelledOrder.farmerId
             notificationService.sendPushToServer(
                 recipientUserId = counterparty,

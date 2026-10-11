@@ -9,6 +9,10 @@ import com.agroroute.core.model.OrderPickupVerification
 /** Authorization, status transition and points are committed together by the trusted backend. */
 @Singleton
 class OrderCompletionService @Inject constructor() {
+    suspend fun cancel(orderId: String) {
+        FirebaseFunctions.getInstance().getHttpsCallable("cancelOrder")
+            .call(mapOf("orderId" to orderId)).await()
+    }
     suspend fun pickup(orderId: String, action: String, code: String? = null): OrderPickupVerification {
         val arguments = mutableMapOf<String, Any>("orderId" to orderId, "action" to action)
         if (code != null) arguments["code"] = code

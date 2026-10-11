@@ -137,7 +137,7 @@ class OrderStatusTransitionTest {
     }
 
     @Test
-    fun farmerCanCancelFromInTransit() = runBlocking {
+    fun farmerCannotCannotcelFromInTransit() = runBlocking {
         val order = Order(
             orderId = "order-1",
             listingId = "listing-1",
@@ -154,11 +154,11 @@ class OrderStatusTransitionTest {
 
         val canTransition = canFarmerTransitionTo(order, OrderStatus.CANCELLED)
 
-        assertTrue(canTransition)
+        assertTrue(!canTransition)
     }
 
     @Test
-    fun supplierCanCancelFromInTransit() = runBlocking {
+    fun supplierCannotCannotcelFromInTransit() = runBlocking {
         val order = Order(
             orderId = "order-1",
             listingId = "listing-1",
@@ -175,7 +175,7 @@ class OrderStatusTransitionTest {
 
         val canTransition = canSupplierTransitionTo(order, OrderStatus.CANCELLED)
 
-        assertTrue(canTransition)
+        assertTrue(!canTransition)
     }
 
     @Test
@@ -227,7 +227,7 @@ class OrderStatusTransitionTest {
     private fun canFarmerTransitionTo(order: Order, targetStatus: OrderStatus): Boolean {
         return when (order.status) {
             OrderStatus.AWAITING_PICKUP -> targetStatus == OrderStatus.CANCELLED
-            OrderStatus.IN_TRANSIT -> targetStatus == OrderStatus.CANCELLED
+            OrderStatus.IN_TRANSIT -> false
             else -> false
         }
     }
@@ -235,7 +235,7 @@ class OrderStatusTransitionTest {
     private fun canSupplierTransitionTo(order: Order, targetStatus: OrderStatus): Boolean {
         return when (order.status) {
             OrderStatus.AWAITING_PICKUP -> targetStatus == OrderStatus.IN_TRANSIT || targetStatus == OrderStatus.CANCELLED
-            OrderStatus.IN_TRANSIT -> targetStatus == OrderStatus.DELIVERED || targetStatus == OrderStatus.CANCELLED
+            OrderStatus.IN_TRANSIT -> targetStatus == OrderStatus.DELIVERED
             else -> false
         }
     }

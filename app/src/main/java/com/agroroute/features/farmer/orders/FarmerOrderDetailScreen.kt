@@ -157,8 +157,8 @@ fun FarmerOrderDetailScreen(
                     )
 
                     when (uiState.selectedOrder!!.status) {
-                        OrderStatus.AWAITING_PICKUP -> Unit // Pickup/transport is confirmed by the Supplier.
-                        OrderStatus.IN_TRANSIT -> Button(
+                        OrderStatus.IN_TRANSIT -> Unit // Normal cancellation is blocked after pickup.
+                        OrderStatus.AWAITING_PICKUP -> Button(
                             onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.CANCELLED) },
                             enabled = !uiState.isLoading,
                             modifier = Modifier.fillMaxWidth().height(56.dp).shadow(2.dp, RoundedCornerShape(18.dp)),

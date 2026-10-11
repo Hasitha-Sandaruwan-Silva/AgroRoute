@@ -1,4 +1,5 @@
-/** Delivery receipt only. Independent pickup rewards are never repeated at delivery. */
+import { ORDER_SCORE, scoreAfter } from "./orderScoring";
+/** Legitimate delivery earns its separate +6; pickup rewards are never repeated. */
 export async function completeOrderTransaction(db: FirebaseFirestore.Firestore, orderId: string, userId: string) {
   const orderRef = db.collection("orders").doc(orderId);
   const receiptRef = db.collection("order_completion_records").doc(orderId);
@@ -28,9 +29,14 @@ export async function completeOrderTransaction(db: FirebaseFirestore.Firestore, 
     }
     if (order.status !== "IN_TRANSIT") throw new Error("Order must be in transit before completion");
     const now = Date.now();
+    const farmerPoints = scoreAfter(farmer.points, ORDER_SCORE.complete);
+    const supplierPoints = scoreAfter(supplier.points, ORDER_SCORE.complete);
+    transaction.update(farmerRef, { points: farmerPoints });
+    transaction.update(supplierRef, { points: supplierPoints });
     transaction.update(orderRef, { status: "DELIVERED", updatedAt: now });
     transaction.create(receiptRef, {
       orderId, farmerId: order.farmerId, supplierId: order.supplierId, completedAt: now,
+      farmerCompletionPoints: ORDER_SCORE.complete, supplierCompletionPoints: ORDER_SCORE.complete,
     });
     return { orderId, alreadyCompleted: false };
   });

@@ -1,7 +1,9 @@
 import { randomInt, timingSafeEqual } from "crypto";
+import { ORDER_SCORE, scoreAfter } from "./orderScoring";
 
-// Reuses the existing one-point order reward, now earned independently at pickup.
-export const ORDER_PICKUP_POINTS = 1;
+// Independent lifecycle rewards use the centralized scoring policy.
+export const FARMER_HANDOVER_POINTS = ORDER_SCORE.farmerHandover;
+export const SUPPLIER_PICKUP_POINTS = ORDER_SCORE.supplierPickup;
 const CODE_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const ATTEMPT_WINDOW_MS = 30 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -44,7 +46,7 @@ export async function orderPickupTransaction(
       if (isSupplier && (order.status === "AWAITING_PICKUP" || verification?.supplierConfirmed &&
           ["IN_TRANSIT", "DELIVERED"].includes(order.status)) &&
           (!completionSnapshot.exists || verification?.supplierConfirmed) &&
-          !verification?.farmerConfirmed && (!verification || verification.expiresAt <= now)) {
+          !verification?.farmerConfirmed && (!verification?.code || verification.expiresAt <= now)) {
         verification = { ...(verification ?? {}), code: randomInt(0, 1_000_000).toString().padStart(6, "0"),
           expiresAt: now + CODE_LIFETIME_MS, farmerConfirmed: false,
           supplierConfirmed: verification?.supplierConfirmed === true };
@@ -82,11 +84,8 @@ export async function orderPickupTransaction(
         throw new Error("Pickup code expired. Refresh pickup verification before confirming collection.");
       }
     }
-    const points = user.points ?? 0;
-    if (!Number.isSafeInteger(points) || points < 0 || points >= Number.MAX_SAFE_INTEGER) {
-      throw new Error("Invalid participant points");
-    }
-    tx.update(userRef, { points: points + ORDER_PICKUP_POINTS });
+    tx.update(userRef, { points: scoreAfter(user.points,
+      action === "verify" ? ORDER_SCORE.farmerHandover : ORDER_SCORE.supplierPickup) });
     const changes = { [flag]: true, [`${flag}At`]: now,
       ...(action === "verify" ? { code: null } : {}) };
     tx.update(verificationRef, changes);
