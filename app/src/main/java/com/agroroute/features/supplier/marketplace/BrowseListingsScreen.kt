@@ -59,6 +59,7 @@ import com.agroroute.core.components.ListSkeleton
 import com.agroroute.core.components.ListingImage
 import com.agroroute.core.components.ProfilePhoneContact
 import com.agroroute.core.components.StatusChip
+import com.agroroute.core.location.SelectedLocation
 import com.github.thelacspace.icons.Lucide
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -98,78 +99,74 @@ fun BrowseListingsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
             Text(
-                text = "Find a harvest",
-                style = MaterialTheme.typography.titleLarge,
+                text = "Find a Harvest",
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Compare available quantities, quality, and reserve prices.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
             )
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text("Search crops or location") },
-                leadingIcon = { Icon(Lucide.Search, contentDescription = null) },
+                placeholder = { Text("Search crops or location", style = MaterialTheme.typography.bodyMedium) },
+                leadingIcon = { Icon(Lucide.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                textStyle = MaterialTheme.typography.bodyMedium,
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().height(56.dp)
             )
-            Spacer(Modifier.height(10.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 item {
                     FilterChip(
                         selected = filter == MarketFilter.ALL,
                         onClick = { filter = MarketFilter.ALL },
-                        label = { Text("All") }
+                        label = { Text("All", style = MaterialTheme.typography.labelSmall) }
                     )
                 }
                 item {
                     FilterChip(
                         selected = filter == MarketFilter.BIDDING_OPEN,
                         onClick = { filter = MarketFilter.BIDDING_OPEN },
-                        label = { Text("Bidding open") }
+                        label = { Text("Bidding open", style = MaterialTheme.typography.labelSmall) }
                     )
                 }
                 item {
                     FilterChip(
                         selected = filter == MarketFilter.NEAR_ME,
                         onClick = { filter = MarketFilter.NEAR_ME },
-                        label = { Text("With location") }
+                        label = { Text("With location", style = MaterialTheme.typography.labelSmall) }
                     )
                 }
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (filtered.size == 1) "1 listing" else "${filtered.size} listings",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (filtered.size == 1) "1 listing" else "${filtered.size} listings",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     if (filter == MarketFilter.BIDDING_OPEN) {
                         Text("Bidding open", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     }
-                    IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Lucide.RefreshCw, contentDescription = "Refresh")
+                }
+                TextButton(
+                    onClick = { navController.navigate(Screen.SupplierBids.route) },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Optional bidding", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("My bids >", style = MaterialTheme.typography.labelMedium)
                     }
                 }
-            }
-            TextButton(onClick = { navController.navigate(Screen.SupplierBids.route) }) {
-                Icon(Lucide.Gavel, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Optional bidding · My bids")
+                IconButton(onClick = { viewModel.refresh() }) {
+                    Icon(Lucide.RefreshCw, contentDescription = "Refresh", modifier = Modifier.size(20.dp))
+                }
             }
         }
 
@@ -242,6 +239,7 @@ private fun MarketplaceListingCard(
     onCardClick: () -> Unit
 ) {
     val isExpected = listing.harvestStatus == HarvestStatus.EXPECTED
+    val pickup = remember(listing.location) { SelectedLocation.fromStoredText(listing.location) }
     AppCard(onClick = onCardClick.takeIf { canPlaceBid || canRequestOrder }) {
         ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
         Spacer(Modifier.height(14.dp))
@@ -391,6 +389,9 @@ private fun MarketplaceListingCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
         )
+        pickup?.let { location ->
+            MarketplaceLocationPreview(location = location, modifier = Modifier.padding(top = 10.dp))
+        }
         if (canPlaceBid) {
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))

@@ -171,7 +171,7 @@ fun LocationMap(
     }
 }
 /** Code-drawn marker: its bottom tip is anchored to the selected coordinate. */
-private fun locationPinBitmap(color: Int): Bitmap {
+internal fun locationPinBitmap(color: Int): Bitmap {
     val bitmap = Bitmap.createBitmap(48, 64, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
