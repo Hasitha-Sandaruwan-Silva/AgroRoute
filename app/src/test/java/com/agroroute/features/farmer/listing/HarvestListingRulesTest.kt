@@ -661,6 +661,8 @@ class HarvestListingRulesTest {
     }
 
     private class FakeOrderRepository : OrderRepository {
+        override suspend fun getPickupVerification(orderId: String): Result<com.agroroute.core.model.OrderPickupVerification> = Result.Error("Not used in this fixture")
+        override suspend fun verifyPickupCode(orderId: String, code: String): Result<com.agroroute.core.model.OrderPickupVerification> = Result.Error("Not used in this fixture")
         val acceptedOrders = mutableListOf<Order>()
 
         override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =

@@ -95,7 +95,7 @@ export function resolveNotificationRecipient(
         ORDER_COMPLETED: "DELIVERED"
       }[eventType];
       if (!order || order.status !== expectedStatus) return null;
-      if (eventType === "ORDER_IN_TRANSIT" && actorId !== order.farmerId) return null;
+      if (eventType === "ORDER_IN_TRANSIT" && actorId !== order.supplierId) return null;
       if (eventType === "ORDER_COMPLETED" && actorId !== order.supplierId) return null;
       if (eventType === "ORDER_CANCELLED" && actorId !== order.farmerId && actorId !== order.supplierId) return null;
       userId = actorId === order.farmerId ? order.supplierId : order.farmerId;

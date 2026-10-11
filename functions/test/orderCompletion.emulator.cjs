@@ -18,21 +18,21 @@ async function seed(status = 'IN_TRANSIT') {
   return { id, farmerId, supplierId };
 }
 after(() => app.delete());
-test('completion awards one point per participant and preserves profile fields', async () => {
+test('delivery preserves pickup points and profile fields', async () => {
   const { id, farmerId, supplierId } = await seed();
   assert.equal((await completeOrderTransaction(db, id, supplierId)).alreadyCompleted, false);
   assert.equal((await db.doc(`orders/${id}`).get()).get('status'), 'DELIVERED');
-  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 6);
+  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 5);
   assert.equal((await db.doc(`users/${farmerId}`).get()).get('phone'), '+94000000001');
-  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 3);
+  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 2);
   assert.equal((await db.doc(`order_completion_records/${id}`).get()).get('orderId'), id);
 });
-test('concurrent retries award once', async () => {
+test('concurrent delivery retries complete once without points', async () => {
   const { id, farmerId, supplierId } = await seed();
   const results = await Promise.all(Array.from({ length: 4 }, () => completeOrderTransaction(db, id, supplierId)));
   assert.equal(results.filter(r => !r.alreadyCompleted).length, 1);
-  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 6);
-  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 3);
+  assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 5);
+  assert.equal((await db.doc(`users/${supplierId}`).get()).get('points'), 2);
 });
 test('farmer and unrelated supplier cannot complete order', async () => {
   const { id, farmerId } = await seed();
@@ -47,12 +47,9 @@ test('awaiting pickup, cancelled and delivered without receipt cannot award poin
     assert.equal((await db.doc(`users/${farmerId}`).get()).get('points'), 5);
   }
 });
-test('invalid role and negative points reject without partial writes', async () => {
+test('invalid role rejects without partial writes', async () => {
   const { id, farmerId, supplierId } = await seed();
   await db.doc(`users/${supplierId}`).update({ role: 'FARMER' });
-  await assert.rejects(completeOrderTransaction(db, id, supplierId));
-  await db.doc(`users/${supplierId}`).update({ role: 'SUPPLIER' });
-  await db.doc(`users/${farmerId}`).update({ points: -1 });
   await assert.rejects(completeOrderTransaction(db, id, supplierId));
   assert.equal((await db.doc(`orders/${id}`).get()).get('status'), 'IN_TRANSIT');
   assert.equal((await db.doc(`order_completion_records/${id}`).get()).exists, false);

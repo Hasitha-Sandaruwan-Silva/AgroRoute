@@ -127,6 +127,14 @@ fun SupplierOrderDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    com.agroroute.core.components.OrderPickupSection(
+                        orderId = orderId, status = uiState.selectedOrder!!.status, forSupplier = true,
+                        verification = uiState.pickup, loading = uiState.pickupLoading || uiState.isLoading,
+                        error = uiState.pickupError,
+                        onRefresh = { viewModel.loadPickupVerification(orderId) },
+                        onCollect = { viewModel.updateOrderStatus(orderId, OrderStatus.IN_TRANSIT) }
+                    )
+
                     when (uiState.selectedOrder!!.status) {
                         OrderStatus.IN_TRANSIT -> LoadingButton(
                             text = "Mark as Delivered",

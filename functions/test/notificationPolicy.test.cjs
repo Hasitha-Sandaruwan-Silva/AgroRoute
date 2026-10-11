@@ -38,8 +38,8 @@ test("bid and order events never resolve back to their actor", () => {
     status: "IN_TRANSIT",
     updatedAt: 10,
   };
-  assert.equal(resolveNotificationRecipient("ORDER_IN_TRANSIT", "farmer-1", { order }).userId, "supplier-2");
-  assert.equal(resolveNotificationRecipient("ORDER_IN_TRANSIT", "supplier-2", { order }), null);
+  assert.equal(resolveNotificationRecipient("ORDER_IN_TRANSIT", "supplier-2", { order }).userId, "farmer-1");
+  assert.equal(resolveNotificationRecipient("ORDER_IN_TRANSIT", "farmer-1", { order }), null);
   assert.equal(routeForNotification("ORDER_IN_TRANSIT", "SUPPLIER", { orderId: "order-5" }), "supplier_order_detail/order-5");
 });
 

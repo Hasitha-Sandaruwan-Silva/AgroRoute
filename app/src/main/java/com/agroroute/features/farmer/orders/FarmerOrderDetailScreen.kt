@@ -148,15 +148,16 @@ fun FarmerOrderDetailScreen(
                         }
                     }
 
+                    com.agroroute.core.components.OrderPickupSection(
+                        orderId = orderId, status = uiState.selectedOrder!!.status, forSupplier = false,
+                        verification = uiState.pickup, loading = uiState.pickupLoading || uiState.isLoading,
+                        error = uiState.pickupError,
+                        onRefresh = { viewModel.loadPickupVerification(orderId) },
+                        onVerify = { viewModel.verifyPickupCode(orderId, it) }
+                    )
+
                     when (uiState.selectedOrder!!.status) {
-                        OrderStatus.AWAITING_PICKUP -> Box(Modifier.fillMaxWidth().height(56.dp).shadow(10.dp, RoundedCornerShape(18.dp)).clip(RoundedCornerShape(18.dp)).background(Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)))) {
-                            LoadingButton(
-                                text = "Mark as In Transit",
-                                isLoading = uiState.isLoading,
-                                onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.IN_TRANSIT) },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                        OrderStatus.AWAITING_PICKUP -> Unit // Pickup/transport is confirmed by the Supplier.
                         OrderStatus.IN_TRANSIT -> Button(
                             onClick = { viewModel.updateOrderStatus(orderId, OrderStatus.CANCELLED) },
                             enabled = !uiState.isLoading,

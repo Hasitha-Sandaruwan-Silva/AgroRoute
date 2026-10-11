@@ -23,6 +23,9 @@ data class SupplierOrderUiState(
     val selectedOrder: Order? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
+    val pickup: com.agroroute.core.model.OrderPickupVerification? = null,
+    val pickupLoading: Boolean = false,
+    val pickupError: String? = null,
     val actionSuccess: Boolean = false
 )
 
@@ -53,6 +56,7 @@ class SupplierOrderViewModel @Inject constructor(
     }
 
     fun loadOrderById(orderId: String) {
+        loadPickupVerification(orderId)
         getOrdersUseCase.byId(orderId)
             .onEach { result ->
                 when (result) {
@@ -127,7 +131,9 @@ class SupplierOrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = orderRequestRepository.cancelRequest(requestId)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                is Result.Success -> {
+                    _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                }
                 is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
                 Result.Loading -> Unit
             }
@@ -138,9 +144,25 @@ class SupplierOrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val r = orderRepository.updateOrderStatus(orderId, status)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                is Result.Success -> {
+                    _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                    loadPickupVerification(orderId)
+                }
                 is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = r.message) }
                 is Result.Loading -> Unit
+            }
+        }
+    }
+
+    fun loadPickupVerification(orderId: String) {
+        if (_uiState.value.pickupLoading) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(pickupLoading = true, pickupError = null, pickup = null) }
+            orderRepository.syncOrders(currentSupplierId)
+            when (val result = orderRepository.getPickupVerification(orderId)) {
+                is Result.Success -> _uiState.update { it.copy(pickupLoading = false, pickup = result.data) }
+                is Result.Error -> _uiState.update { it.copy(pickupLoading = false, pickupError = result.message) }
+                Result.Loading -> Unit
             }
         }
     }

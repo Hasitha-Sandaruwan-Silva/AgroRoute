@@ -340,10 +340,6 @@ service cloud.firestore {
         && (
           request.resource.data.status == resource.data.status
           || (resource.data.status == 'AWAITING_PICKUP'
-            && request.resource.data.status == 'IN_TRANSIT'
-            && farmer()
-            && resource.data.farmerId == request.auth.uid)
-          || (resource.data.status == 'AWAITING_PICKUP'
             && request.resource.data.status == 'CANCELLED'
             && ((farmer() && resource.data.farmerId == request.auth.uid)
               || (supplier() && resource.data.supplierId == request.auth.uid)))
@@ -357,7 +353,11 @@ service cloud.firestore {
     }
 
     match /order_completion_records/{recordId} {
-      // Only the trusted completeOrder callable writes completion receipts and points.
+      // Only the trusted completeOrder callable writes delivery receipts.
+      allow read, write: if false;
+    }
+    match /order_pickup_verifications/{orderId} {
+      // Codes, rate limits and independent reward receipts are Admin-only.
       allow read, write: if false;
     }
     match /reviews/{reviewId} {

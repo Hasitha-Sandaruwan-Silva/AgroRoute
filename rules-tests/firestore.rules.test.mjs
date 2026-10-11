@@ -1144,11 +1144,11 @@ async function seedOrder(orderId, overrides = {}) {
   });
 }
 
-test("farmer can mark order as IN_TRANSIT from AWAITING_PICKUP", async () => {
+test("farmer cannot bypass trusted pickup callable from AWAITING_PICKUP", async () => {
   await seedOrder("order-1");
   const db = testEnvironment.authenticatedContext("farmer-1").firestore();
 
-  await assertSucceeds(
+  await assertFails(
     updateDoc(doc(db, "orders/order-1"), {
       status: "IN_TRANSIT",
       updatedAt: 2
@@ -2221,4 +2221,21 @@ test("bid acceptance validates the saved delivery and atomically freezes both lo
   const saved = (await getDoc(doc(db, "orders", bidId))).data();
   assert.equal(saved.pickupLocation, "North Farm\n[7.000000, 80.000000]");
   assert.equal(saved.deliveryLocation, fullBidDoc(bidId).deliveryLocation);
+});
+
+test("pickup codes and reward flags cannot be read or written by any client", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), "order_pickup_verifications/order-1"), {
+      code: "123456", farmerConfirmed: false, supplierConfirmed: false
+    });
+  });
+  for (const uid of ["farmer-1", "supplier-1", "farmer-2", "supplier-2"]) {
+    const db = testEnvironment.authenticatedContext(uid).firestore();
+    await assertFails(getDoc(doc(db, "order_pickup_verifications/order-1")));
+    await assertFails(updateDoc(doc(db, "order_pickup_verifications/order-1"), { farmerConfirmed: true }));
+    await assertFails(setDoc(doc(db, "order_pickup_verifications/other-order"), { code: "123456" }));
+    await assertFails(updateDoc(doc(db, `users/${uid}`), { points: 999 }));
+  }
+  const db = testEnvironment.unauthenticatedContext().firestore();
+  await assertFails(getDoc(doc(db, "order_pickup_verifications/order-1")));
 });

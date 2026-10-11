@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { createHash } from "crypto";
 import { completeOrderTransaction } from "./orderCompletion";
+import { orderPickupTransaction } from "./orderPickup";
 import {
   NotificationEventType,
   NotificationResource,
@@ -15,6 +16,22 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 const fcm = admin.messaging();
+
+export const orderPickup = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in to confirm pickup.");
+  const { orderId, action, code } = data ?? {};
+  if (typeof orderId !== "string" || !orderId.trim() || orderId.length > 128 || orderId.includes("/") ||
+      !["view", "verify", "collect"].includes(action)) {
+    throw new functions.https.HttpsError("invalid-argument", "A valid order and pickup action are required.");
+  }
+  try {
+    const result = await orderPickupTransaction(db, orderId, context.auth.uid, action, code);
+    if ("error" in result) throw new Error(String(result.error));
+    return result;
+  } catch (error) {
+    throw new functions.https.HttpsError("failed-precondition", error instanceof Error ? error.message : "Could not confirm pickup.");
+  }
+});
 
 export const completeOrder = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in to complete an order.");
@@ -179,7 +196,7 @@ function messageFor(
     case "BID_ACCEPTED": return { title: "Bid accepted", body: `Your bid for ${crop} was accepted. Your order is awaiting pickup.` };
     case "BID_REJECTED": return { title: "Bid rejected", body: `Your bid for ${crop} was rejected.` };
     case "BID_WITHDRAWN": return { title: "Bid withdrawn", body: `${supplier} withdrew a bid for ${crop}.` };
-    case "ORDER_IN_TRANSIT": return { title: "Order in transit", body: `Your order for ${crop} is now in transit.` };
+    case "ORDER_IN_TRANSIT": return { title: "Harvest collected", body: `The Supplier collected ${crop}. The order is now in transit.` };
     case "ORDER_CANCELLED": return { title: "Order cancelled", body: `Your order for ${crop} was cancelled.` };
     case "ORDER_COMPLETED": return { title: "Order completed", body: `Your order for ${crop} has been delivered.` };
     case "HARVEST_READY": return { title: "Harvest ready", body: `${crop} is ready. Review your order request in Orders.` };

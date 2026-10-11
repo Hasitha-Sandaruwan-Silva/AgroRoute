@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
  * Domain contract for all [Order]-related operations — implemented in the data layer.
  */
 interface OrderRepository {
+    suspend fun getPickupVerification(orderId: String): Result<com.agroroute.core.model.OrderPickupVerification>
+    suspend fun verifyPickupCode(orderId: String, code: String): Result<com.agroroute.core.model.OrderPickupVerification>
 
     /** Emits all orders for the currently signed-in farmer. */
     fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>>

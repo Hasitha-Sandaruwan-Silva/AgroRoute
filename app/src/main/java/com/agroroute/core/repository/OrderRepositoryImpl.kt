@@ -55,6 +55,26 @@ class OrderRepositoryImpl @Inject constructor(
     private val notificationService: NotificationService,
     private val completionService: com.agroroute.core.remote.OrderCompletionService
 ) : OrderRepository {
+    override suspend fun getPickupVerification(orderId: String) = safeCall {
+        completionService.pickup(orderId, "view")
+    }
+
+    override suspend fun verifyPickupCode(orderId: String, code: String) = safeCall {
+        val verification = completionService.pickup(orderId, "verify", code)
+        refreshTrustedOrder(orderId)
+        verification
+    }
+
+    private suspend fun refreshTrustedOrder(orderId: String): Order {
+        val order = firestoreService.getOnce<Order>(Constants.COLLECTION_ORDERS, orderId)
+            ?: error("Order not found")
+        dao.upsertOrder(order)
+        for (participant in listOf(order.farmerId, order.supplierId)) {
+            firestoreService.getOnce<UserProfile>(Constants.COLLECTION_USERS, participant)
+                ?.let { userProfileDao.upsertUserProfile(it) }
+        }
+        return order
+    }
 
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
         dao.getOrdersForFarmer(farmerId)
@@ -216,6 +236,18 @@ class OrderRepositoryImpl @Inject constructor(
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()
             ?: error("Account profile is unavailable")
         check(profile.userId == userId) { "Account profile does not match the signed-in user" }
+        if (status == OrderStatus.IN_TRANSIT) {
+            check(profile.role == UserRole.SUPPLIER) { "Only the Supplier can confirm pickup" }
+            completionService.pickup(orderId, "collect")
+            val collected = refreshTrustedOrder(orderId)
+            notificationService.sendPushToServer(
+                recipientUserId = collected.farmerId,
+                event = NotificationEvent.ORDER_IN_TRANSIT,
+                payload = Payload(cropName = collected.cropName, supplierName = collected.supplierId, orderId = orderId),
+                actorUserId = userId
+            )
+            return@safeCall
+        }
         if (status == OrderStatus.DELIVERED) {
             check(profile.role == UserRole.SUPPLIER) { "Only the supplier can mark the order as delivered" }
             completionService.complete(orderId)
@@ -275,50 +307,7 @@ class OrderRepositoryImpl @Inject constructor(
                 actorUserId = userId
             )
         } else {
-            val orderRef = firestoreService.firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
-
-            val updatedOrder = firestoreService.runTransaction<Order> { transaction ->
-                val existing = transaction.get(orderRef).toObject(Order::class.java)
-                    ?: error("Order $orderId not found")
-                check(
-                    (profile.role == UserRole.FARMER && existing.farmerId == userId) ||
-                        (profile.role == UserRole.SUPPLIER && existing.supplierId == userId)
-                ) { "Only an order participant can update this order" }
-                when (status) {
-                    OrderStatus.IN_TRANSIT -> {
-                        check(profile.role == UserRole.FARMER && existing.farmerId == userId) {
-                            "Only the farmer can mark the order as in transit"
-                        }
-                        check(existing.status == OrderStatus.AWAITING_PICKUP) {
-                            "Order must be awaiting pickup to be marked as in transit"
-                        }
-                    }
-                    else -> error("Invalid status transition")
-                }
-                val newOrder = existing.copy(status = status, updatedAt = System.currentTimeMillis())
-                transaction.set(orderRef, newOrder)
-                newOrder
-            }
-
-            dao.upsertOrder(updatedOrder)
-
-            val notification = when (status) {
-                OrderStatus.IN_TRANSIT -> updatedOrder.supplierId to NotificationEvent.ORDER_IN_TRANSIT
-                OrderStatus.DELIVERED -> updatedOrder.farmerId to NotificationEvent.ORDER_COMPLETED
-                else -> null
-            }
-            val (recipientUserId, event) = notification ?: return@safeCall
-            notificationService.sendPushToServer(
-                recipientUserId = recipientUserId,
-                event = event,
-                payload = Payload(
-                    cropName = updatedOrder.cropName,
-                    supplierName = updatedOrder.supplierId,
-                    orderId = updatedOrder.orderId
-                ),
-                actorUserId = userId
-            )
-
+            error("Invalid status transition")
         }
     }
 
