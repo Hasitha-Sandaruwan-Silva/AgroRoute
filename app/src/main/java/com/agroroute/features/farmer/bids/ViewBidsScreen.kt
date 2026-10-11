@@ -160,7 +160,7 @@ fun ViewBidsScreen(
                     }
                     items(uiState.bids, key = { it.bidId }) { bid ->
                         val isBest = bid.status == BidStatus.PENDING && bid.bidId == bestPendingBid?.bidId
-                        SuperbBidCard(bid = bid, isBestOffer = isBest, onAcceptClick = { bidToAccept = bid }, onRejectClick = { viewModel.rejectBid(bid) }, isAccepting = uiState.isLoading)
+                        SuperbBidCard(onOpenOrder = { navController.navigate(com.agroroute.core.navigation.Screen.FarmerOrderDetail.createRoute(bid.bidId)) }, listingAvailable = uiState.listing != null && uiState.listing?.isDraft == false, bid = bid, isBestOffer = isBest, onAcceptClick = { bidToAccept = bid }, onRejectClick = { viewModel.rejectBid(bid) }, isAccepting = uiState.isLoading || uiState.isSubmitting, blockedReason = com.agroroute.core.components.listingAcceptanceBlockedReason(uiState.listing, true, deliveryLocation = bid.deliveryLocation))
                     }
                 }
             }
@@ -181,12 +181,15 @@ fun ViewBidsScreen(
 }
 
 @Composable
-private fun SuperbBidCard(
+internal fun SuperbBidCard(
     bid: Bid,
     isBestOffer: Boolean,
     onAcceptClick: () -> Unit,
     onRejectClick: () -> Unit,
-    isAccepting: Boolean
+    isAccepting: Boolean,
+    blockedReason: String?,
+    listingAvailable: Boolean = true,
+    onOpenOrder: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().shadow(if (isBestOffer) 12.dp else 4.dp, RoundedCornerShape(20.dp), ambientColor = if (isBestOffer) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.05f)),
@@ -196,6 +199,7 @@ private fun SuperbBidCard(
         else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), Arrangement.spacedBy(12.dp)) {
+            if (bid.status == BidStatus.ACCEPTED) TextButton(onClick = onOpenOrder) { Text("View order") }
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Box(
@@ -265,11 +269,13 @@ private fun SuperbBidCard(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     LoadingButton(
                         text = "Accept This Bid",
+                        enabled = blockedReason == null,
                         isLoading = isAccepting,
                         onClick = onAcceptClick,
                         modifier = Modifier.fillMaxWidth().height(52.dp).shadow(2.dp, RoundedCornerShape(14.dp))
                     )
-                    TextButton(onClick = onRejectClick, enabled = !isAccepting, modifier = Modifier.align(Alignment.End).heightIn(min = 40.dp)) {
+                    blockedReason?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    TextButton(onClick = onRejectClick, enabled = !isAccepting && listingAvailable, modifier = Modifier.align(Alignment.End).heightIn(min = 40.dp)) {
                         Text("Reject bid", color = if (isAccepting) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
@@ -301,7 +307,7 @@ internal fun AcceptBidConfirmationDialog(bid: Bid, listing: com.agroroute.core.m
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm, modifier = Modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = ForestDeep)) {
+            Button(onClick = onConfirm, enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, deliveryLocation = bid.deliveryLocation) == null, modifier = Modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = ForestDeep)) {
                 Text("Accept and create order", fontWeight = FontWeight.Bold)
             }
         },

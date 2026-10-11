@@ -21,6 +21,7 @@ data class FarmerOrderUiState(
     val supplierNames: Map<String, String> = emptyMap(),
     val selectedOrder: Order? = null,
     val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
     val error: String? = null,
     val pickup: com.agroroute.core.model.OrderPickupVerification? = null,
     val pickupLoading: Boolean = false,
@@ -37,7 +38,8 @@ class FarmerOrderViewModel @Inject constructor(
     private val orderRepository: OrderRepository,
     private val bidRepository: BidRepository,
     private val authRepository: AuthRepository,
-    networkConnectivityMonitor: NetworkConnectivityMonitor
+    networkConnectivityMonitor: NetworkConnectivityMonitor,
+    private val orderRequestRepository: com.agroroute.core.repository.OrderRequestRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FarmerOrderUiState())
@@ -89,8 +91,9 @@ class FarmerOrderViewModel @Inject constructor(
                         _uiState.update { it.copy(isLoading = false, orders = result.data) }
                         viewModelScope.launch {
                             val supplierNames = result.data.mapNotNull { order ->
-                                val bid = bidRepository.getBidById(order.bidId).first().getOrNull()
-                                bid?.supplierName?.takeIf(String::isNotBlank)?.let { order.orderId to it }
+                                val name = if (order.bidId.isNotBlank()) bidRepository.getBidById(order.bidId).first().getOrNull()?.supplierName
+                                    else orderRequestRepository.getRequestById(order.orderId).first().getOrNull()?.supplierName
+                                name?.takeIf(String::isNotBlank)?.let { order.orderId to it }
                             }.toMap()
                             _uiState.update { it.copy(supplierNames = supplierNames) }
                         }
@@ -112,18 +115,21 @@ class FarmerOrderViewModel @Inject constructor(
     }
 
     fun updateOrderStatus(orderId: String, status: OrderStatus) {
+        if (_uiState.value.isSubmitting || _uiState.value.pickupLoading) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val r = orderRepository.updateOrderStatus(orderId, status)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
-                is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = r.message) }
-                is Result.Loading -> Unit
+                is Result.Success -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, actionSuccess = true) }
+                is Result.Error   -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = r.message) }
+                is Result.Loading -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
             }
         }
     }
 
     fun loadPickupVerification(orderId: String) {
-        if (_uiState.value.pickupLoading) return
+        if (_uiState.value.pickupLoading || _uiState.value.isSubmitting) return
+        _uiState.update { it.copy(pickupLoading = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(pickupLoading = true, pickupError = null, pickup = null) }
             orderRepository.syncOrders(currentFarmerId)
@@ -135,13 +141,13 @@ class FarmerOrderViewModel @Inject constructor(
         }
     }
     fun verifyPickupCode(orderId: String, code: String) {
-        if (_uiState.value.pickupLoading) return
+        if (_uiState.value.pickupLoading || _uiState.value.isSubmitting) return
         if (!Regex("[0-9]{6}").matches(code)) {
             _uiState.update { it.copy(pickupError = "Enter the six-digit pickup code.") }
             return
         }
+        _uiState.update { it.copy(pickupLoading = true, pickupError = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(pickupLoading = true, pickupError = null) }
             when (val result = orderRepository.verifyPickupCode(orderId, code)) {
                 is Result.Success -> _uiState.update { it.copy(pickupLoading = false, pickup = result.data) }
                 is Result.Error -> _uiState.update { it.copy(pickupLoading = false, pickupError = result.message) }

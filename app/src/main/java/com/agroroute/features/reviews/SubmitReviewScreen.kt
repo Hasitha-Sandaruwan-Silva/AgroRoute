@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -65,7 +66,7 @@ fun SubmitReviewScreen(
     var comment by remember { mutableStateOf("") }
 
     LaunchedEffect(orderId) {
-        viewModel.checkHasReviewed(orderId)
+        viewModel.checkHasReviewed(orderId, revieweeId)
     }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
@@ -85,10 +86,17 @@ fun SubmitReviewScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             ReviewHeader(revieweeName = revieweeName)
+            if (uiState.isChecking || uiState.hasReviewed || uiState.error != null)
+                com.agroroute.core.components.ReviewEligibilitySection(uiState.isChecking, false,
+                uiState.hasReviewed, uiState.error, revieweeName, {},
+                { viewModel.checkHasReviewed(orderId, revieweeId) })
+            if (!uiState.isChecking && !uiState.canReview && !uiState.hasReviewed && uiState.error == null)
+                Text("This order is not eligible for a review.")
             Spacer(Modifier.height(16.dp))
             RatingCard(
                 rating = rating,
@@ -103,7 +111,7 @@ fun SubmitReviewScreen(
             LoadingButton(
                 text = "Submit Review",
                 isLoading = uiState.isLoading,
-                enabled = rating in 1..5 && comment.isNotBlank() && !uiState.hasReviewed,
+                enabled = rating in 1..5 && comment.isNotBlank() && uiState.canReview && !uiState.isChecking && !uiState.hasReviewed,
                 onClick = {
                     viewModel.submitReview(
                         orderId = orderId,
@@ -128,40 +136,9 @@ fun SubmitReviewScreen(
 
 @Composable
 private fun ReviewHeader(revieweeName: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(ForestDeep, ForestMid, ForestSoft)
-                )
-            )
-            .padding(22.dp)
-    ) {
-        Icon(
-            imageVector = Lucide.Star,
-            contentDescription = null,
-            tint = Color.White.copy(alpha = 0.08f),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(88.dp)
-        )
-        Column {
-            Text(
-                text = "Rate Your Experience",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "How was your transaction with $revieweeName?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-        }
-    }
+    Text("Review $revieweeName", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Text("Share your experience with this delivered order.", style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable

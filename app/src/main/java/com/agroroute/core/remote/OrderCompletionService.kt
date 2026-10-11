@@ -6,14 +6,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import com.agroroute.core.model.OrderPickupVerification
 
-/** Authorization, status transition and points are committed together by the trusted backend. */
+/** Future trusted backend adapter. Not bound in Spark mode; enabling it also requires a coordinated Rules/receipt migration. */
 @Singleton
-class OrderCompletionService @Inject constructor() {
-    suspend fun cancel(orderId: String) {
+class OrderCompletionService @Inject constructor() : OrderLifecycle {
+    override suspend fun cancel(orderId: String) {
         FirebaseFunctions.getInstance().getHttpsCallable("cancelOrder")
             .call(mapOf("orderId" to orderId)).await()
     }
-    suspend fun pickup(orderId: String, action: String, code: String? = null): OrderPickupVerification {
+    override suspend fun pickup(orderId: String, action: String, code: String?): OrderPickupVerification {
         val arguments = mutableMapOf<String, Any>("orderId" to orderId, "action" to action)
         if (code != null) arguments["code"] = code
         val data = FirebaseFunctions.getInstance().getHttpsCallable("orderPickup")
@@ -26,7 +26,7 @@ class OrderCompletionService @Inject constructor() {
             expiresAt = (data["expiresAt"] as? Number)?.toLong()
         )
     }
-    suspend fun complete(orderId: String) {
+    override suspend fun complete(orderId: String) {
         FirebaseFunctions.getInstance().getHttpsCallable("completeOrder")
             .call(mapOf("orderId" to orderId)).await()
     }

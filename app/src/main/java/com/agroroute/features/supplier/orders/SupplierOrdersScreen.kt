@@ -137,10 +137,11 @@ fun SupplierOrdersScreen(
                             }
                         }
                         items(pendingRequests, key = { "req-${it.requestId}" }) { request ->
-                            OrderRequestCard(
+                            SupplierOrderRequestCard(
                                 request = request,
                                 listing = listingPresentation[request.listingId],
-                                onCancel = { viewModel.cancelRequest(request.requestId) }
+                                onCancel = { viewModel.cancelRequest(request.requestId) },
+                                loading = uiState.isLoading || uiState.isSubmitting
                             )
                         }
                         if (rejectedRequests.isNotEmpty()) {
@@ -154,7 +155,7 @@ fun SupplierOrdersScreen(
                                 )
                             }
                             items(rejectedRequests, key = { "req-${it.requestId}" }) { request ->
-                                OrderRequestCard(
+                                SupplierOrderRequestCard(
                                     request = request,
                                 listing = listingPresentation[request.listingId],
                                     onCancel = null
@@ -172,7 +173,7 @@ fun SupplierOrdersScreen(
                                 )
                             }
                             items(cancelledRequests, key = { "req-${it.requestId}" }) { request ->
-                                OrderRequestCard(request = request,
+                                SupplierOrderRequestCard(request = request,
                                 listing = listingPresentation[request.listingId], onCancel = null)
                             }
                         }
@@ -214,10 +215,11 @@ fun SupplierOrdersScreen(
 }
 
 @Composable
-private fun OrderRequestCard(
+internal fun SupplierOrderRequestCard(
     request: OrderRequest,
     listing: HarvestListing?,
-    onCancel: (() -> Unit)?
+    onCancel: (() -> Unit)?,
+    loading: Boolean = false
 ) {
     AppCard {
         ListingImage(listing?.imageUrls?.firstOrNull(), height = 120.dp)
@@ -299,7 +301,8 @@ private fun OrderRequestCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        if (request.isPreHarvest && request.status == OrderRequestStatus.PENDING) {
+        if (request.isPreHarvest && request.status == OrderRequestStatus.PENDING &&
+            listing?.harvestStatus == com.agroroute.core.model.HarvestStatus.EXPECTED) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -325,7 +328,7 @@ private fun OrderRequestCard(
                     .padding(top = 8.dp)
             ) {
                 Text(
-                    text = "Cancelled — the farmer marked this harvest as unavailable.",
+                    text = "This request was cancelled. Request cancellation does not deduct order points.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
@@ -335,6 +338,7 @@ private fun OrderRequestCard(
         if (request.status == OrderRequestStatus.PENDING && onCancel != null) {
             TextButton(
                 onClick = onCancel,
+                enabled = !loading,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier
                     .align(Alignment.End)
@@ -354,7 +358,7 @@ private fun OrderCard(
     onCardClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
-        ListingImage(listing?.imageUrls?.firstOrNull(), height = 144.dp)
+        ListingImage(listing?.imageUrls?.firstOrNull(), height = 96.dp)
         Spacer(Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -377,6 +381,7 @@ private fun OrderCard(
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(14.dp))
+        Text(com.agroroute.core.components.orderNextStep(order.status, true), style = MaterialTheme.typography.bodySmall)
         OrderProgressStrip(currentStatus = order.status)
         Spacer(Modifier.height(14.dp))
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -401,6 +406,7 @@ private fun OrderCard(
                 )
             }
         }
+        Text("Total agreed: Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.bodySmall)
         if (order.pickupLocation.isNotBlank()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

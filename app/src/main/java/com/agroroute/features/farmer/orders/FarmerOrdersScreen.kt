@@ -1028,7 +1028,7 @@ private fun ModernOrderCard(
                             Spacer(Modifier.height(2.dp))
 
                             Text(
-                                text = supplierName,
+                                text = "Supplier: $supplierName",
                                 style =
                                     MaterialTheme.typography
                                         .bodySmall,
@@ -1109,7 +1109,7 @@ private fun ModernOrderCard(
 
 
                         Text(
-                            text = order.pickupLocation,
+                            text = com.agroroute.core.components.profileLocationLabel(order.pickupLocation),
                             style =
                                 MaterialTheme.typography.bodySmall,
                             color =
@@ -1131,6 +1131,8 @@ private fun ModernOrderCard(
                 )
 
 
+                Text("Total agreed: Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.bodySmall)
+                Text(com.agroroute.core.components.orderNextStep(order.status, false), style = MaterialTheme.typography.bodySmall)
                 OrderProgressStrip(
                     currentStatus = order.status
                 )

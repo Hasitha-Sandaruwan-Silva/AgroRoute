@@ -28,7 +28,7 @@ import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.theme.AgroRouteTheme
 import com.github.thelacspace.icons.Lucide
 
-/** The fulfilment path every order travels (cancelled orders never start it). */
+/** The current fulfilment path; cancelled orders are shown separately. */
 private val orderSteps = listOf(
     OrderStatus.AWAITING_PICKUP to "Awaiting pickup",
     OrderStatus.IN_TRANSIT to "In transit",
@@ -78,7 +78,7 @@ fun OrderStatusTimeline(
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Cancelled — this order stopped before pickup.",
+                        text = "Cancelled — no further fulfilment actions are available.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )

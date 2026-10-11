@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
+import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.UserRole
@@ -157,6 +158,7 @@ fun PlaceBidScreen(
                 val pickupAvailable = com.agroroute.core.location.SelectedLocation.fromStoredText(listingState.getOrNull()?.location.orEmpty()) != null
                 if (!pickupAvailable) Text("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.",
                     color = MaterialTheme.colorScheme.error)
+                if (listingState.getOrNull()?.acceptsNewBids() != true) Text("This listing is not currently accepting bids.")
                 LoadingButton(
                     text = "Place Bid",
                     isLoading = uiState.isLoading,
@@ -175,7 +177,8 @@ fun PlaceBidScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    enabled = bidAmount.isNotBlank() && pickupAvailable &&
+                    enabled = listingState.getOrNull()?.acceptsNewBids() == true &&
+                        bidAmount.toDoubleOrNull()?.let { it.isFinite() && it > 0 } == true && pickupAvailable &&
                         com.agroroute.core.location.SelectedLocation.fromStoredText(deliveryLocation) != null
                 )
             } else {
@@ -403,6 +406,8 @@ class PlaceBidViewModel @Inject constructor(
     }
 
     fun placeBid(bid: Bid) {
+        if (_uiState.value.isLoading || _uiState.value.bidPlaced) return
+        _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val r = placeBidUseCase(bid)) {

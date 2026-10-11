@@ -41,6 +41,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.agroroute.core.model.acceptsDirectOrders
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
@@ -182,6 +183,7 @@ fun PlaceOrderRequestScreen(
                 val pickupAvailable = com.agroroute.core.location.SelectedLocation.fromStoredText(listing.location) != null
                 if (!pickupAvailable) Text("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.",
                     color = MaterialTheme.colorScheme.error)
+                if (!listing.acceptsDirectOrders()) Text("This listing is not currently accepting requests.")
                 LoadingButton(
                     text = if (isPreHarvest) "Send pre-harvest request" else "Request Order",
                     isLoading = uiState.isLoading,
@@ -201,7 +203,9 @@ fun PlaceOrderRequestScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    enabled = quantityText.isNotBlank() && pickupAvailable &&
+                    enabled = listing.acceptsDirectOrders() && quantityText.toDoubleOrNull()?.let {
+                        it.isFinite() && it > 0 && it <= (if (isPreHarvest) listing.estimatedAvailable() else listing.availableStock())
+                    } == true && pickupAvailable &&
                         com.agroroute.core.location.SelectedLocation.fromStoredText(deliveryLocation) != null
                 )
             } else if (listingState is Result.Success && listingState.getOrNull() != null) {
@@ -488,8 +492,11 @@ class PlaceOrderRequestViewModel @Inject constructor(
         }
     }
 
+    private var submissionJob: kotlinx.coroutines.Job? = null
+
     fun placeOrderRequest(request: OrderRequest, availableStock: Double) {
-        viewModelScope.launch {
+        if (submissionJob?.isActive == true || _uiState.value.requestPlaced) return
+        submissionJob = viewModelScope.launch {
             if (request.requestedQuantity <= 0.0) {
                 _uiState.update { it.copy(error = "Quantity must be greater than zero") }
                 return@launch

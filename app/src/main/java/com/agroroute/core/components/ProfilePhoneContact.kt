@@ -33,9 +33,12 @@ import kotlinx.coroutines.tasks.await
 fun ProfilePhoneContact(
     userId: String,
     personLabel: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showName: Boolean = false,
+    onNameLoaded: (String?) -> Unit = {}
 ) {
     val context = LocalContext.current
+    var name by remember(userId) { mutableStateOf<String?>(null) }
     var phone by remember(userId) { mutableStateOf<String?>(null) }
     var isLoading by remember(userId) { mutableStateOf(false) }
     var loadFailed by remember(userId) { mutableStateOf(false) }
@@ -51,15 +54,18 @@ fun ProfilePhoneContact(
         isLoading = true
         loadFailed = false
         try {
-            phone = FirebaseFirestore.getInstance()
+            val profile = FirebaseFirestore.getInstance()
                 .collection("users")
                 .document(userId)
                 .get()
                 .await()
-                .getString("phone")
+            name = profile.getString("displayName")?.trim()?.takeIf(String::isNotBlank)
+            onNameLoaded(name)
+            phone = profile.getString("phone")
                 ?.trim()
                 ?.takeIf(String::isNotBlank)
         } catch (_: Exception) {
+            onNameLoaded(null)
             phone = null
             loadFailed = true
         } finally {
@@ -67,6 +73,7 @@ fun ProfilePhoneContact(
         }
     }
 
+    if (showName) Text("$personLabel: ${name ?: "Name unavailable"}", style = MaterialTheme.typography.bodyMedium)
     when {
         isLoading -> Row(
             modifier = modifier.fillMaxWidth(),

@@ -22,6 +22,7 @@ data class BidsUiState(
     val listing: HarvestListing? = null,
     val listingsById: Map<String, HarvestListing> = emptyMap(),
     val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
     val error: String? = null,
     val actionSuccess: Boolean = false
 )
@@ -182,22 +183,26 @@ class BidsViewModel @Inject constructor(
     }
 
     fun acceptBid(bid: Bid, listing: HarvestListing) {
+        if (_uiState.value.isSubmitting) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val r = acceptBidUseCase(bid, listing)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
-                is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = r.message) }
+                is Result.Success -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, actionSuccess = true) }
+                is Result.Error   -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = r.message) }
                 is Result.Loading -> Unit
             }
         }
     }
 
     fun rejectBid(bid: Bid) {
+        if (_uiState.value.isSubmitting) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = rejectBidUseCase(bid)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false) }
-                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is Result.Success -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
+                is Result.Error -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = result.message) }
                 Result.Loading -> Unit
             }
         }

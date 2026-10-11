@@ -41,7 +41,8 @@ fun HomeLeaderboard(role: String, onViewAll: () -> Unit, viewModel: LeaderboardV
             }
             !state.isLoading && state.users.isEmpty() -> AppCard {
                 Text("No rankings yet", style = MaterialTheme.typography.titleSmall)
-                Text("Completed orders earn community points.", style = MaterialTheme.typography.bodySmall)
+                Text(if (role == "FARMER") "Acceptance +1 · Handover +3 · Delivery +6."
+                    else "Pickup +4 · Delivery +6. Requests earn no points.", style = MaterialTheme.typography.bodySmall)
             }
             else -> AnimatedVisibility(visible = state.users.isNotEmpty(), enter = fadeIn()) {
                 AppCard {

@@ -53,10 +53,13 @@ class OrderRepositoryImpl @Inject constructor(
     private val orderCompletionRecordDao: OrderCompletionRecordDao,
     private val userProfileDao: UserProfileDao,
     private val notificationService: NotificationService,
-    private val completionService: com.agroroute.core.remote.OrderCompletionService
+    private val completionService: com.agroroute.core.remote.OrderLifecycle
 ) : OrderRepository {
     override suspend fun getPickupVerification(orderId: String) = safeCall {
         completionService.pickup(orderId, "view")
+    }
+    override suspend fun refreshPickupCode(orderId: String) = safeCall {
+        completionService.pickup(orderId, "refresh")
     }
 
     override suspend fun verifyPickupCode(orderId: String, code: String) = safeCall {
@@ -107,6 +110,7 @@ class OrderRepositoryImpl @Inject constructor(
         val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS).document(order.listingId)
         val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(order.bidId)
         val orderRef = firestore.collection(Constants.COLLECTION_ORDERS).document(order.orderId)
+        var acceptedProfile: UserProfile? = null
 
         val updatedRecords = firestoreService.runTransaction<Triple<HarvestListing, Bid, Order>> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
@@ -129,18 +133,27 @@ class OrderRepositoryImpl @Inject constructor(
                 "Insufficient listing stock"
             }
 
+            check(!transaction.get(orderRef).exists()) { "This bid already has an order" }
+            val farmerProfile = transaction.get(firestore.collection("users").document(userId))
             val updatedListing = listing.recordSale(order.quantity)
             val updatedBid = bid.copy(status = BidStatus.ACCEPTED, updatedAt = System.currentTimeMillis())
             val snapshotOrder = order.withLocationSnapshots(listing.location, bid.deliveryLocation)
-            transaction.set(listingRef, updatedListing)
-            transaction.set(bidRef, updatedBid)
+            transaction.update(listingRef, mapOf("availableQuantity" to updatedListing.availableQuantity,
+                "soldQuantity" to updatedListing.soldQuantity, "status" to updatedListing.status.name,
+                "biddingEnabled" to updatedListing.biddingEnabled))
+            transaction.update(bidRef, mapOf("status" to updatedBid.status.name, "updatedAt" to updatedBid.updatedAt))
             transaction.set(orderRef, snapshotOrder)
+            transaction.update(orderRef, mapOf("sparkVersion" to 1))
+            transaction.update(listingRef, mapOf("stockOrderId" to order.orderId))
+            val points = com.agroroute.core.remote.SparkScore.award(transaction, firestore, snapshotOrder, farmerProfile, "farmer_acceptance", 1)
+            acceptedProfile = farmerProfile.toObject(UserProfile::class.java)?.copy(points = points)
             Triple(updatedListing, updatedBid, snapshotOrder)
         }
 
         listingDao.upsertListing(updatedRecords.first)
         bidDao.upsertBid(updatedRecords.second)
         dao.upsertOrder(updatedRecords.third)
+        acceptedProfile?.let { userProfileDao.upsertUserProfile(it) } // only after server-acknowledged transaction
 
         // Accepting a bid turns a supplier's bid into an order. The supplier is the
         // recipient the farmer is not; the farmer (actorUserId) is excluded.
@@ -166,6 +179,7 @@ class OrderRepositoryImpl @Inject constructor(
         val requestRef = firestore.collection(Constants.COLLECTION_ORDER_REQUESTS).document(requestId)
         val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS)
         val orderRef = firestore.collection(Constants.COLLECTION_ORDERS).document(requestId)
+        var acceptedProfile: UserProfile? = null
 
         val updatedRecords = firestoreService.runTransaction<Triple<HarvestListing, Order, OrderRequest>> { transaction ->
             val request = transaction.get(requestRef).toObject(OrderRequest::class.java)
@@ -200,20 +214,29 @@ class OrderRepositoryImpl @Inject constructor(
                 status = OrderStatus.AWAITING_PICKUP,
                 pickupLocation = listing.location
             ).withLocationSnapshots(listing.location, request.deliveryLocation)
+            check(!transaction.get(orderRef).exists()) { "This request already has an order" }
+            val farmerProfile = transaction.get(firestore.collection("users").document(userId))
             val updatedListing = listing.recordSale(request.requestedQuantity)
             val updatedRequest = request.copy(
                 status = OrderRequestStatus.ACCEPTED,
                 updatedAt = System.currentTimeMillis()
             )
-            transaction.set(listingDoc, updatedListing)
+            transaction.update(listingDoc, mapOf("availableQuantity" to updatedListing.availableQuantity,
+                "soldQuantity" to updatedListing.soldQuantity, "status" to updatedListing.status.name,
+                "biddingEnabled" to updatedListing.biddingEnabled))
             transaction.set(orderRef, order)
-            transaction.set(requestRef, updatedRequest)
+            transaction.update(requestRef, mapOf("status" to updatedRequest.status.name, "updatedAt" to updatedRequest.updatedAt))
+            transaction.update(orderRef, mapOf("sparkVersion" to 1))
+            transaction.update(listingDoc, mapOf("stockOrderId" to order.orderId))
+            val points = com.agroroute.core.remote.SparkScore.award(transaction, firestore, order, farmerProfile, "farmer_acceptance", 1)
+            acceptedProfile = farmerProfile.toObject(UserProfile::class.java)?.copy(points = points)
             Triple(updatedListing, order, updatedRequest)
         }
 
         listingDao.upsertListing(updatedRecords.first)
         dao.upsertOrder(updatedRecords.second)
         orderRequestDao.upsertRequest(updatedRecords.third)
+        acceptedProfile?.let { userProfileDao.upsertUserProfile(it) }
 
         // The farmer accepted a request placed by a supplier. The supplier is the
         // recipient; the farmer (actorUserId) is excluded.

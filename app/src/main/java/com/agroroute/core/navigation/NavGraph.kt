@@ -3,6 +3,7 @@ package com.agroroute.core.navigation
 import android.app.Activity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -158,7 +159,7 @@ fun NavGraph(
             NavHost(
                 navController = navController,
                 startDestination = Screen.Welcome.route, // 👈 නිවැරදිව Welcome එකට යොමු කර ඇත (කොමාව සහිතව)
-                modifier = Modifier.padding(paddingValues)
+                modifier = Modifier.padding(paddingValues).consumeWindowInsets(paddingValues)
             ) {
 
                 composable(Screen.Welcome.route) {

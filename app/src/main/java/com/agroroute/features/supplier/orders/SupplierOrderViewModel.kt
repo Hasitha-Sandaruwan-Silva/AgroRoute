@@ -22,6 +22,7 @@ data class SupplierOrderUiState(
     val requests: List<OrderRequest> = emptyList(),
     val selectedOrder: Order? = null,
     val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
     val error: String? = null,
     val pickup: com.agroroute.core.model.OrderPickupVerification? = null,
     val pickupLoading: Boolean = false,
@@ -128,38 +129,44 @@ class SupplierOrderViewModel @Inject constructor(
     }
 
     fun cancelRequest(requestId: String) {
+        if (_uiState.value.isSubmitting || _uiState.value.pickupLoading) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = orderRequestRepository.cancelRequest(requestId)) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                    _uiState.update { it.copy(isSubmitting = false, isLoading = false, actionSuccess = true) }
                 }
-                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
-                Result.Loading -> Unit
+                is Result.Error -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = result.message) }
+                Result.Loading -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
             }
         }
     }
 
     fun updateOrderStatus(orderId: String, status: OrderStatus) {
+        if (_uiState.value.isSubmitting || _uiState.value.pickupLoading) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val r = orderRepository.updateOrderStatus(orderId, status)) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(isLoading = false, actionSuccess = true) }
+                    _uiState.update { it.copy(isSubmitting = false, isLoading = false, actionSuccess = true) }
                     loadPickupVerification(orderId)
                 }
-                is Result.Error   -> _uiState.update { it.copy(isLoading = false, error = r.message) }
-                is Result.Loading -> Unit
+                is Result.Error   -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = r.message) }
+                is Result.Loading -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
             }
         }
     }
 
-    fun loadPickupVerification(orderId: String) {
-        if (_uiState.value.pickupLoading) return
+    fun loadPickupVerification(orderId: String, generateNewCode: Boolean = false) {
+        if (_uiState.value.pickupLoading || _uiState.value.isSubmitting) return
+        _uiState.update { it.copy(pickupLoading = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(pickupLoading = true, pickupError = null, pickup = null) }
             orderRepository.syncOrders(currentSupplierId)
-            when (val result = orderRepository.getPickupVerification(orderId)) {
+            when (val result = if (generateNewCode) orderRepository.refreshPickupCode(orderId)
+                else orderRepository.getPickupVerification(orderId)) {
                 is Result.Success -> _uiState.update { it.copy(pickupLoading = false, pickup = result.data) }
                 is Result.Error -> _uiState.update { it.copy(pickupLoading = false, pickupError = result.message) }
                 Result.Loading -> Unit
@@ -170,13 +177,14 @@ class SupplierOrderViewModel @Inject constructor(
     fun clearError() = _uiState.update { it.copy(error = null) }
 
     fun updateDeliveryLocation(orderId: String, location: String) {
-        if (_uiState.value.isLoading) return
+        if (_uiState.value.isSubmitting || _uiState.value.pickupLoading) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = orderRepository.updateDeliveryLocation(orderId, location)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false) }
-                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
-                Result.Loading -> Unit
+                is Result.Success -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
+                is Result.Error -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = result.message) }
+                Result.Loading -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
             }
         }
     }

@@ -28,6 +28,10 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindOrderLifecycle(impl: com.agroroute.core.remote.SparkOrderLifecycle): com.agroroute.core.remote.OrderLifecycle
+
+    @Binds
+    @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
 
     /**

@@ -145,7 +145,8 @@ private fun LeaderboardHeader(role: String) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Ranked by total points earned from completed orders",
+                text = if (role == "FARMER") "Acceptance +1 · Handover +3 · Delivery +6. Cancellation −2, minimum 0. Ranked by confirmed points."
+                    else "Pickup +4 · Delivery +6. Request creation +0. Cancellation −2, minimum 0. Ranked by confirmed points.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f)
             )

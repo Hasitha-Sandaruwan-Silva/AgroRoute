@@ -576,6 +576,7 @@ class OrderRequestFlowTest {
         private val listingRepository: FakeListingRepository,
         private val requests: FakeOrderRequestRepository
     ) : OrderRepository {
+        override suspend fun refreshPickupCode(orderId: String) = getPickupVerification(orderId)
         override suspend fun getPickupVerification(orderId: String): Result<com.agroroute.core.model.OrderPickupVerification> = Result.Error("Not used in this fixture")
         override suspend fun verifyPickupCode(orderId: String, code: String): Result<com.agroroute.core.model.OrderPickupVerification> = Result.Error("Not used in this fixture")
         val acceptedOrders = mutableListOf<Order>()

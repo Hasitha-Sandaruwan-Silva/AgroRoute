@@ -145,9 +145,10 @@ fun FarmerOrderRequestsScreen(
                         FarmerOrderRequestCard(
                             request = request,
                             listing = listing,
-                            isLoading = uiState.isLoading,
+                            isLoading = uiState.isLoading || uiState.isSubmitting,
                             onAccept = { requestToAccept = request },
-                            onReject = { viewModel.rejectRequest(request) }
+                            onReject = { viewModel.rejectRequest(request) },
+                            onOpenOrder = { navController.navigate(com.agroroute.core.navigation.Screen.FarmerOrderDetail.createRoute(request.requestId)) }
                         )
                     }
                 }
@@ -174,21 +175,19 @@ fun FarmerOrderRequestsScreen(
 }
 
 @Composable
-private fun FarmerOrderRequestCard(
+internal fun FarmerOrderRequestCard(
     request: OrderRequest,
     listing: HarvestListing?,
     isLoading: Boolean,
     onAccept: () -> Unit,
-    onReject: () -> Unit
+    onReject: () -> Unit,
+    onOpenOrder: () -> Unit = {}
 ) {
     // The accept flow blocks requests whose harvest is not READY yet, so the
     // button is shown disabled with a short hint instead of failing on tap.
     val harvestStatus = listing?.harvestStatus
-    val acceptBlockedReason = when (harvestStatus) {
-        HarvestStatus.EXPECTED -> "Mark the harvest ready first"
-        HarvestStatus.FAILED -> "This harvest failed and can no longer be sold"
-        else -> null
-    }
+    val acceptBlockedReason = com.agroroute.core.components.listingAcceptanceBlockedReason(
+        listing, forBid = false, quantity = request.requestedQuantity, deliveryLocation = request.deliveryLocation)
     val isPreHarvest = request.isPreHarvest || harvestStatus == HarvestStatus.EXPECTED
 
     AppCard {
@@ -267,6 +266,9 @@ private fun FarmerOrderRequestCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (request.status == OrderRequestStatus.ACCEPTED) {
+            TextButton(onClick = onOpenOrder) { Text("View order") }
+        }
         if (request.status == OrderRequestStatus.PENDING) {
             Spacer(Modifier.height(8.dp))
             Row(
@@ -283,7 +285,7 @@ private fun FarmerOrderRequestCard(
                 )
                 TextButton(
                     onClick = onReject,
-                    enabled = !isLoading,
+                    enabled = !isLoading && listing != null && !listing.isDraft,
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {
                     Text(
@@ -338,6 +340,7 @@ private fun AcceptRequestConfirmationDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
+                enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, false, request.requestedQuantity, request.deliveryLocation) == null,
                 modifier = Modifier.heightIn(min = 48.dp)
             ) {
                 Text("Accept and create order")

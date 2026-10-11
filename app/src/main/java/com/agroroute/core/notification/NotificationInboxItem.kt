@@ -22,8 +22,13 @@ data class NotificationInboxItem(
             val title = data["title"] as? String ?: return null
             val body = data["body"] as? String ?: return null
             val route = data["route"] as? String ?: return null
-            val createdAt = (data["createdAt"] as? Number)?.toLong() ?: return null
-            val readAt = (data["readAt"] as? Number)?.toLong()
+            fun millis(value: Any?): Long? = when (value) {
+                is Number -> value.toLong()
+                is com.google.firebase.Timestamp -> value.toDate().time
+                else -> null
+            }
+            val createdAt = millis(data["createdAt"]) ?: return null
+            val readAt = millis(data["readAt"])
             return NotificationInboxItem(
                 id = id,
                 eventType = eventType,

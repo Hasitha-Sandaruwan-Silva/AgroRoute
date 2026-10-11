@@ -33,10 +33,22 @@ fun ErrorSnackbarEffect(
 ) {
     LaunchedEffect(error) {
         error?.let { message ->
-            snackbarHostState.showSnackbar(message)
+            snackbarHostState.showSnackbar(presentationError(message))
             onDismiss()
         }
     }
+}
+
+/** Preserve useful business feedback while keeping provider diagnostics out of the UI. */
+fun presentationError(message: String): String = when {
+    message.contains("NOT_FOUND", true) -> "This item is unavailable. Refresh and try again."
+    message.contains("PERMISSION_DENIED", true) || message.contains("insufficient permissions", true) ->
+        "This action is not available for your account or the current item state. Refresh and try again."
+    message.contains("UNAVAILABLE:", true) || message.contains("code=UNAVAILABLE", true) || message.contains("network error", true) ->
+        "Could not connect. Check your connection and try again."
+    message.contains("Firebase", true) || message.contains("Firestore", true) || message.contains("Exception:", true) || message.length > 400 ->
+        "This action could not be completed. Please refresh and try again."
+    else -> message
 }
 
 @Composable

@@ -4,7 +4,7 @@ import com.agroroute.core.database.OrderDao
 import com.agroroute.core.database.UserProfileDao
 import com.agroroute.core.model.*
 import com.agroroute.core.remote.FirestoreService
-import com.agroroute.core.remote.OrderCompletionService
+import com.agroroute.core.remote.OrderLifecycle
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.OrderRepositoryImpl
 import com.agroroute.core.util.Result
@@ -21,7 +21,7 @@ class PointAwardingTest {
     private val dao = mockk<OrderDao>(relaxed = true)
     private val users = mockk<UserProfileDao>(relaxed = true)
     private val remote = mockk<FirestoreService>(relaxed = true)
-    private val completion = mockk<OrderCompletionService>()
+    private val completion = mockk<OrderLifecycle>()
     private fun repository(role: UserRole = UserRole.SUPPLIER): OrderRepositoryImpl {
         val auth = mockk<AuthRepository>()
         every { auth.currentUserId } returns "supplier-1"

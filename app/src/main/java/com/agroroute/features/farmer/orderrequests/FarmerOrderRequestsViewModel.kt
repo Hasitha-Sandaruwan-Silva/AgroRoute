@@ -30,6 +30,7 @@ data class FarmerOrderRequestsUiState(
     val requests: List<OrderRequest> = emptyList(),
     val listingsById: Map<String, HarvestListing> = emptyMap(),
     val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
     val error: String? = null
 )
 
@@ -117,22 +118,26 @@ class FarmerOrderRequestsViewModel @Inject constructor(
     }
 
     fun acceptRequest(request: OrderRequest) {
+        if (_uiState.value.isSubmitting) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = acceptOrderRequestUseCase(request)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false) }
-                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is Result.Success -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
+                is Result.Error -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = result.message) }
                 Result.Loading -> Unit
             }
         }
     }
 
     fun rejectRequest(request: OrderRequest) {
+        if (_uiState.value.isSubmitting) return
+        _uiState.update { it.copy(isSubmitting = true) }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = rejectOrderRequestUseCase(request)) {
-                is Result.Success -> _uiState.update { it.copy(isLoading = false) }
-                is Result.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is Result.Success -> _uiState.update { it.copy(isSubmitting = false, isLoading = false) }
+                is Result.Error -> _uiState.update { it.copy(isSubmitting = false, isLoading = false, error = result.message) }
                 Result.Loading -> Unit
             }
         }

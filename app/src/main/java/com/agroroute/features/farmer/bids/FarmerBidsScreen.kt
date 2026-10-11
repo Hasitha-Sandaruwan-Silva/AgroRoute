@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.navigation.Screen
@@ -143,7 +144,7 @@ fun FarmerBidsScreen(
                             FarmerBidCard(
                                 bid = bid,
                                 listing = listing,
-                                isLoading = uiState.isLoading,
+                                isLoading = uiState.isLoading || uiState.isSubmitting,
                                 onOpen = {
                                     navController.navigate(Screen.ViewBids.createRoute(listing.listingId))
                                 },
@@ -243,7 +244,7 @@ private fun FarmerBidCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "${listing.quantity} ${listing.quantityUnit.name}",
+                    text = "${listing.availableStock()} ${listing.quantityUnit.name}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -276,9 +277,12 @@ private fun FarmerBidCard(
                 .align(Alignment.End)
                 .heightIn(min = 48.dp)
         ) {
-            Text("View listing and bids")
+            Text(if (bid.status == BidStatus.ACCEPTED) "Accepted ? View listing and order details" else "View listing and bids")
         }
         if (bid.status == BidStatus.PENDING) {
+            com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, deliveryLocation = bid.deliveryLocation)?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -286,6 +290,7 @@ private fun FarmerBidCard(
             ) {
                 LoadingButton(
                     text = "Accept",
+                    enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, deliveryLocation = bid.deliveryLocation) == null,
                     isLoading = isLoading,
                     onClick = onAccept,
                     modifier = Modifier.weight(1f)

@@ -39,7 +39,14 @@ class ReviewRepositoryImpl @Inject constructor(
 
     override suspend fun hasUserReviewedOrder(orderId: String, reviewerId: String): Result<Boolean> = safeCall {
         val existing = dao.getReviewByOrderAndReviewer(orderId, reviewerId)
-        existing != null
+        if (existing != null) true else {
+            check(authRepository.currentUserId == reviewerId) { "Sign in to check your reviews" }
+            // Incoming-review sync does not include outgoing reviews made on another device.
+            val outgoing = firestoreService.queryOnceFromServer(
+                Constants.COLLECTION_REVIEWS, "reviewerId", reviewerId, Review::class.java)
+            dao.upsertReviews(outgoing)
+            outgoing.any { it.orderId == orderId }
+        }
     }
 
     override suspend fun submitReview(review: Review): Result<Unit> = safeCall {

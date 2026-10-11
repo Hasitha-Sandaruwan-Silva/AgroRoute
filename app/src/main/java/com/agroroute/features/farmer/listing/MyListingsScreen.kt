@@ -348,7 +348,8 @@ private fun SuperbListingCard(
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Allow bidding", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         if (isBiddingUpdating) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                        Switch(checked = listing.biddingEnabled, onCheckedChange = onToggleBidding, enabled = !isBiddingUpdating)
+                        Switch(checked = listing.biddingEnabled, onCheckedChange = onToggleBidding, enabled = !isBiddingUpdating && !isFailed && !listing.isDraft &&
+                            (listing.harvestStatus == HarvestStatus.EXPECTED || listing.availableStock() > 0))
                     }
                 }
                 Spacer(Modifier.height(12.dp))

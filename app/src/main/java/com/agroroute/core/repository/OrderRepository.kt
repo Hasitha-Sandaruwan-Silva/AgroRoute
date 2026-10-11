@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
  */
 interface OrderRepository {
     suspend fun getPickupVerification(orderId: String): Result<com.agroroute.core.model.OrderPickupVerification>
+    suspend fun refreshPickupCode(orderId: String): Result<com.agroroute.core.model.OrderPickupVerification>
     suspend fun verifyPickupCode(orderId: String, code: String): Result<com.agroroute.core.model.OrderPickupVerification>
 
     /** Emits all orders for the currently signed-in farmer. */

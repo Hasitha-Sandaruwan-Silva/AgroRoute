@@ -11,7 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Push events are authorized and delivered by Cloud Functions. FCM data messages are
+ * Spark inbox events are authorized by Firestore Rules. Optional future FCM messages are
  * rendered here in every app state so each logical event has one tappable notification.
  */
 @Singleton
@@ -27,14 +27,14 @@ class NotificationService @Inject constructor(
         val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return emptyList()
         val localItems = LocalNotificationInbox.items(context, userId)
         val remoteItems = try {
-            val result = firebaseFunctions.getHttpsCallable("getNotificationInbox")
-                .call(mapOf("limit" to limit.coerceIn(1, 100)))
-                .await()
-            val response = result.data as? Map<*, *> ?: return localItems
-            val items = response["items"] as? List<*> ?: return localItems
-            items.mapNotNull { raw ->
-                (raw as? Map<*, *>)?.let(NotificationInboxItem::from)
-            }
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            val role = db.collection("users").document(userId).get(com.google.firebase.firestore.Source.SERVER).await()
+                .getString("role")?.let { com.agroroute.core.model.UserRole.valueOf(it) }
+                ?: error("Account profile is unavailable")
+            val rows = db.collection("user_notifications").document(userId).collection("items")
+                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(limit.coerceIn(1, 100).toLong()).get(com.google.firebase.firestore.Source.SERVER).await()
+            rows.documents.mapNotNull { row -> SparkNotificationInbox.render(context, db, row, role) }
         } catch (error: Exception) {
             if (localItems.isNotEmpty()) return localItems
             throw error
@@ -51,9 +51,13 @@ class NotificationService @Inject constructor(
             LocalNotificationInbox.markRead(context, userId, notificationId)
             return
         }
-        firebaseFunctions.getHttpsCallable("markNotificationRead")
-            .call(mapOf("notificationId" to notificationId))
-            .await()
+        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        db.runTransaction { tx ->
+            val ref = db.collection("user_notifications").document(userId).collection("items").document(notificationId)
+            val row = tx.get(ref)
+            if (row.exists() && row.get("readAt") == null)
+                tx.update(ref, "readAt", com.google.firebase.firestore.FieldValue.serverTimestamp())
+        }.await()
     }
 
     fun postHarvestReminder(farmerId: String, eventId: String, payload: NotificationEvent.Payload) {
@@ -124,53 +128,28 @@ class NotificationService @Inject constructor(
         notificationManager?.notify((eventId.ifBlank { payload.key + event.name }).hashCode(), notification)
     }
 
-    /** Sends a token refresh to the trusted backend. */
-    suspend fun registerDeviceToken(userId: String, token: String) {
-        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != userId) return
-        try {
-            val installationId = com.google.firebase.installations.FirebaseInstallations.getInstance().id.await()
-            firebaseFunctions.getHttpsCallable("registerDeviceToken").call(
-                mapOf("token" to token, "installationId" to installationId)
-            ).await()
-        } catch (error: Exception) {
-            Log.e("AgroRouteFCM", "Failed to register device token", error)
-        }
-    }
+    // Spark has no trusted FCM sender. Preserve bootstrap API without unavailable callables.
+    suspend fun registerDeviceToken(userId: String, token: String) = Unit
+    suspend fun unregisterDeviceToken(userId: String) = Unit
 
-    suspend fun unregisterDeviceToken(userId: String) {
-        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != userId) return
+    /** Best-effort existing inbox write, constrained by recipient/resource/state Rules. No FCM. */
+    suspend fun sendPushToServer(recipientUserId: String, event: NotificationEvent,
+        payload: NotificationEvent.Payload, actorUserId: String) {
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != actorUserId) return
+        val entity = SparkNotificationInbox.entity(event, payload)
+        if (entity.isBlank() || entity.contains('/') || recipientUserId == actorUserId) return
+        val id = "${event.name}_$entity"
         try {
-            val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
-            val installationId = com.google.firebase.installations.FirebaseInstallations.getInstance().id.await()
-            firebaseFunctions.getHttpsCallable("unregisterDeviceToken").call(
-                mapOf("userId" to userId, "token" to token, "installationId" to installationId)
-            ).await()
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            val ref = db.collection("user_notifications").document(recipientUserId).collection("items").document(id)
+            // Sender cannot read the recipient inbox; create-once Rules reject retries harmlessly.
+            kotlinx.coroutines.withTimeout(5_000) {
+                ref.set(mapOf("id" to id, "entityId" to entity, "eventType" to event.name,
+                    "actorId" to actorUserId, "recipientId" to recipientUserId,
+                    "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(), "readAt" to null)).await()
+            }
         } catch (error: Exception) {
-            Log.e("AgroRouteFCM", "Failed to unregister device token", error)
-        }
-    }
-
-    /**
-    * Sends a push through the trusted backend, which verifies the event and recipient
-    * from Firestore and sends data-only FCM.
-     */
-    suspend fun sendPushToServer(
-        recipientUserId: String,
-        event: NotificationEvent,
-        payload: NotificationEvent.Payload,
-        actorUserId: String
-    ) {
-        try {
-            firebaseFunctions.getHttpsCallable("sendNotification").call(
-                mapOf(
-                    "recipientUserId" to recipientUserId,
-                    "actorUserId" to actorUserId,
-                    "eventType" to event.name,
-                    "payload" to payload.toMap()
-                )
-            ).await()
-        } catch (error: Exception) {
-            Log.e("AgroRouteFCM", "sendPushToServer failed", error)
+            Log.w("AgroRouteInbox", "Inbox event was not recorded (${error.javaClass.simpleName})")
         }
     }
 
@@ -182,7 +161,6 @@ class NotificationService @Inject constructor(
         notificationManager?.cancelAll()
     }
 
-    private val firebaseFunctions get() = com.google.firebase.functions.FirebaseFunctions.getInstance()
 
     companion object {
         const val LOCAL_HARVEST_PREFIX = "local-harvest:"

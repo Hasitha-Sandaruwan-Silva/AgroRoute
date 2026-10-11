@@ -123,34 +123,36 @@ fun SupplierBidsScreen(
                             BidCard(
                                 bid = bid,
                                 onWithdraw = { viewModel.withdrawBid(bid.bidId) },
-                                navController = navController
+                                navController = navController,
+                                withdrawing = uiState.isWithdrawing
                             )
                         }
                     }
                     item {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                text = "All bids",
+                                text = "Bid history",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.padding(top = if (pendingBids.isEmpty()) 0.dp else 8.dp)
                             )
                             Text(
-                                text = if (uiState.bids.size == 1) "1 bid" else "${uiState.bids.size} bids",
+                                text = "${uiState.bids.count { it.status != BidStatus.PENDING }} completed responses",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 3.dp)
                             )
                         }
                     }
-                    items(uiState.bids, key = { it.bidId }) { bid ->
+                    items(uiState.bids.filter { it.status != BidStatus.PENDING }, key = { it.bidId }) { bid ->
                         BidCard(
                             bid = bid,
                             onWithdraw = if (bid.status == BidStatus.PENDING) {
                                 { viewModel.withdrawBid(bid.bidId) }
                             } else null,
-                            navController = navController
+                            navController = navController,
+                                withdrawing = uiState.isWithdrawing
                         )
                     }
                 }
@@ -167,7 +169,8 @@ fun SupplierBidsScreen(
 private fun BidCard(
     bid: Bid,
     onWithdraw: (() -> Unit)?,
-    navController: NavController
+    navController: NavController,
+    withdrawing: Boolean
 ) {
     AppCard {
         Row(
@@ -258,25 +261,26 @@ private fun BidCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
-                onClick = { navController.navigate(Screen.PlaceBid.createRoute(bid.listingId)) },
+                onClick = { navController.navigate(if (bid.status == BidStatus.ACCEPTED) Screen.SupplierOrderDetail.createRoute(bid.bidId) else Screen.PlaceBid.createRoute(bid.listingId)) },
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
             ) {
-                Text("View listing", fontWeight = FontWeight.SemiBold)
+                Text(if (bid.status == BidStatus.ACCEPTED) "View order" else "View listing", fontWeight = FontWeight.SemiBold)
             }
             if (onWithdraw != null) {
                 Spacer(Modifier.width(8.dp))
                 OutlinedButton(
                     onClick = onWithdraw,
+                    enabled = !withdrawing,
                     shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
                 ) {
-                    Text("Withdraw", fontWeight = FontWeight.SemiBold)
+                    Text(if (withdrawing) "Withdrawing…" else "Withdraw", fontWeight = FontWeight.SemiBold)
                 }
             }
         }

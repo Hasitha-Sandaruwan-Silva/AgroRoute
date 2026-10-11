@@ -6,7 +6,7 @@ import com.agroroute.core.location.navigationCoordinate
 import com.agroroute.core.model.*
 import com.agroroute.core.notification.NotificationService
 import com.agroroute.core.remote.FirestoreService
-import com.agroroute.core.remote.OrderCompletionService
+import com.agroroute.core.remote.OrderLifecycle
 import com.agroroute.core.util.Result
 import com.google.firebase.firestore.*
 import io.mockk.*
@@ -68,6 +68,7 @@ class OrderLocationFlowTest {
         assertEquals(pickup, stored.pickupLocation)
         assertEquals(delivery, stored.deliveryLocation)
         coVerify { fixture.orderDao.upsertOrder(stored) }
+        coVerify { fixture.users.upsertUserProfile(match { it.userId == "farmer-1" && it.points == 1 }) }
     }
 
     @Test fun requestAcceptanceCopiesDeliveryChosenBeforeFarmerAcceptance() = runTest {
@@ -80,6 +81,7 @@ class OrderLocationFlowTest {
         assertTrue(fixture.repository.acceptOrderRequestAndCreateOrder("proposal-1") is Result.Success)
         assertEquals(pickup, fixture.writtenOrder.captured.pickupLocation)
         assertEquals(delivery, fixture.writtenOrder.captured.deliveryLocation)
+        coVerify { fixture.users.upsertUserProfile(match { it.userId == "farmer-1" && it.points == 1 }) }
     }
 
     @Test fun legacyRequestWithoutDeliveryDoesNotWriteOrderOrConsumeStock() = runTest {
@@ -99,6 +101,7 @@ class OrderLocationFlowTest {
         val service = mockk<FirestoreService>(relaxed = true)
         val transaction = mockk<Transaction>(relaxed = true)
         val orderDao = mockk<OrderDao>(relaxed = true)
+        val users = mockk<UserProfileDao>(relaxed = true)
         val listingSnapshot = mockk<DocumentSnapshot>()
         val proposalSnapshot = mockk<DocumentSnapshot>()
         val listingRef = mockk<DocumentReference>()
@@ -116,6 +119,15 @@ class OrderLocationFlowTest {
             every { transaction.get(listingRef) } returns listingSnapshot
             every { transaction.get(proposalRef) } returns proposalSnapshot
             every { transaction.set(orderRef, capture(writtenOrder)) } returns transaction
+            val farmerRef = mockk<DocumentReference>()
+            val farmerSnapshot = mockk<DocumentSnapshot>()
+            every { firebase.collection("users").document("farmer-1") } returns farmerRef
+            every { transaction.get(farmerRef) } returns farmerSnapshot
+            every { farmerSnapshot.id } returns "farmer-1"
+            every { farmerSnapshot.reference } returns farmerRef
+            every { farmerSnapshot.getLong("points") } returns 0L
+            every { farmerSnapshot.getString("role") } returns "FARMER"
+            every { farmerSnapshot.toObject(UserProfile::class.java) } returns UserProfile(userId = "farmer-1", role = UserRole.FARMER)
             every { auth.currentUserId } returns "farmer-1"
             every { auth.getCurrentUserProfile() } returns flowOf(Result.Success(UserProfile(
                 userId = "farmer-1", role = UserRole.FARMER, location = "Changed profile location")))
@@ -123,8 +135,8 @@ class OrderLocationFlowTest {
                 firstArg<(Transaction) -> Any>().invoke(transaction)
             }
             repository = OrderRepositoryImpl(orderDao, service, mockk(relaxed = true), mockk(relaxed = true),
-                mockk(relaxed = true), auth, mockk(relaxed = true), mockk(relaxed = true),
-                mockk<NotificationService>(relaxed = true), mockk<OrderCompletionService>(relaxed = true))
+                mockk(relaxed = true), auth, mockk(relaxed = true), users,
+                mockk<NotificationService>(relaxed = true), mockk<OrderLifecycle>(relaxed = true))
         }
     }
 }

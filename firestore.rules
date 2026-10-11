@@ -50,6 +50,7 @@ service cloud.firestore {
         ? savedStock
         : data.quantity - data.get('soldQuantity', 0);
     }
+    function finiteNumber(value) { return value is number && value - value == 0; }
 
     // True if the listing is an expected (future-harvest) listing.
     function isExpectedHarvest(data) {
@@ -60,6 +61,196 @@ service cloud.firestore {
     function estimatedQty(data) {
       let est = data.get('estimatedQuantity', null);
       return est is number && est > 0 ? est : data.quantity;
+    }
+
+    function orderPath(id) { return /databases/$(database)/documents/orders/$(id); }
+    function sessionPath(id) { return /databases/$(database)/documents/spark_pickup_sessions/$(id); }
+    function eventPath(id) { return /databases/$(database)/documents/scoreEvents/$(id); }
+    function participant(o) {
+      return signedIn() && ((farmer() && o.farmerId == request.auth.uid)
+        || (supplier() && o.supplierId == request.auth.uid));
+    }
+    function newEvent(id) { return !exists(eventPath(id)) && existsAfter(eventPath(id)); }
+    function eventId(o, type, uid) {
+      return type == 'cancellation' ? o.orderId + '_' + uid + '_cancellation' : o.orderId + '_' + type;
+    }
+    function scoreTotal(before, delta) {
+      return before + delta < 0 ? 0 : (before + delta > 2147483647 ? 2147483647 : before + delta);
+    }
+    function aggregateMatches(e, id) {
+      let old = get(userProfilePath(e.userId)).data;
+      let next = getAfter(userProfilePath(e.userId)).data;
+      return old.get('points', 0) is int && old.get('points', 0) >= 0
+        && next.points == scoreTotal(old.get('points', 0), e.pointsDelta)
+        && next.lastScoreEventId == id && next.role == e.role;
+    }
+    function validScoreEvent(e, id) {
+      let o = getAfter(orderPath(e.orderId)).data;
+      return e.keys().hasOnly(['orderId', 'userId', 'role', 'eventType', 'pointsDelta', 'createdAt'])
+        && e.createdAt == request.time && id == eventId(o, e.eventType, e.userId)
+        && aggregateMatches(e, id)
+        && (
+          (e.eventType == 'farmer_acceptance' && e.pointsDelta == 1 && e.role == 'FARMER'
+            && e.userId == o.farmerId && farmer() && request.auth.uid == o.farmerId
+            && !exists(orderPath(e.orderId)) && o.status == 'AWAITING_PICKUP' && o.sparkVersion == 1)
+          || (e.eventType == 'farmer_handover' && e.pointsDelta == 3 && e.role == 'FARMER'
+            && e.userId == o.farmerId && farmer() && request.auth.uid == o.farmerId
+            && exists(sessionPath(e.orderId)) && get(sessionPath(e.orderId)).data.farmerConfirmed == false
+            && getAfter(sessionPath(e.orderId)).data.farmerConfirmed == true)
+          || (e.eventType == 'supplier_pickup' && e.pointsDelta == 4 && e.role == 'SUPPLIER'
+            && e.userId == o.supplierId && supplier() && request.auth.uid == o.supplierId
+            && get(orderPath(e.orderId)).data.status == 'AWAITING_PICKUP' && o.status == 'IN_TRANSIT'
+            && get(sessionPath(e.orderId)).data.supplierConfirmed == false
+            && getAfter(sessionPath(e.orderId)).data.supplierConfirmed == true)
+          || (e.eventType in ['farmer_delivery', 'supplier_delivery'] && e.pointsDelta == 6
+            && supplier() && request.auth.uid == o.supplierId
+            && get(orderPath(e.orderId)).data.status == 'IN_TRANSIT' && o.status == 'DELIVERED'
+            && (get(orderPath(e.orderId)).data.get('sparkVersion', 0) == 1
+              || (exists(sessionPath(e.orderId)) && get(sessionPath(e.orderId)).data.supplierConfirmed == true))
+            && ((e.eventType == 'farmer_delivery' && e.userId == o.farmerId && e.role == 'FARMER')
+              || (e.eventType == 'supplier_delivery' && e.userId == o.supplierId && e.role == 'SUPPLIER')))
+          || (e.eventType == 'cancellation' && e.pointsDelta == -2 && participant(o)
+            && e.userId == request.auth.uid && o.cancelledBy == request.auth.uid
+            && e.role == get(userProfilePath(request.auth.uid)).data.role
+            && get(orderPath(e.orderId)).data.status == 'AWAITING_PICKUP' && o.status == 'CANCELLED')
+        );
+    }
+    function validStockMutation(before, next) {
+      let id = next.get('stockOrderId', '');
+      let o = getAfter(orderPath(id)).data;
+      return next.diff(before).affectedKeys().hasOnly(['availableQuantity', 'soldQuantity', 'status', 'biddingEnabled', 'stockOrderId'])
+        && o.listingId == before.listingId && o.farmerId == before.farmerId
+        && next.quantity == before.quantity && o.quantity > 0
+        && (
+          (!exists(orderPath(id)) && farmer() && request.auth.uid == before.farmerId
+            && o.status == 'AWAITING_PICKUP'
+            && next.soldQuantity == before.get('soldQuantity', 0) + o.quantity
+            && availableStock(next) == availableStock(before) - o.quantity && availableStock(next) >= 0
+            && next.status == (availableStock(next) <= 0.000000001 ? 'FULFILLED' : before.status)
+            && next.biddingEnabled == (availableStock(next) <= 0.000000001 ? false : before.biddingEnabled))
+          || (exists(orderPath(id)) && participant(o) && o.cancelledBy == request.auth.uid
+            && get(orderPath(id)).data.status == 'AWAITING_PICKUP' && o.status == 'CANCELLED'
+            && before.get('soldQuantity', 0) >= o.quantity
+            && next.soldQuantity == before.get('soldQuantity', 0) - o.quantity
+            && availableStock(next) == availableStock(before) + o.quantity
+            && next.status == (before.status == 'FULFILLED' ? 'OPEN' : before.status)
+            && next.biddingEnabled == (before.status == 'FULFILLED' ? true : before.biddingEnabled))
+        );
+    }
+
+    match /scoreEvents/{id} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid
+        || participant(get(orderPath(resource.data.orderId)).data));
+      allow create: if signedIn() && validScoreEvent(request.resource.data, id);
+      allow update, delete: if false;
+    }
+
+    match /user_notifications/{recipient}/items/{id} {
+      function validRecipient(entity, state, creator, receiver) {
+        return entity.status == state && request.auth.uid == creator && recipient == receiver
+          && recipient != request.auth.uid;
+      }
+      function validInbox(d) {
+        let order = /databases/$(database)/documents/orders/$(d.entityId);
+        let bid = /databases/$(database)/documents/bids/$(d.entityId);
+        let proposal = /databases/$(database)/documents/order_requests/$(d.entityId);
+        return d.eventType == 'BID_ACCEPTED'
+          ? (farmer() && exists(order) && get(order).data.bidId == d.entityId
+              && get(order).data.farmerId == request.auth.uid && get(order).data.supplierId == recipient)
+          : d.eventType in ['BID_CREATED', 'BID_WITHDRAWN']
+          ? (supplier() && exists(bid) && validRecipient(get(bid).data,
+              d.eventType == 'BID_CREATED' ? 'PENDING' : 'WITHDRAWN', get(bid).data.supplierId,
+              get(listingPath(get(bid).data.listingId)).data.farmerId))
+          : d.eventType == 'BID_REJECTED'
+          ? (farmer() && exists(bid) && validRecipient(get(bid).data, 'REJECTED',
+              get(listingPath(get(bid).data.listingId)).data.farmerId, get(bid).data.supplierId))
+          : d.eventType in ['ORDER_REQUEST_CREATED', 'ORDER_REQUEST_CANCELLED']
+          ? (supplier() && exists(proposal) && validRecipient(get(proposal).data,
+              d.eventType == 'ORDER_REQUEST_CREATED' ? 'PENDING' : 'CANCELLED', get(proposal).data.supplierId, get(proposal).data.farmerId))
+          : d.eventType in ['ORDER_REQUEST_ACCEPTED', 'ORDER_REQUEST_REJECTED']
+          ? (farmer() && exists(proposal) && validRecipient(get(proposal).data,
+              d.eventType == 'ORDER_REQUEST_ACCEPTED' ? 'ACCEPTED' : 'REJECTED', get(proposal).data.farmerId, get(proposal).data.supplierId))
+          : d.eventType in ['ORDER_IN_TRANSIT', 'ORDER_COMPLETED']
+          ? (supplier() && exists(order) && validRecipient(get(order).data,
+              d.eventType == 'ORDER_IN_TRANSIT' ? 'IN_TRANSIT' : 'DELIVERED', get(order).data.supplierId, get(order).data.farmerId))
+          : d.eventType == 'ORDER_CANCELLED'
+          ? (exists(order) && participant(get(order).data) && get(order).data.status == 'CANCELLED'
+              && get(order).data.cancelledBy == request.auth.uid
+              && recipient == (request.auth.uid == get(order).data.farmerId ? get(order).data.supplierId : get(order).data.farmerId))
+          : d.eventType in ['HARVEST_READY', 'HARVEST_FAILED', 'HARVEST_UPDATE']
+          ? (farmer() && exists(proposal) && get(proposal).data.get('isPreHarvest', false) == true
+              && get(proposal).data.farmerId == request.auth.uid && get(proposal).data.supplierId == recipient
+              && get(listingPath(get(proposal).data.listingId)).data.farmerId == request.auth.uid
+              && get(listingPath(get(proposal).data.listingId)).data.get('harvestStatus', 'READY')
+                == (d.eventType == 'HARVEST_READY' ? 'READY' : (d.eventType == 'HARVEST_FAILED' ? 'FAILED' : 'EXPECTED')))
+          : false;
+      }
+      allow get, list: if signedIn() && request.auth.uid == recipient;
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['id', 'entityId', 'eventType', 'actorId', 'recipientId', 'createdAt', 'readAt'])
+        && request.resource.data.entityId is string && request.resource.data.entityId.size() > 0
+        && request.resource.data.entityId.size() <= 128 && !request.resource.data.entityId.matches('.*[/].*')
+        && request.resource.data.id == id && id == request.resource.data.eventType + '_' + request.resource.data.entityId
+        && request.resource.data.actorId == request.auth.uid && request.resource.data.recipientId == recipient
+        && request.resource.data.createdAt == request.time && request.resource.data.readAt == null
+        && validInbox(request.resource.data);
+      allow update: if signedIn() && request.auth.uid == recipient && resource.data.get('readAt', null) == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']) && request.resource.data.readAt == request.time;
+      allow delete: if false;
+    }
+
+    match /spark_pickup_sessions/{id} {
+      function o() { return get(orderPath(id)).data; }
+      function fresh(d) { return request.time < d.issuedAt + duration.value(24, 'h'); }
+      function unlocked(d) {
+        return d.attemptCount < 5 || (d.get('attemptWindowAt', null) is timestamp
+          && request.time >= d.attemptWindowAt + duration.value(30, 'm'));
+      }
+      function pinFields(d) {
+        return d.salt is string && d.salt.matches('[0-9a-f]{32}')
+          && d.verifier is string && d.verifier.matches('[0-9a-f]{64}') && d.iterations == 120000;
+      }
+      allow get: if participant(o());
+      allow list: if false;
+      allow create: if supplier() && request.auth.uid == o().supplierId && o().status == 'AWAITING_PICKUP'
+        && !exists(/databases/$(database)/documents/order_completion_records/$(id))
+        && (!exists(/databases/$(database)/documents/order_pickup_verifications/$(id))
+          || (get(/databases/$(database)/documents/order_pickup_verifications/$(id)).data.get('farmerConfirmed', false) == false
+            && get(/databases/$(database)/documents/order_pickup_verifications/$(id)).data.get('supplierConfirmed', false) == false))
+        && request.resource.data.keys().hasOnly(['orderId', 'farmerId', 'supplierId', 'createdAt', 'issuedAt',
+          'salt', 'verifier', 'iterations', 'revision', 'attemptCount', 'farmerConfirmed', 'supplierConfirmed'])
+        && request.resource.data.orderId == id && request.resource.data.farmerId == o().farmerId
+        && request.resource.data.supplierId == o().supplierId && request.resource.data.createdAt == request.time
+        && request.resource.data.issuedAt == request.time && request.resource.data.revision == 1
+        && request.resource.data.attemptCount == 0 && request.resource.data.farmerConfirmed == false
+        && request.resource.data.supplierConfirmed == false && pinFields(request.resource.data);
+      allow update: if participant(o()) && o().status != 'CANCELLED' && (
+        // Rotation preserves all counters, owners, creation time and confirmations.
+        (supplier() && request.auth.uid == o().supplierId && resource.data.farmerConfirmed == false
+          && (o().status == 'AWAITING_PICKUP' || resource.data.supplierConfirmed == true)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['salt', 'verifier', 'iterations', 'revision', 'issuedAt'])
+          && request.resource.data.revision == resource.data.revision + 1
+          && request.resource.data.issuedAt == request.time && pinFields(request.resource.data))
+        || (farmer() && request.auth.uid == o().farmerId && !resource.data.farmerConfirmed
+          && fresh(resource.data) && unlocked(resource.data) && (
+            // Rules prove bounded attestation, NOT a PBKDF2 comparison.
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['farmerConfirmed', 'farmerConfirmedAt'])
+              && request.resource.data.farmerConfirmed == true && request.resource.data.farmerConfirmedAt == request.time
+              && newEvent(id + '_farmer_handover'))
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attemptCount', 'attemptWindowAt', 'lastAttemptAt'])
+              && request.resource.data.lastAttemptAt == request.time
+              && ((resource.data.get('attemptWindowAt', null) is timestamp
+                && request.time < resource.data.attemptWindowAt + duration.value(30, 'm')
+                && request.resource.data.attemptWindowAt == resource.data.attemptWindowAt
+                && request.resource.data.attemptCount == resource.data.attemptCount + 1)
+                || ((resource.data.get('attemptWindowAt', null) == null
+                    || request.time >= resource.data.attemptWindowAt + duration.value(30, 'm'))
+                  && request.resource.data.attemptWindowAt == request.time && request.resource.data.attemptCount == 1)))))
+        || (supplier() && request.auth.uid == o().supplierId && !resource.data.supplierConfirmed
+          && o().status == 'AWAITING_PICKUP' && (fresh(resource.data) || resource.data.farmerConfirmed)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['supplierConfirmed', 'supplierConfirmedAt'])
+          && request.resource.data.supplierConfirmed == true && request.resource.data.supplierConfirmedAt == request.time
+          && getAfter(orderPath(id)).data.status == 'IN_TRANSIT' && newEvent(id + '_supplier_pickup')));
+      allow delete: if false;
     }
 
     match /users/{userId} {
@@ -74,6 +265,12 @@ service cloud.firestore {
         && request.resource.data.userId == userId
         && request.resource.data.role == resource.data.role
         && (
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points', 'lastScoreEventId'])
+            && request.resource.data.lastScoreEventId is string
+            && newEvent(request.resource.data.lastScoreEventId)
+            && getAfter(eventPath(request.resource.data.lastScoreEventId)).data.userId == userId
+            && aggregateMatches(getAfter(eventPath(request.resource.data.lastScoreEventId)).data, request.resource.data.lastScoreEventId))
+          ||
           // User updating their own profile (cannot change points directly)
           (request.auth.uid == userId
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -84,6 +281,8 @@ service cloud.firestore {
     }
 
     match /listings/{listingId} {
+      // An order's original stock record remains readable for cancellation after sell-out.
+      allow get: if supplier() && publishedListing(resource.data);
       allow get, list: if signedIn() && (
         (farmer() && resource.data.farmerId == request.auth.uid)
         || (supplier() && publishedListing(resource.data) && resource.data.status == 'OPEN')
@@ -95,6 +294,11 @@ service cloud.firestore {
         && request.resource.data.status == 'OPEN'
         && request.resource.data.get('isDraft', false) == false
         && request.resource.data.biddingEnabled is bool
+        && request.resource.data.get('soldQuantity', 0) == 0 && request.resource.data.quantity >= 0
+        && finiteNumber(request.resource.data.quantity)
+        && finiteNumber(request.resource.data.reservePrice) && request.resource.data.reservePrice > 0
+        && (isExpectedHarvest(request.resource.data)
+          || availableStock(request.resource.data) == request.resource.data.quantity)
         && coordinateLocation(request.resource.data.get('location', ''))
         // Expected (future-harvest) listings start with zero actual stock — allow them when
         // estimatedQuantity is positive and availableQuantity is zero. All other listings need real available stock.
@@ -102,11 +306,26 @@ service cloud.firestore {
           ? (estimatedQty(request.resource.data) > 0 && request.resource.data.get('availableQuantity', 0) == 0)
           : availableStock(request.resource.data) > 0);
 
+      allow update: if signedIn() && validStockMutation(resource.data, request.resource.data);
       allow update: if farmer()
         && resource.data.farmerId == request.auth.uid
         && request.resource.data.farmerId == request.auth.uid
         && request.resource.data.listingId == listingId
         && request.resource.data.get('isDraft', false) == false
+        && request.resource.data.get('soldQuantity', 0) == resource.data.get('soldQuantity', 0)
+        && request.resource.data.get('stockOrderId', '') == resource.data.get('stockOrderId', '')
+        && request.resource.data.quantity >= resource.data.get('soldQuantity', 0)
+        && finiteNumber(request.resource.data.quantity)
+        && (resource.data.get('soldQuantity', 0) == 0 || request.resource.data.quantityUnit == resource.data.quantityUnit)
+        && (isExpectedHarvest(request.resource.data)
+          ? availableStock(request.resource.data) == 0
+          : ((isExpectedHarvest(resource.data) && request.resource.data.get('harvestStatus', 'READY') == 'READY'
+              && resource.data.get('soldQuantity', 0) == 0 && availableStock(request.resource.data) == request.resource.data.quantity)
+            || (isExpectedHarvest(resource.data) && request.resource.data.get('harvestStatus', 'READY') == 'FAILED'
+              && availableStock(request.resource.data) == availableStock(resource.data)
+              && request.resource.data.quantity == resource.data.quantity)
+            || (!isExpectedHarvest(resource.data)
+              && availableStock(request.resource.data) == availableStock(resource.data) + request.resource.data.quantity - resource.data.quantity)))
         && (request.resource.data.get('biddingEnabled', false) == false
           || (request.resource.data.status == 'OPEN'
             && (isExpectedHarvest(request.resource.data)
@@ -136,7 +355,7 @@ service cloud.firestore {
             && request.resource.data.get('harvestStatus', 'READY') == 'FAILED')
         );
 
-      allow delete: if farmer() && resource.data.farmerId == request.auth.uid;
+      allow delete: if farmer() && resource.data.farmerId == request.auth.uid && resource.data.get('soldQuantity', 0) == 0;
     }
 
     match /bids/{bidId} {
@@ -147,6 +366,7 @@ service cloud.firestore {
 
       allow create: if supplier()
         && request.resource.data.supplierId == request.auth.uid
+        && finiteNumber(request.resource.data.offerPrice) && request.resource.data.offerPrice > 0
         && request.resource.data.status == 'PENDING'
         && request.resource.data.bidId == bidId
         && exists(listingPath(request.resource.data.listingId))
@@ -192,6 +412,7 @@ service cloud.firestore {
         && request.resource.data.supplierId == request.auth.uid
         && request.resource.data.status == 'PENDING'
         && request.resource.data.requestedQuantity > 0
+        && finiteNumber(request.resource.data.requestedQuantity)
         && exists(listingPath(request.resource.data.listingId))
         && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
         && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
@@ -253,14 +474,24 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
+      allow get: if signedIn() && !exists(orderPath(orderId)) && (farmer() || supplier());
       allow get, list: if signedIn()
         && ((farmer() && resource.data.farmerId == request.auth.uid)
           || (supplier() && resource.data.supplierId == request.auth.uid));
 
       allow create: if farmer()
         && request.resource.data.orderId == orderId
+        && request.resource.data.keys().hasOnly(['orderId', 'listingId', 'bidId', 'farmerId', 'supplierId',
+          'cropName', 'quantity', 'quantityUnit', 'agreedPrice', 'status', 'pickupLocation', 'deliveryLocation',
+          'notes', 'createdAt', 'updatedAt', 'sparkVersion'])
         && request.resource.data.farmerId == request.auth.uid
+        && get(userProfilePath(request.resource.data.supplierId)).data.role == 'SUPPLIER'
+        && get(userProfilePath(request.resource.data.supplierId)).data.userId == request.resource.data.supplierId
         && request.resource.data.status == 'AWAITING_PICKUP'
+        && request.resource.data.sparkVersion == 1 && newEvent(orderId + '_farmer_acceptance')
+        && getAfter(listingPath(request.resource.data.listingId)).data.stockOrderId == orderId
+        && request.resource.data.cropName == get(listingPath(request.resource.data.listingId)).data.cropName
+        && request.resource.data.quantityUnit == get(listingPath(request.resource.data.listingId)).data.quantityUnit
         && coordinateLocation(request.resource.data.get('pickupLocation', ''))
         && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
         && request.resource.data.pickupLocation == get(listingPath(request.resource.data.listingId)).data.location
@@ -321,25 +552,37 @@ service cloud.firestore {
                 - request.resource.data.quantity)
         );
 
-      allow update: if signedIn()
-        && ((farmer() && resource.data.farmerId == request.auth.uid)
-          || (supplier() && resource.data.supplierId == request.auth.uid))
-        && request.resource.data.orderId == resource.data.orderId
-        && request.resource.data.bidId == resource.data.bidId
-        && request.resource.data.listingId == resource.data.listingId
-        && request.resource.data.farmerId == resource.data.farmerId
-        && request.resource.data.supplierId == resource.data.supplierId
-        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-          || (supplier() && resource.data.supplierId == request.auth.uid
-            && resource.data.status in ['AWAITING_PICKUP', 'IN_TRANSIT']
-            && request.resource.data.status == resource.data.status
-            && request.resource.data.deliveryLocation is string
-            && coordinateLocation(request.resource.data.deliveryLocation)
-            && request.resource.data.deliveryLocation.size() <= 2000
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryLocation', 'updatedAt'])))
-        && (
-          request.resource.data.status == resource.data.status
-        );
+      function deliveryRewardsRequired() {
+        return resource.data.get('sparkVersion', 0) == 1
+          || (exists(sessionPath(orderId)) && get(sessionPath(orderId)).data.supplierConfirmed == true);
+      }
+      allow update: if participant(resource.data) && (
+        (supplier() && resource.data.supplierId == request.auth.uid
+          && resource.data.status in ['AWAITING_PICKUP', 'IN_TRANSIT']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryLocation', 'updatedAt'])
+          && coordinateLocation(request.resource.data.deliveryLocation))
+        || (supplier() && resource.data.supplierId == request.auth.uid
+          && resource.data.status == 'AWAITING_PICKUP' && request.resource.data.status == 'IN_TRANSIT'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'pickedUpAt'])
+          && request.resource.data.pickedUpAt == request.time
+          && get(sessionPath(orderId)).data.supplierConfirmed == false
+          && getAfter(sessionPath(orderId)).data.supplierConfirmed == true
+          && newEvent(orderId + '_supplier_pickup'))
+        || (supplier() && resource.data.supplierId == request.auth.uid
+          && resource.data.status == 'IN_TRANSIT' && request.resource.data.status == 'DELIVERED'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'deliveredAt'])
+          && request.resource.data.deliveredAt == request.time
+          && (!deliveryRewardsRequired() || (newEvent(orderId + '_farmer_delivery') && newEvent(orderId + '_supplier_delivery'))))
+        || (resource.data.status == 'AWAITING_PICKUP' && request.resource.data.status == 'CANCELLED'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'cancelledAt', 'cancelledBy'])
+          && request.resource.data.cancelledAt == request.time && request.resource.data.cancelledBy == request.auth.uid
+          && newEvent(orderId + '_' + request.auth.uid + '_cancellation')
+          && getAfter(listingPath(resource.data.listingId)).data.stockOrderId == orderId
+          && getAfter(listingPath(resource.data.listingId)).data.soldQuantity
+            == get(listingPath(resource.data.listingId)).data.get('soldQuantity', 0) - resource.data.quantity
+          && availableStock(getAfter(listingPath(resource.data.listingId)).data)
+            == availableStock(get(listingPath(resource.data.listingId)).data) + resource.data.quantity)
+      );
 
       allow delete: if false;
     }

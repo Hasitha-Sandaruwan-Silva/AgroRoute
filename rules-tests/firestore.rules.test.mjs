@@ -7,7 +7,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment
 } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, runTransaction } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, runTransaction, serverTimestamp } from "firebase/firestore";
 import { after, before, beforeEach, test } from "node:test";
 
 const projectId = "demo-agroroute-rules";
@@ -61,6 +61,7 @@ beforeEach(async () => {
       listingId: "listing-1",
       farmerId: "farmer-1",
       cropName: "Rice",
+      quantityUnit: "KG",
       quantity: 10,
       availableQuantity: 10,
       soldQuantity: 0,
@@ -74,6 +75,7 @@ beforeEach(async () => {
       listingId: "listing-fixed",
       farmerId: "farmer-1",
       cropName: "Rice",
+      quantityUnit: "KG",
       quantity: 10,
       availableQuantity: 10,
       soldQuantity: 0,
@@ -88,6 +90,7 @@ beforeEach(async () => {
       listingId: "listing-expected",
       farmerId: "farmer-1",
       cropName: "Wheat",
+      quantityUnit: "KG",
       quantity: 0,
       availableQuantity: 0,
       soldQuantity: 0,
@@ -287,6 +290,7 @@ function listingFixedAfterSale(availableQuantity, soldQuantity) {
     listingId: "listing-fixed",
     farmerId: "farmer-1",
     cropName: "Rice",
+    quantityUnit: "KG",
     quantity: 10,
     availableQuantity,
     soldQuantity,
@@ -341,6 +345,15 @@ async function seedPreHarvestRequest(requestId, overrides = {}) {
   });
 }
 
+function addSparkAcceptance(batch, db, orderId, listingId) {
+  const id = orderId + '_farmer_acceptance';
+  batch.set(doc(db, 'orders', orderId), {sparkVersion: 1}, {merge: true});
+  batch.update(doc(db, 'listings', listingId), {stockOrderId: orderId});
+  batch.set(doc(db, 'scoreEvents', id), {orderId, userId: 'farmer-1', role: 'FARMER',
+    eventType: 'farmer_acceptance', pointsDelta: 1, createdAt: serverTimestamp()});
+  batch.update(doc(db, 'users/farmer-1'), {points: 1, lastScoreEventId: id});
+}
+
 function buildAcceptBatch(db, request) {
   const batch = writeBatch(db);
   batch.set(
@@ -356,6 +369,7 @@ function buildAcceptBatch(db, request) {
     status: "ACCEPTED",
     updatedAt: 2
   });
+  addSparkAcceptance(batch, db, request.requestId, request.listingId);
   return batch;
 }
 
@@ -556,6 +570,7 @@ test("accept batch fails when remaining stock cannot cover the requested quantit
       listingId: "listing-fixed",
       farmerId: "farmer-1",
       cropName: "Rice",
+      quantityUnit: "KG",
       quantity: 10,
       availableQuantity: 2,
       soldQuantity: 8,
@@ -966,6 +981,7 @@ test("farmer can mark harvest ready and accept pre-harvest request in sequential
     harvestUpdatedAt: 2
   });
 
+  addSparkAcceptance(batch, db, "pre-req-1", "listing-expected");
   await assertSucceeds(batch.commit());
 });
 
@@ -1075,6 +1091,7 @@ test("multiple pre-harvest requests cannot all be accepted if they exceed real s
     soldQuantity: 6,
     harvestUpdatedAt: 2
   });
+  addSparkAcceptance(batch1, db, "pre-req-1", "listing-expected");
   await assertSucceeds(batch1.commit());
 
   // Try to accept second request (6 units, but only 4 left) - should fail
@@ -1687,7 +1704,7 @@ test("farmer can accept order request with full transaction writes (request, lis
 
   batch.set(
     doc(db, "listings/listing-fixed"),
-    listingAfterSale("listing-fixed", 5)
+    listingAfterSale("listing-fixed", 5, {biddingEnabled: false})
   );
   batch.set(
     doc(db, "orders/request-accept"),
@@ -1705,6 +1722,7 @@ test("farmer can accept order request with full transaction writes (request, lis
     updatedAt: 2
   });
 
+  addSparkAcceptance(batch, db, "request-accept", "listing-fixed");
   await assertSucceeds(batch.commit());
 });
 
@@ -2213,6 +2231,7 @@ test("bid acceptance validates the saved delivery and atomically freezes both lo
     batch.update(doc(db, "listings/listing-1"), { availableQuantity: 0, soldQuantity: 10, status: "FULFILLED", biddingEnabled: false });
     batch.update(doc(db, "bids", bidId), { status: "ACCEPTED", updatedAt: 2 });
     batch.set(doc(db, "orders", bidId), fullOrderDoc(bidId, { bidId, quantity: 10, deliveryLocation }));
+    addSparkAcceptance(batch, db, bidId, "listing-1");
     return batch;
   }
   await assertFails(acceptBid("Wrong delivery\n[8.000000, 81.000000]").commit());

@@ -4,7 +4,7 @@ import com.agroroute.core.database.OrderDao
 import com.agroroute.core.database.UserProfileDao
 import com.agroroute.core.model.*
 import com.agroroute.core.remote.FirestoreService
-import com.agroroute.core.remote.OrderCompletionService
+import com.agroroute.core.remote.OrderLifecycle
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.OrderRepositoryImpl
 import com.agroroute.core.util.Result
@@ -22,7 +22,7 @@ class OrderPickupRepositoryTest {
         val dao = mockk<OrderDao>(relaxed = true)
         val users = mockk<UserProfileDao>(relaxed = true)
         val remote = mockk<FirestoreService>(relaxed = true)
-        val completion = mockk<OrderCompletionService>()
+        val completion = mockk<OrderLifecycle>()
         val firestore = mockk<FirebaseFirestore>(relaxed = true)
         val order = Order(orderId = "order-1", farmerId = "farmer-1", supplierId = "supplier-1",
             status = status, listingId = "listing-1", pickupLocation = "Farm\n[7, 80]", deliveryLocation = "Destination\n[6, 79]")
@@ -45,7 +45,7 @@ class OrderPickupRepositoryTest {
                 mockk(relaxed = true), auth, mockk(relaxed = true), users, mockk(relaxed = true), completion)
         }
     }
-    @Test fun farmerVerificationUsesTrustedBackendAndCachesExistingSnapshotsAndPoints() = runTest {
+    @Test fun farmerVerificationUsesLifecycleAdapterAndCachesAcknowledgedSnapshotsAndPoints() = runTest {
         val f = Fixture(UserRole.FARMER)
         val verified = OrderPickupVerification(farmerConfirmed = true)
         coEvery { f.completion.pickup("order-1", "verify", "123456") } returns verified
@@ -59,7 +59,7 @@ class OrderPickupRepositoryTest {
         assertTrue(f.repository.verifyPickupCode("order-1", "000000") is Result.Error)
         coVerify(exactly = 0) { f.dao.upsertOrder(any()); f.users.upsertUserProfile(any()) }
     }
-    @Test fun supplierTransitActionUsesCollectionCallableRatherThanClientStatusWrite() = runTest {
+    @Test fun supplierTransitActionUsesCollectionAdapterRatherThanUnconstrainedStatusWrite() = runTest {
         val f = Fixture(UserRole.SUPPLIER)
         coEvery { f.completion.pickup("order-1", "collect", null) } returns OrderPickupVerification(supplierConfirmed = true)
         assertTrue(f.repository.updateOrderStatus("order-1", OrderStatus.IN_TRANSIT) is Result.Success)
@@ -77,7 +77,7 @@ class OrderPickupRepositoryTest {
         assertEquals("123456", f.repository.getPickupVerification("order-1").getOrNull()?.code)
         coVerify(exactly = 0) { f.dao.upsertOrder(any()); f.users.upsertUserProfile(any()) }
     }
-    @Test fun cancellationUsesTrustedServerAndNeverComputesPenaltyOnClient() = runTest {
+    @Test fun cancellationUsesLifecycleAdapterAndDoesNotOptimisticallyChangeCachedPoints() = runTest {
         val f = Fixture(UserRole.SUPPLIER, OrderStatus.CANCELLED)
         coEvery { f.completion.cancel("order-1") } returns Unit
         val listingSnapshot = mockk<DocumentSnapshot>()

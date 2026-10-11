@@ -54,6 +54,8 @@ class SupplierBidsViewModel @Inject constructor(
     }
 
     fun withdrawBid(bidId: String) {
+        if (_uiState.value.isWithdrawing) return
+        _uiState.update { it.copy(isWithdrawing = true, error = null) }
         viewModelScope.launch {
             _uiState.update { it.copy(isWithdrawing = true, error = null) }
             when (val result = withdrawBidUseCase(bidId)) {

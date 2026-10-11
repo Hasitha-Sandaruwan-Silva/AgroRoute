@@ -16,6 +16,7 @@ import com.agroroute.core.location.LocationServices
 import com.agroroute.core.location.SelectedLocation
 import com.agroroute.core.location.openOrderDirections
 import com.agroroute.core.model.Order
+import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.model.pickupSnapshot
 import com.agroroute.core.model.deliverySnapshot
 import kotlinx.coroutines.CancellationException
@@ -45,7 +46,8 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean) {
     val mapHeight = (LocalConfiguration.current.screenHeightDp.dp * 0.3f).coerceIn(140.dp, 280.dp)
     val pickup = order.pickupSnapshot()
     val delivery = order.deliverySnapshot()
-    val destination = if (forSupplier) pickup else delivery
+    val navigatingToPickup = forSupplier && order.status == OrderStatus.AWAITING_PICKUP
+    val destination = if (navigatingToPickup) pickup else delivery
     val context = LocalContext.current
     val services = remember(context) { LocationServices(context.applicationContext) }
     val scope = rememberCoroutineScope()
@@ -80,7 +82,7 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean) {
                 modifier = Modifier.fillMaxWidth().height(mapHeight))
         } else {
             Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(16.dp)) {
-                Text("This older order has no saved ${if (forSupplier) "pickup" else "delivery"} coordinates. Address information is shown below.",
+                Text("This older order has no saved ${if (navigatingToPickup) "pickup" else "delivery"} coordinates. Address information is shown below.",
                     modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -98,7 +100,9 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean) {
             }
             Button(onClick = {
                 if (destination != null && !openOrderDirections(context, destination)) message = "No maps app or browser is available."
-            }, enabled = destination != null, modifier = Modifier.fillMaxWidth()) { Text("Navigate to Farmer") }
+            }, enabled = destination != null, modifier = Modifier.fillMaxWidth()) {
+                Text(if (navigatingToPickup) "Navigate to Farmer" else "Navigate to delivery destination")
+            }
         }
         message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
     }
