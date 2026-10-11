@@ -9,8 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.location.LocationServices
 import com.agroroute.core.location.SelectedLocation
@@ -42,6 +42,7 @@ fun DeliveryLocationField(value: String, onSelected: (String) -> Unit, enabled: 
 /** Both destinations come exclusively from this order's immutable saved values. */
 @Composable
 fun OrderLocationSection(order: Order, forSupplier: Boolean) {
+    val mapHeight = (LocalConfiguration.current.screenHeightDp.dp * 0.3f).coerceIn(140.dp, 280.dp)
     val pickup = order.pickupSnapshot()
     val delivery = order.deliverySnapshot()
     val destination = if (forSupplier) pickup else delivery
@@ -76,7 +77,7 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean) {
         Spacer(Modifier.height(12.dp))
         if (destination != null) {
             LocationMap(location = destination, currentFix = fix, focusRequest = 1,
-                modifier = Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(16.dp)))
+                modifier = Modifier.fillMaxWidth().height(mapHeight))
         } else {
             Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(16.dp)) {
                 Text("This older order has no saved ${if (forSupplier) "pickup" else "delivery"} coordinates. Address information is shown below.",

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.agroroute.core.components.LocationPickerDialog
 import com.agroroute.core.theme.AgroRouteTheme
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,14 +34,28 @@ class LocationPickerPresentationTest(private val dark: Boolean) {
         }
         capture("before-keyboard")
         compose.onNodeWithText("Use this location").assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithTag("location-map").assertIsDisplayed()
         compose.onNodeWithText("Search a place or address").performClick().performTextInput("Kandy")
         compose.waitForIdle()
         capture("keyboard")
         compose.onNodeWithText("Use this location").assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithTag("location-map").assertIsDisplayed()
         compose.onNodeWithContentDescription("Go to my current location").assertIsDisplayed()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.runOnIdle { assertTrue(dismissed) }
         compose.onNodeWithText("Use this location").assertDoesNotExist()
+    }
+    @Test fun manualAddressAndConfirmationPreserveSavedCoordinates() {
+        var confirmed: String? = null
+        compose.setContent {
+            AgroRouteTheme(darkTheme = dark) {
+                LocationPickerDialog("Kandy\n[7.290600, 80.633700]",
+                    onDismiss = {}, onConfirm = { confirmed = it })
+            }
+        }
+        compose.onNodeWithText("Selected address / place name").performTextReplacement("Edited farm")
+        compose.onNodeWithText("Use this location").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("Edited farm\n[7.290600, 80.633700]", confirmed) }
     }
     private fun capture(stage: String) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()

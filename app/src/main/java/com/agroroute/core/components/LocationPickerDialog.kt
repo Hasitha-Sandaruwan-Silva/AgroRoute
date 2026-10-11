@@ -2,27 +2,30 @@ package com.agroroute.core.components
 
 import com.github.thelacspace.icons.Lucide
 import android.Manifest
+import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.background
-import com.agroroute.core.theme.AgroGradients
-import com.agroroute.core.theme.CreamInk
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import com.agroroute.core.location.LocationServices
 import com.agroroute.core.location.SelectedLocation
 import kotlinx.coroutines.CancellationException
@@ -31,6 +34,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val services = remember(context) { LocationServices(context.applicationContext) }
     val saved = remember(initialValue) { SelectedLocation.fromStoredText(initialValue) }
@@ -116,85 +121,99 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
         }
     }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+    // Compose 1.7's non-default-width path measures against screenHeightDp instead of
+    // the available window/IME bounds. Keep window-based measurement and set full size.
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = true, decorFitsSystemWindows = false)) {
+        val dialogWindow = (LocalView.current.parent as DialogWindowProvider).window
+        SideEffect {
+            dialogWindow.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            dialogWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            BoxWithConstraints(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
-                val panelMaxHeight = maxHeight * 0.52f
-                val resultsMaxHeight = maxHeight * 0.22f
-                Column(Modifier.fillMaxSize()) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+            LocationPickerLayout(
+                search = {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilledTonalIconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) { Icon(Lucide.ArrowLeft, "Back") }
-                        OutlinedTextField(query, { query = it }, placeholder = { Text("Search a place or address") },
-                            singleLine = true, shape = RoundedCornerShape(20.dp), modifier = Modifier.weight(1f),
+                        OutlinedTextField(query, { query = it }, placeholder = {
+                            Text("Search a place or address", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }, singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                search()
+                                focusManager.clearFocus()
+                                keyboard?.hide()
+                            }),
                             trailingIcon = {
-                                IconButton(onClick = { search() }, enabled = query.isNotBlank() && !searching) {
+                                IconButton(onClick = { search(); focusManager.clearFocus(); keyboard?.hide() },
+                                    enabled = query.isNotBlank() && !searching) {
                                     if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                                     else Icon(Lucide.Search, "Search")
                                 }
                             })
                     }
-                    if (results.isNotEmpty()) {
-                        Column(Modifier.fillMaxWidth().heightIn(max = resultsMaxHeight)
-                            .verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
-                            results.forEach { result ->
-                                TextButton(onClick = { select(result, focus = true) }, modifier = Modifier.fillMaxWidth()) {
-                                    Text(result.address.ifBlank { result.coordinates() })
-                                }
-                            }
+                },
+                results = if (results.isEmpty()) null else ({
+                    results.forEach { result ->
+                        TextButton(onClick = { select(result, focus = true); focusManager.clearFocus(); keyboard?.hide() },
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text(result.address.ifBlank { result.coordinates() })
                         }
                     }
-                    Box(Modifier.fillMaxWidth().weight(1f).clipToBounds()) {
+                }),
+                map = {
+                    BoxWithConstraints(Modifier.fillMaxSize()) {
                         LocationMap(location = selected.takeIf { hasSelection }, currentFix = currentFix,
                             focusRequest = focusRequest, onSelect = { select(it, focus = false) },
                             modifier = Modifier.fillMaxSize())
-                        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp)) {
-                            Text("Tap to place a pin", style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+                        if (maxHeight >= 140.dp) {
+                            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp)) {
+                                Text("Tap to place a pin", style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                            }
                         }
                         Surface(onClick = {
                             if (services.hasPermission()) locate() else permissionLauncher.launch(arrayOf(
                                 Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-                        }, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp,
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(52.dp)) {
+                        }, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
+                            modifier = Modifier.align(Alignment.BottomEnd)
+                                .padding(if (maxHeight < 100.dp) 4.dp else 8.dp).size(48.dp)) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (locating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                                 else Icon(Lucide.MyLocation, "Go to my current location", tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
-                    Surface(shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp), color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 3.dp, modifier = Modifier.fillMaxWidth().heightIn(max = panelMaxHeight)) {
-                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                            Box(Modifier.align(Alignment.CenterHorizontally).width(34.dp).height(4.dp)
-                                .background(MaterialTheme.colorScheme.outlineVariant, CircleShape))
-                            Spacer(Modifier.height(12.dp))
-                            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary)
-                                    Text("Your selected location", style = MaterialTheme.typography.titleMedium)
-                                }
-                                Text(if (hasSelection) label.ifBlank { "Address unavailable ? enter a place name below" }
-                                    else "Tap the map or search for your pickup / delivery location.",
-                                    style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-                                OutlinedTextField(label, { label = it; addressEdited = true },
-                                    label = { Text("Selected address / place name") }, maxLines = 2,
-                                    shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
-                                if (hasSelection) Text(selected.coordinates(), style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Button(onClick = { onConfirm(selected.toStoredText()) }, enabled = hasSelection,
-                                shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                                Text("Use this location")
-                            }
+                },
+                address = {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Text("Your selected location", style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
+                        // The editable address is shown once; saved coordinates remain unchanged.
+                        OutlinedTextField(label, { label = it; addressEdited = true },
+                            label = { Text("Selected address / place name") }, maxLines = 2,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus(); keyboard?.hide() }),
+                            shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
+                        if (!hasSelection) Text("Tap the map or search for your pickup / delivery location.",
+                            style = MaterialTheme.typography.bodySmall)
+                        else Text(selected.coordinates(), style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    }
+                },
+                confirm = {
+                    Button(onClick = { focusManager.clearFocus(); keyboard?.hide(); onConfirm(selected.toStoredText()) },
+                        enabled = hasSelection, shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                        Text("Use this location")
                     }
                 }
-            }
+            )
         }
     }
 }

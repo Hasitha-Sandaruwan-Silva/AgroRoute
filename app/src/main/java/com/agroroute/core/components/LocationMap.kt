@@ -7,14 +7,17 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.location.Location
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -159,7 +162,9 @@ fun LocationMap(
         }
     }
 
-    Box(modifier.clipToBounds()) {
+    val mapShape = RoundedCornerShape(16.dp)
+    Box(modifier.clip(mapShape).border(1.dp, MaterialTheme.colorScheme.outlineVariant, mapShape)
+        .testTag("location-map")) {
         if (mapView != null) AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
         if (!configured || mapFailed) {
             Surface(modifier = Modifier.align(Alignment.Center).padding(16.dp), tonalElevation = 4.dp) {
