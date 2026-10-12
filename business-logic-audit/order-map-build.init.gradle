@@ -1,0 +1,3 @@
+allprojects {
+    layout.buildDirectory.set(new File(rootDir, "build/order-map/${project.name}"))
+}

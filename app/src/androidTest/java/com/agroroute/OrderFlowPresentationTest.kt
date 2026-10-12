@@ -140,13 +140,13 @@ class OrderFlowPresentationTest(private val dark: Boolean, private val compact: 
         content { OrderLocationSection(order.copy(pickupLocation = pin, deliveryLocation = pin), true) }
         compose.onNodeWithTag("location-map").assertIsDisplayed()
         compose.onNodeWithText("Navigate to Farmer").performScrollTo().assertIsEnabled()
-        compose.onNodeWithText("Navigate to delivery destination").assertDoesNotExist()
+        compose.onNodeWithText("Navigate to Delivery").assertDoesNotExist()
     }
     @Test fun supplierTransportUsesSavedDeliveryMapAndMissingLegacyCoordinatesDisableNavigation() {
         content { OrderLocationSection(order.copy(status = OrderStatus.IN_TRANSIT,
             pickupLocation = pin, deliveryLocation = "Older delivery address"), true) }
         compose.onNodeWithText("This older order has no saved delivery coordinates. Address information is shown below.").assertIsDisplayed()
-        compose.onNodeWithText("Navigate to delivery destination").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("Navigate to Delivery").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithText("Navigate to Farmer").assertDoesNotExist()
     }
     @Test fun supplierPendingRequestCanCancelAndHasNoOrderPenaltyOrAcceptanceAction() {
@@ -168,8 +168,8 @@ class OrderFlowPresentationTest(private val dark: Boolean, private val compact: 
         content { OrderLocationSection(order.copy(pickupLocation = pin, deliveryLocation = pin), false) }
         compose.onNodeWithTag("location-map").assertIsDisplayed()
         compose.onNodeWithText("Navigate to Farmer").assertDoesNotExist()
-        compose.onNodeWithText("Navigate to delivery destination").assertDoesNotExist()
-        compose.onNodeWithText("Show my current location").assertDoesNotExist()
+        compose.onNodeWithText("Navigate to Delivery").assertDoesNotExist()
+        compose.onNodeWithText("Recenter current location and destination").assertDoesNotExist()
     }
     @Test fun expiryBlocksPendingRequestAndBidWithoutRejection() {
         val listing = HarvestListing(quantity = 100.0, expiresAt = 1, location = pin)
@@ -193,6 +193,38 @@ class OrderFlowPresentationTest(private val dark: Boolean, private val compact: 
         compose.runOnIdle { listing = listing.releaseSale(40.0, true) }
         compose.onNodeWithText("Accept This Bid").performScrollTo().assertIsEnabled()
         compose.onNodeWithText("Insufficient stock — 60.0 KG available").assertDoesNotExist()
+    }
+    @Test fun supplierTransitShowsDeliveryMarkerAndFloatingRecenter() {
+        content { OrderLocationSection(order.copy(status = OrderStatus.IN_TRANSIT, pickupLocation = pin,
+            deliveryLocation = SelectedLocation("Saved delivery depot", 6.91, 79.86).toStoredText()), true) }
+        compose.onNodeWithText("Go to delivery destination").assertIsDisplayed()
+        compose.onNodeWithTag("order-map-recenter").assertIsDisplayed()
+        compose.onNodeWithText("Saved delivery depot").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Navigate to Delivery").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Navigate to Farmer").assertDoesNotExist()
+    }
+    @Test fun deliveredAndCancelledMapsHaveNoActiveNavigation() {
+        var status by mutableStateOf(OrderStatus.DELIVERED)
+        content { OrderLocationSection(order.copy(status = status, pickupLocation = pin, deliveryLocation = pin), true) }
+        compose.onNodeWithText("Delivery location summary").assertIsDisplayed()
+        compose.onNodeWithTag("location-map").assertIsDisplayed()
+        compose.onNodeWithTag("order-map-recenter").assertDoesNotExist()
+        compose.onNodeWithText("Navigate to Delivery").assertDoesNotExist()
+        compose.runOnIdle { status = OrderStatus.CANCELLED }
+        compose.onNodeWithText("Cancelled order location").assertIsDisplayed()
+        compose.onNodeWithTag("order-map-recenter").assertDoesNotExist()
+        compose.onNodeWithText("Navigate to Farmer").assertDoesNotExist()
+    }
+    @Test fun changingStageUpdatesEmbeddedDestinationWithoutChangingSnapshots() {
+        var status by mutableStateOf(OrderStatus.AWAITING_PICKUP)
+        val pickup = SelectedLocation("Immutable Farmer farm", 7.29, 80.63).toStoredText()
+        val delivery = SelectedLocation("Immutable Supplier depot", 6.91, 79.86).toStoredText()
+        content { OrderLocationSection(order.copy(status = status, pickupLocation = pickup, deliveryLocation = delivery), true) }
+        compose.onNodeWithText("Immutable Farmer farm").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { status = OrderStatus.IN_TRANSIT }
+        compose.onNodeWithText("Immutable Supplier depot").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Immutable Farmer farm").assertDoesNotExist()
+        compose.onNodeWithText("Navigate to Delivery").performScrollTo().assertIsEnabled()
     }
 
 }
