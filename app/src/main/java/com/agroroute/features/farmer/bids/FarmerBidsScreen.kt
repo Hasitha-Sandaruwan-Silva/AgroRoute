@@ -238,13 +238,13 @@ private fun FarmerBidCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "Listing quantity",
+                    text = "Requested quantity",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "${listing.availableStock()} ${listing.quantityUnit.name}",
+                    text = "${bid.requestedQuantity ?: listing.availableStock()} ${listing.quantityUnit.name}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -280,7 +280,7 @@ private fun FarmerBidCard(
             Text(if (bid.status == BidStatus.ACCEPTED) "Accepted ? View listing and order details" else "View listing and bids")
         }
         if (bid.status == BidStatus.PENDING) {
-            com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, deliveryLocation = bid.deliveryLocation)?.let {
+            com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation)?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall)
             }
             Row(
@@ -290,7 +290,7 @@ private fun FarmerBidCard(
             ) {
                 LoadingButton(
                     text = "Accept",
-                    enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, deliveryLocation = bid.deliveryLocation) == null,
+                    enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation) == null,
                     isLoading = isLoading,
                     onClick = onAccept,
                     modifier = Modifier.weight(1f)
@@ -315,4 +315,4 @@ private fun FarmerBidCard(
 private fun BidStatus.label(): String = name.lowercase().replaceFirstChar { it.uppercase() }
 
 private fun formatBidDate(timestamp: Long): String =
-    SimpleDateFormat("MMM dd, yyyy · hh:mm a", Locale.getDefault()).format(Date(timestamp))
+    SimpleDateFormat("MMM dd, yyyy Â· hh:mm a", Locale.getDefault()).format(Date(timestamp))

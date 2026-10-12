@@ -1892,8 +1892,8 @@ test("new profile cannot choose nonzero initial points", async () => {
   await assertSucceeds(setDoc(doc(db, "users/new-farmer"), { userId: "new-farmer", role: "FARMER", points: 0 }));
 });
 
-test("only order supplier can save delivery location without changing status, identity or price", async () => {
-  await seedOrder("delivery-edit", { status: "AWAITING_PICKUP" });
+test("only order supplier can repair missing delivery location without changing status, identity or price", async () => {
+  await seedOrder("delivery-edit", { status: "AWAITING_PICKUP", deliveryLocation: "Legacy address" });
   const supplierDb = testEnvironment.authenticatedContext("supplier-1").firestore();
   const farmerDb = testEnvironment.authenticatedContext("farmer-1").firestore();
   const strangerDb = testEnvironment.authenticatedContext("supplier-2").firestore();

@@ -24,8 +24,8 @@ class ListingActionPresentationTest {
         assertNotNull(listingAcceptanceBlockedReason(listing, false, 11.0, location))
         assertNotNull(listingAcceptanceBlockedReason(listing, false, 1.0, "Legacy address"))
     }
-    @Test fun expiryMetadataDoesNotInventNewRestriction() {
-        assertNull(listingAcceptanceBlockedReason(listing.copy(expiresAt = 1), false, 1.0, location))
+    @Test fun expiredListingBlocksAcceptance() {
+        assertEquals("Listing expired", listingAcceptanceBlockedReason(listing.copy(expiresAt = 1), false, 1.0, location))
     }
     @Test fun providerDiagnosticsAreReadableAndBusinessFeedbackIsPreserved() {
         assertEquals("Pickup verification unavailable for this legacy order",

@@ -13,6 +13,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.components.*
+import com.agroroute.core.model.deliverySnapshot
 import com.agroroute.core.model.OrderStatus
 import com.agroroute.core.navigation.Screen
 import com.github.thelacspace.icons.Lucide
@@ -53,9 +54,9 @@ fun SupplierOrderDetailScreen(orderId: String, navController: NavController,
                         navController.navigate(Screen.SubmitReview.createRoute(orderId, order.farmerId, "Farmer"))
                     })
                     OrderLocationSection(order, forSupplier = true)
-                    if (order.status in listOf(OrderStatus.AWAITING_PICKUP, OrderStatus.IN_TRANSIT)) {
+                    if (order.status in listOf(OrderStatus.AWAITING_PICKUP, OrderStatus.IN_TRANSIT) && order.deliverySnapshot() == null) {
                         OutlinedButton(onClick = { showLocationPicker = true }, enabled = !state.isLoading && !state.isSubmitting,
-                            modifier = Modifier.fillMaxWidth()) { Text("Choose / edit delivery location") }
+                            modifier = Modifier.fillMaxWidth()) { Text("Add missing delivery location") }
                     }
                     AppCard { ProfilePhoneContact(userId = order.farmerId, personLabel = "Farmer", onNameLoaded = { counterpartName = it }) }
                     AppCard {

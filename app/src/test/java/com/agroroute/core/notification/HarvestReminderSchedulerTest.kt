@@ -15,7 +15,7 @@ class HarvestReminderSchedulerTest {
 
     @Test
     fun reminderIsScheduledNineLocalTimeOnTheHarvestDay() {
-        val harvestAt = Instant.parse("2026-10-10T12:00:00Z")
+        val harvestAt = LocalDate.now(ZoneOffset.UTC).plusDays(2).atTime(12, 0).toInstant(ZoneOffset.UTC)
             .toEpochMilli()
         val reminder = HarvestReminderTime.reminderEpochMillis(harvestAt)
 
@@ -51,7 +51,7 @@ class HarvestReminderSchedulerTest {
             listingId = "listing-1",
             cropName = "Maha rice",
             farmerId = "farmer-1",
-            expectedHarvestAt = Instant.parse("2026-10-10T12:00:00Z").toEpochMilli(),
+            expectedHarvestAt = LocalDate.now(ZoneOffset.UTC).plusDays(2).atTime(12, 0).toInstant(ZoneOffset.UTC).toEpochMilli(),
             isDraft = true
         )
         // schedule() also guards with isDraft; here we only test the time helper's
@@ -65,7 +65,7 @@ class HarvestReminderSchedulerTest {
 
     @Test
     fun preservesUtcDayBoundary() {
-        val harvestAt = Instant.parse("2026-10-10T00:30:00Z").toEpochMilli()
+        val harvestAt = LocalDate.now(ZoneOffset.UTC).plusDays(2).atTime(0, 30).toInstant(ZoneOffset.UTC).toEpochMilli()
         val reminder = HarvestReminderTime.reminderEpochMillis(harvestAt)
 
         val day = Instant.ofEpochMilli(harvestAt)

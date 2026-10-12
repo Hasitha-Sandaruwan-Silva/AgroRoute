@@ -217,6 +217,7 @@ private fun BidCard(
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(modifier = Modifier.weight(1f)) {
+                bid.requestedQuantity?.let { Text("Requested: $it", style = MaterialTheme.typography.bodySmall) }
                 Text("Offer price", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     "Rs. ${bid.offerPrice}/unit",

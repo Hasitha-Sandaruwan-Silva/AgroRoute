@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.agroroute.core.location.SelectedLocation
 import com.agroroute.core.model.*
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.theme.ForestDeep
@@ -49,8 +50,15 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
     var sortMenuExpanded by remember { mutableStateOf(false) }
     var listingPendingClosure by remember { mutableStateOf<HarvestListing?>(null) }
     var listingPendingReady by remember { mutableStateOf<HarvestListing?>(null) }
+    var listingPickupRepair by remember { mutableStateOf<HarvestListing?>(null) }
     var listingPendingFailure by remember { mutableStateOf<HarvestListing?>(null) }
 
+    listingPickupRepair?.let { listing ->
+        LocationPickerDialog(listing.location, onDismiss = { listingPickupRepair = null }, onConfirm = {
+            viewModel.updateListing(listing.copy(location = it))
+            listingPickupRepair = null
+        })
+    }
     val publishedListings = remember(uiState.listings) { uiState.listings.filterNot { it.isDraft } }
     val visibleListings = remember(publishedListings, searchQuery, selectedStatus, selectedSort) {
         publishedListings.filter { l ->
@@ -262,7 +270,11 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                                 SuperbListingCard(
                                     listing = listing,
-                                    onEditClick = { navController.navigate(Screen.EditListing.createRoute(listing.listingId)) },
+                                    onEditClick = {
+                                        if (SelectedLocation.fromStoredText(listing.location) == null && listing.status == ListingStatus.OPEN && !listing.isExpired())
+                                            listingPickupRepair = listing
+                                        else navController.navigate(Screen.EditListing.createRoute(listing.listingId))
+                                    },
                                     onCardClick = { navController.navigate(farmerListingDetailsRoute(listing.listingId)) },
                                     onToggleBidding = { viewModel.toggleBidding(listing.listingId, it) },
                                     isBiddingUpdating = listing.listingId in uiState.pendingBiddingListingIds,
@@ -302,7 +314,11 @@ private fun SuperbListingCard(
                 ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 170.dp)
                 Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.45f)))))
                 Row(modifier = Modifier.align(Alignment.TopStart).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ListingStatusChip(listing.status)
+                    if (listing.isExpired( com.agroroute.core.components.listingPresentationTime())) {
+                        com.agroroute.core.components.StatusChip(label = "Expired", tone = com.agroroute.core.components.ChipTone.Neutral)
+                    } else if (listing.status == ListingStatus.FULFILLED) {
+                        com.agroroute.core.components.StatusChip(label = "Sold Out", tone = com.agroroute.core.components.ChipTone.Neutral)
+                    } else ListingStatusChip(listing.status)
                     if (listing.status == ListingStatus.OPEN) BiddingChip(listing.biddingEnabled)
                 }
                 Box(modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)) { HarvestStatusBadge(listing.harvestStatus) }
@@ -357,7 +373,7 @@ private fun SuperbListingCard(
                     OutlinedButton(onClick = onEditClick, modifier = Modifier.weight(1f)) {
                         Icon(Lucide.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Edit listing")
+                        Text(if (SelectedLocation.fromStoredText(listing.location) == null) "Add pickup pin" else "Edit listing")
                     }
                     if (listing.status == ListingStatus.OPEN) {
                         TextButton(onClick = onCloseClick) { Text("Close", color = MaterialTheme.colorScheme.error) }

@@ -65,7 +65,7 @@ class AcceptBidUseCase @Inject constructor(
             farmerId     = currentListing.farmerId,
             supplierId   = bid.supplierId,
             cropName     = currentListing.cropName,
-            quantity     = currentListing.availableStock(),
+            quantity     = bid.requestedQuantity ?: currentListing.availableStock(),
             quantityUnit = currentListing.quantityUnit,
             agreedPrice  = bid.offerPrice,
             status       = OrderStatus.AWAITING_PICKUP,

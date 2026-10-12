@@ -15,6 +15,17 @@ import org.junit.Test
 /** Real Kotlin protocol against an acknowledged transaction double; Rules tested independently in emulator. */
 class SparkOrderLifecycleTest {
     @After fun cleanup() { unmockkStatic(FirebaseAuth::class) }
+    @Test fun cancellationRestoresOriginalPurchaseModeAfterSellOut() = runTest {
+        for (bidId in listOf("", "bid")) {
+            val fixture = Fixture()
+            fixture.rows.getValue("orders/o")["bidId"] = bidId
+            fixture.rows.getValue("listings/l").putAll(mapOf("quantity" to 5.0, "soldQuantity" to 5.0,
+                "availableQuantity" to 0.0, "status" to "FULFILLED", "biddingEnabled" to false))
+            fixture.service.cancel("o")
+            assertEquals("OPEN", fixture.rows.getValue("listings/l")["status"])
+            assertEquals(bidId.isNotEmpty(), fixture.rows.getValue("listings/l")["biddingEnabled"])
+        }
+    }
     private class Fixture {
         var actor = "s"
         val rows = mutableMapOf<String, MutableMap<String, Any?>>()
@@ -79,7 +90,7 @@ class SparkOrderLifecycleTest {
             every { snapshot.getBoolean(any()) } answers { data?.get(firstArg<String>()) as? Boolean }
             every { snapshot.getTimestamp(any()) } answers { data?.get(firstArg<String>()) as? Timestamp }
             every { snapshot.toObject(Order::class.java) } answers { data?.let { Order(orderId = ref.id,
-                listingId = it["listingId"] as String, farmerId = it["farmerId"] as String, supplierId = it["supplierId"] as String,
+                bidId = it["bidId"] as? String ?: "", listingId = it["listingId"] as String, farmerId = it["farmerId"] as String, supplierId = it["supplierId"] as String,
                 quantity = (it["quantity"] as Number).toDouble(), status = OrderStatus.valueOf(it["status"] as String)) } }
             every { snapshot.toObject(HarvestListing::class.java) } answers { data?.let { HarvestListing(listingId = ref.id,
                 farmerId = it["farmerId"] as String, quantity = (it["quantity"] as Number).toDouble(),

@@ -18,6 +18,9 @@ import java.util.Locale
 import kotlin.coroutines.resume
 
 class LocationServices(private val context: Context) {
+    private fun usableFix(location: Location): Boolean =
+        usableDeviceCoordinates(location.latitude, location.longitude)
+
     @Suppress("DEPRECATION")
     suspend fun search(query: String): List<SelectedLocation> = withContext(Dispatchers.IO) {
         check(Geocoder.isPresent()) { "Place search is unavailable on this device. Choose a pin on the map." }
@@ -48,7 +51,7 @@ class LocationServices(private val context: Context) {
             (fineGranted && it == LocationManager.GPS_PROVIDER) || it == LocationManager.NETWORK_PROVIDER
         }
         val cached = providers.mapNotNull { runCatching { manager.getLastKnownLocation(it) }.getOrNull() }
-            .filter { android.os.SystemClock.elapsedRealtimeNanos() - it.elapsedRealtimeNanos < 120_000_000_000L }
+            .filter { usableFix(it) && android.os.SystemClock.elapsedRealtimeNanos() - it.elapsedRealtimeNanos in 0..120_000_000_000L }
             .maxByOrNull { it.elapsedRealtimeNanos }
         if (cached != null) return@withContext cached
         if (providers.isEmpty()) return@withContext null
@@ -56,6 +59,7 @@ class LocationServices(private val context: Context) {
             suspendCancellableCoroutine { continuation ->
                 val listener = object : LocationListener {
                     override fun onLocationChanged(location: Location) {
+                        if (!usableFix(location)) return
                         manager.removeUpdates(this)
                         if (continuation.isActive) continuation.resume(location)
                     }

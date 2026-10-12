@@ -110,7 +110,7 @@ class OrderFlowPresentationTest(private val dark: Boolean, private val compact: 
         val request = OrderRequest(requestId = "request", cropName = "Rice", requestedQuantity = 11.0, deliveryLocation = pin)
         content { FarmerOrderRequestCard(request, listing, false, { accepted = true }, { rejected = true }) }
         compose.onNodeWithText("Accept").performScrollTo().assertIsNotEnabled()
-        compose.onNodeWithText("Requested quantity exceeds remaining stock").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Insufficient stock — 10.0 KG available").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Reject").performScrollTo().performClick()
         compose.runOnIdle { assertFalse(accepted); assertTrue(rejected) }
     }
@@ -164,4 +164,35 @@ class OrderFlowPresentationTest(private val dark: Boolean, private val compact: 
         compose.onNodeWithText("This request was cancelled. Request cancellation does not deduct order points.")
             .performScrollTo().assertIsDisplayed()
     }
+    @Test fun farmerOrderMapHasSavedDeliveryAndNoNavigationControls() {
+        content { OrderLocationSection(order.copy(pickupLocation = pin, deliveryLocation = pin), false) }
+        compose.onNodeWithTag("location-map").assertIsDisplayed()
+        compose.onNodeWithText("Navigate to Farmer").assertDoesNotExist()
+        compose.onNodeWithText("Navigate to delivery destination").assertDoesNotExist()
+        compose.onNodeWithText("Show my current location").assertDoesNotExist()
+    }
+    @Test fun expiryBlocksPendingRequestAndBidWithoutRejection() {
+        val listing = HarvestListing(quantity = 100.0, expiresAt = 1, location = pin)
+        val bid = Bid(requestedQuantity = 40.0, deliveryLocation = pin)
+        content {
+            SuperbBidCard(bid, false, {}, {}, false, listingAcceptanceBlockedReason(listing, true, bid.requestedQuantity, pin))
+            FarmerOrderRequestCard(OrderRequest(requestedQuantity = 40.0, deliveryLocation = pin),
+                listing.copy(biddingEnabled = false), false, {}, {})
+        }
+        compose.onNodeWithText("Accept This Bid").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("Accept").performScrollTo().assertIsNotEnabled()
+        compose.onAllNodesWithText("Listing expired").assertCountEquals(2)
+    }
+    @Test fun stockRestorationAutomaticallyEnablesPendingBid() {
+        var listing by mutableStateOf(HarvestListing(quantity = 100.0, availableQuantity = 60.0, soldQuantity = 40.0, location = pin))
+        val bid = Bid(requestedQuantity = 70.0, deliveryLocation = pin)
+        content { SuperbBidCard(bid, false, {}, {}, false,
+            listingAcceptanceBlockedReason(listing, true, bid.requestedQuantity, pin)) }
+        compose.onNodeWithText("Accept This Bid").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("Insufficient stock — 60.0 KG available").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { listing = listing.releaseSale(40.0, true) }
+        compose.onNodeWithText("Accept This Bid").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Insufficient stock — 60.0 KG available").assertDoesNotExist()
+    }
+
 }

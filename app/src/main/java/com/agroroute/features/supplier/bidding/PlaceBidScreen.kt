@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
+import com.agroroute.core.model.isExpired
+import com.agroroute.core.model.availabilityLabel
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.availableStock
@@ -80,6 +82,7 @@ fun PlaceBidScreen(
     navController: NavController,
     viewModel: PlaceBidViewModel = hiltViewModel()
 ) {
+    val presentationTime = com.agroroute.core.components.listingPresentationTime()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listingState by viewModel.listingState.collectAsStateWithLifecycle()
     val canPlaceBids by viewModel.canPlaceBids.collectAsStateWithLifecycle()
@@ -102,6 +105,7 @@ fun PlaceBidScreen(
     ErrorSnackbarEffect(listingError, snackbarHostState) { viewModel.clearError() }
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
+    var requestedQuantity by rememberSaveable(listingId) { mutableStateOf("") }
     var bidAmount by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     val submissionBidId = remember(listingId) { UUID.randomUUID().toString() }
@@ -138,6 +142,8 @@ fun PlaceBidScreen(
             if (canPlaceBids) {
                 AppCard {
                     SectionTitle(title = "Your offer")
+                    AgroTextField(value = requestedQuantity, onValueChange = { requestedQuantity = it },
+                        label = "Requested quantity (${listingState.getOrNull()?.quantityUnit?.name.orEmpty()})")
                     PriceInputField(
                         value = bidAmount,
                         onValueChange = { bidAmount = it },
@@ -158,7 +164,7 @@ fun PlaceBidScreen(
                 val pickupAvailable = com.agroroute.core.location.SelectedLocation.fromStoredText(listingState.getOrNull()?.location.orEmpty()) != null
                 if (!pickupAvailable) Text("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.",
                     color = MaterialTheme.colorScheme.error)
-                if (listingState.getOrNull()?.acceptsNewBids() != true) Text("This listing is not currently accepting bids.")
+                if (listingState.getOrNull()?.acceptsNewBids() != true) Text(if (listingState.getOrNull()?.isExpired() == true) "Listing expired" else "This listing is not currently accepting bids.")
                 LoadingButton(
                     text = "Place Bid",
                     isLoading = uiState.isLoading,
@@ -170,7 +176,8 @@ fun PlaceBidScreen(
                             supplierName = uiState.supplierName,
                             offerPrice = bidAmount.toDoubleOrNull() ?: 0.0,
                             message = message,
-                            deliveryLocation = deliveryLocation
+                            deliveryLocation = deliveryLocation,
+                            requestedQuantity = requestedQuantity.toDoubleOrNull()
                         )
                         viewModel.placeBid(bid)
                     },
@@ -178,6 +185,7 @@ fun PlaceBidScreen(
                         .fillMaxWidth()
                         .height(52.dp),
                     enabled = listingState.getOrNull()?.acceptsNewBids() == true &&
+                        requestedQuantity.toDoubleOrNull()?.let { it.isFinite() && it > 0 && it <= (listingState.getOrNull()?.availableStock() ?: 0.0) } == true &&
                         bidAmount.toDoubleOrNull()?.let { it.isFinite() && it > 0 } == true && pickupAvailable &&
                         com.agroroute.core.location.SelectedLocation.fromStoredText(deliveryLocation) != null
                 )
@@ -230,7 +238,9 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
-            if (listing.biddingEnabled) {
+            if (!listing.acceptsNewBids()) {
+                StatusChip(label = listing.availabilityLabel(), tone = ChipTone.Neutral)
+            } else if (listing.biddingEnabled) {
                 Spacer(modifier = Modifier.width(8.dp))
                 StatusChip(label = "Bidding open", tone = ChipTone.Success)
             }

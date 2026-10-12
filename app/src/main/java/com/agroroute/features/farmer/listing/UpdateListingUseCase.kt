@@ -27,6 +27,16 @@ class UpdateListingUseCase @Inject constructor(
         if (profile?.role != UserRole.FARMER || profile.userId != farmerId || listing.farmerId != farmerId) {
             return Result.Error("Only the signed-in owner can edit this listing")
         }
+        val current = listingRepository.getListingById(listing.listingId).first().getOrNull()
+            ?: return Result.Error("Listing not found")
+        if (current.farmerId != farmerId || current.isDraft) {
+            return Result.Error("You can only edit your own published listing")
+        }
+
+        if (com.agroroute.core.model.isPickupCoordinateRepair(current, listing)) {
+            return listingRepository.updateListing(listing)
+        }
+
         if (listing.cropName.isBlank()) return Result.Error("Crop name cannot be empty")
         if (listing.category == null) return Result.Error("Harvest category is required")
         if (listing.quantity <= 0.0) return Result.Error("Quantity must be greater than zero")
@@ -38,12 +48,6 @@ class UpdateListingUseCase @Inject constructor(
             if ((listing.estimatedQuantity ?: listing.quantity) <= 0.0) {
                 return Result.Error("Estimated quantity must be greater than zero")
             }
-        }
-
-        val current = listingRepository.getListingById(listing.listingId).first().getOrNull()
-            ?: return Result.Error("Listing not found")
-        if (current.farmerId != farmerId || current.isDraft) {
-            return Result.Error("You can only edit your own published listing")
         }
 
         when (val sync = bidRepository.syncBidsForListing(listing.listingId)) {

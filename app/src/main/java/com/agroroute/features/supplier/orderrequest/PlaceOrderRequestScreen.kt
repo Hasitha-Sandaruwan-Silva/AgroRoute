@@ -41,6 +41,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.agroroute.core.model.isExpired
+import com.agroroute.core.model.availabilityLabel
 import com.agroroute.core.model.acceptsDirectOrders
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
@@ -84,6 +86,7 @@ fun PlaceOrderRequestScreen(
     navController: NavController,
     viewModel: PlaceOrderRequestViewModel = hiltViewModel()
 ) {
+    val presentationTime = com.agroroute.core.components.listingPresentationTime()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listingState by viewModel.listingState.collectAsStateWithLifecycle()
     val canPlaceRequests by viewModel.canPlaceRequests.collectAsStateWithLifecycle()
@@ -183,7 +186,7 @@ fun PlaceOrderRequestScreen(
                 val pickupAvailable = com.agroroute.core.location.SelectedLocation.fromStoredText(listing.location) != null
                 if (!pickupAvailable) Text("Farmer pickup location is missing. Ask the farmer to select the listing's pickup pin.",
                     color = MaterialTheme.colorScheme.error)
-                if (!listing.acceptsDirectOrders()) Text("This listing is not currently accepting requests.")
+                if (!listing.acceptsDirectOrders()) Text(if (listing.isExpired()) "Listing expired" else "This listing is not currently accepting requests.")
                 LoadingButton(
                     text = if (isPreHarvest) "Send pre-harvest request" else "Request Order",
                     isLoading = uiState.isLoading,
@@ -299,7 +302,7 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                 if (isExpected) {
                     StatusChip(label = "Expected harvest", tone = ChipTone.Tertiary)
                 }
-                StatusChip(label = "Fixed price", tone = ChipTone.Success)
+                StatusChip(label = if (listing.acceptsDirectOrders()) "Fixed price" else listing.availabilityLabel(), tone = if (listing.acceptsDirectOrders()) ChipTone.Success else ChipTone.Neutral)
             }
         }
         Row(

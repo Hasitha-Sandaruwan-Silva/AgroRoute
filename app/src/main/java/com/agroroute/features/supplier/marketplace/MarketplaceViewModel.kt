@@ -14,6 +14,7 @@ import javax.inject.Inject
 
 /** UI state for the supplier marketplace screen. */
 data class MarketplaceUiState(
+    val presentationTime: Long = System.currentTimeMillis(),
     val listings: List<HarvestListing> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null

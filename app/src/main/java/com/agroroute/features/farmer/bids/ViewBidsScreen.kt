@@ -160,7 +160,7 @@ fun ViewBidsScreen(
                     }
                     items(uiState.bids, key = { it.bidId }) { bid ->
                         val isBest = bid.status == BidStatus.PENDING && bid.bidId == bestPendingBid?.bidId
-                        SuperbBidCard(onOpenOrder = { navController.navigate(com.agroroute.core.navigation.Screen.FarmerOrderDetail.createRoute(bid.bidId)) }, listingAvailable = uiState.listing != null && uiState.listing?.isDraft == false, bid = bid, isBestOffer = isBest, onAcceptClick = { bidToAccept = bid }, onRejectClick = { viewModel.rejectBid(bid) }, isAccepting = uiState.isLoading || uiState.isSubmitting, blockedReason = com.agroroute.core.components.listingAcceptanceBlockedReason(uiState.listing, true, deliveryLocation = bid.deliveryLocation))
+                        SuperbBidCard(onOpenOrder = { navController.navigate(com.agroroute.core.navigation.Screen.FarmerOrderDetail.createRoute(bid.bidId)) }, listingAvailable = uiState.listing != null && uiState.listing?.isDraft == false, bid = bid, isBestOffer = isBest, onAcceptClick = { bidToAccept = bid }, onRejectClick = { viewModel.rejectBid(bid) }, isAccepting = uiState.isLoading || uiState.isSubmitting, blockedReason = com.agroroute.core.components.listingAcceptanceBlockedReason(uiState.listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation))
                     }
                 }
             }
@@ -249,6 +249,7 @@ internal fun SuperbBidCard(
                 }
             }
 
+            bid.requestedQuantity?.let { Text("Requested: $it", style = MaterialTheme.typography.bodySmall) }
             if (bid.message.isNotBlank()) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
@@ -298,16 +299,19 @@ internal fun AcceptBidConfirmationDialog(bid: Bid, listing: com.agroroute.core.m
                         Text("Supplier: ${bid.supplierName.ifBlank { "Name unavailable" }}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         Text("Listing: ${listing.cropName}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         Text("Offer: Rs. ${bid.offerPrice} per ${listing.quantityUnit.name}", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-                        Text("Qty: ${listing.availableStock()} ${listing.quantityUnit.name}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Qty: ${bid.requestedQuantity ?: listing.availableStock()} ${listing.quantityUnit.name}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 if (bid.message.isNotBlank()) {
                     Text("Message: ${bid.message}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, bid.requestedQuantity, bid.deliveryLocation)?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm, enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, deliveryLocation = bid.deliveryLocation) == null, modifier = Modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = ForestDeep)) {
+            Button(onClick = onConfirm, enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation) == null, modifier = Modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = ForestDeep)) {
                 Text("Accept and create order", fontWeight = FontWeight.Bold)
             }
         },

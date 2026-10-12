@@ -3,11 +3,13 @@ package com.agroroute.core.repository
 import com.agroroute.core.database.BidDao
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.isExpired
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.UserRole
 import com.agroroute.core.notification.NotificationEvent
 import com.agroroute.core.notification.NotificationEvent.Payload
 import com.agroroute.core.notification.NotificationService
+import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.acceptsNewBids
 import com.agroroute.core.model.requirePickupLocation
 import com.agroroute.core.model.requireDeliveryLocation
@@ -67,8 +69,12 @@ class BidRepositoryImpl @Inject constructor(
         val listing = firestoreService.runTransaction<HarvestListing> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
                 ?: error("Listing ${pendingBid.listingId} not found")
+            check(!listing.isExpired()) { "Listing expired" }
             check(listing.acceptsNewBids()) { "This listing is not accepting bids" }
             requirePickupLocation(listing.location)
+            pendingBid.requestedQuantity?.let {
+                require(it.isFinite() && it > 0 && it <= listing.availableStock()) { "Requested quantity exceeds available stock" }
+            }
             transaction.set(bidRef, pendingBid)
             listing
         }

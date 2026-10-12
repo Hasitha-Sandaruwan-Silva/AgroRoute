@@ -25,5 +25,7 @@ data class Bid(
     val updatedAt: Long = System.currentTimeMillis(),
     /** Supplier-selected address and coordinates for this bid, independent of their profile. */
     @ColumnInfo(defaultValue = "''")
-    val deliveryLocation: String = ""
+    val deliveryLocation: String = "",
+    /** Null on older price-only bids: buy all remaining stock at acceptance. */
+    val requestedQuantity: Double? = null
 )

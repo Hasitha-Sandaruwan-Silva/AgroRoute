@@ -162,6 +162,7 @@ fun CreateListingScreen(
     var selectedUnit by remember { mutableStateOf(QuantityUnit.KG) }
     var price by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var expiryHours by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var showLocationPicker by remember { mutableStateOf(false) }
     if (showLocationPicker) {
@@ -310,7 +311,9 @@ fun CreateListingScreen(
             status = existing?.status ?: ListingStatus.OPEN,
             biddingEnabled = existing?.biddingEnabled ?: true,
             createdAt = existing?.createdAt ?: System.currentTimeMillis(),
-            expiresAt = existing?.expiresAt,
+            expiresAt = if (existing != null) existing.expiresAt else expiryHours.toDoubleOrNull()
+                ?.takeIf { it.isFinite() && it > 0 && it <= 8760 }
+                ?.let { System.currentTimeMillis() + (it * 3_600_000).toLong() },
             category = selectedCategory,
             expectedHarvestAt = if (isExpected) expectedHarvestAt else null,
             qualityGrade = qualityGrade.trim().ifBlank { null },
@@ -388,7 +391,7 @@ fun CreateListingScreen(
                 isLoading = uiState.isLoading,
                 isPhotoUploadRequired = hasLocalPhotoUri(selectedPhotoUri),
                 isEditing = editListingId != null,
-                canSubmit = cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank() &&
+                canSubmit = (expiryHours.isBlank() || expiryHours.toDoubleOrNull()?.let { it.isFinite() && it > 0 && it <= 8760 } == true) && cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank() &&
                     (harvestStatus != HarvestStatus.EXPECTED || expectedHarvestAt != null) &&
                     (editListingId == null || uiState.editingListing?.listingId == editListingId),
                 onPublish = ::publishListing,
@@ -832,6 +835,14 @@ fun CreateListingScreen(
                 )
                 TextButton(onClick = { showLocationPicker = true }, enabled = !uiState.isLoading) {
                     Text("Choose pickup location on map")
+                }
+                if (editListingId == null) {
+                    AgroTextField(value = expiryHours, onValueChange = { expiryHours = it },
+                        label = "Available for (hours, optional)",
+                        supportingText = { Text("Leave blank for no expiry. Deadline is fixed when published.") })
+                } else uiState.editingListing?.expiresAt?.let {
+                    Text("Expires: ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it))}",
+                        style = MaterialTheme.typography.bodySmall)
                 }
             }
 

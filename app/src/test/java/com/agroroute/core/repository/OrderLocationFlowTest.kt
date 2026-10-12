@@ -96,6 +96,40 @@ class OrderLocationFlowTest {
         coVerify(exactly = 0) { fixture.orderDao.upsertOrder(any()) }
     }
 
+    @Test fun acceptanceTransactionRejectsExpiredListingAndInsufficientStockWithoutWrites() = runTest {
+        for (forBid in listOf(false, true)) for (expired in listOf(false, true)) {
+            val fixture = Fixture()
+            every { fixture.listingSnapshot.toObject(HarvestListing::class.java) } returns HarvestListing(
+                listingId = "listing-1", farmerId = "farmer-1", quantity = 10.0, availableQuantity = if (expired) 10.0 else 2.0,
+                expiresAt = if (expired) 1 else null, biddingEnabled = forBid, location = pickup)
+            if (forBid) {
+                every { fixture.proposalSnapshot.toObject(Bid::class.java) } returns Bid(bidId = "proposal-1", listingId = "listing-1",
+                    supplierId = "supplier-1", requestedQuantity = 5.0, deliveryLocation = delivery)
+                assertTrue(fixture.repository.acceptBidAndCreateOrder(Order(orderId = "proposal-1", bidId = "proposal-1",
+                    listingId = "listing-1", farmerId = "farmer-1", supplierId = "supplier-1", quantity = 5.0)) is Result.Error)
+            } else {
+                every { fixture.proposalSnapshot.toObject(OrderRequest::class.java) } returns OrderRequest(requestId = "proposal-1",
+                    listingId = "listing-1", farmerId = "farmer-1", supplierId = "supplier-1", requestedQuantity = 5.0, deliveryLocation = delivery)
+                assertTrue(fixture.repository.acceptOrderRequestAndCreateOrder("proposal-1") is Result.Error)
+            }
+            verify(exactly = 0) { fixture.transaction.set(any<DocumentReference>(), any<Any>()) }
+            verify(exactly = 0) { fixture.transaction.update(any<DocumentReference>(), any<Map<String, Any?>>()) }
+            coVerify(exactly = 0) { fixture.orderDao.upsertOrder(any()) }
+        }
+    }
+
+    @Test fun quantityBidReservesOnlyItsRequestedStock() = runTest {
+        val fixture = Fixture()
+        every { fixture.listingSnapshot.toObject(HarvestListing::class.java) } returns HarvestListing(
+            listingId = "listing-1", farmerId = "farmer-1", quantity = 100.0, location = pickup)
+        every { fixture.proposalSnapshot.toObject(Bid::class.java) } returns Bid(bidId = "proposal-1", listingId = "listing-1",
+            supplierId = "supplier-1", requestedQuantity = 40.0, deliveryLocation = delivery)
+        assertTrue(fixture.repository.acceptBidAndCreateOrder(Order(orderId = "proposal-1", bidId = "proposal-1",
+            listingId = "listing-1", farmerId = "farmer-1", supplierId = "supplier-1", quantity = 40.0)) is Result.Success)
+        assertEquals(40.0, fixture.writtenOrder.captured.quantity, 0.0)
+        verify { fixture.transaction.update(fixture.listingRef, match<Map<String, Any?>> { it["availableQuantity"] == 60.0 && it["soldQuantity"] == 40.0 }) }
+    }
+
     private class Fixture {
         val firebase = mockk<FirebaseFirestore>(relaxed = true)
         val service = mockk<FirestoreService>(relaxed = true)

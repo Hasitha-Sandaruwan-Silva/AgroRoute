@@ -2,6 +2,11 @@ package com.agroroute.core.location
 
 import java.util.Locale
 
+fun usableDeviceCoordinates(latitude: Double, longitude: Double): Boolean =
+    latitude.isFinite() && latitude in -90.0..90.0 &&
+        longitude.isFinite() && longitude in -180.0..180.0 &&
+        !(latitude == 0.0 && longitude == 0.0)
+
 /** Keeps existing Firestore/Room text fields compatible, including older address-only values. */
 data class SelectedLocation(val address: String, val latitude: Double, val longitude: Double) {
     init {

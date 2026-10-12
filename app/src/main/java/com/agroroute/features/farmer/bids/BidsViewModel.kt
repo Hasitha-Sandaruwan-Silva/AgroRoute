@@ -18,6 +18,7 @@ import javax.inject.Inject
 
 /** UI state for the farmer's bid management screen. */
 data class BidsUiState(
+    val presentationTime: Long = System.currentTimeMillis(),
     val bids: List<Bid> = emptyList(),
     val listing: HarvestListing? = null,
     val listingsById: Map<String, HarvestListing> = emptyMap(),
@@ -98,7 +99,9 @@ class BidsViewModel @Inject constructor(
                 it.copy(listing = listing, listingsById = mapOf(listingId to listing))
             }
             val syncResult = bidRepository.syncBidsForListing(listingId)
-            bidRepository.getBidsForListing(listingId).collect { result ->
+            combine(bidRepository.getBidsForListing(listingId), listingRepository.getListingById(listingId)) { bids, current -> bids to current }
+                .collect { (result, current) ->
+                _uiState.update { it.copy(listing = current.getOrNull(), listingsById = current.getOrNull()?.let { l -> mapOf(listingId to l) }.orEmpty(), presentationTime = System.currentTimeMillis()) }
                 when (result) {
                     is Result.Loading -> _uiState.update { it.copy(isLoading = true) }
                     is Result.Success -> _uiState.update {
@@ -171,6 +174,8 @@ class BidsViewModel @Inject constructor(
                     isLoading = false,
                     error = streamError ?: syncErrors.firstOrNull()
                 )
+            }.combine(listingRepository.getListingsByFarmer(farmerId)) { state, current ->
+                state.copy(listingsById = current.getOrNull()?.filter { it.farmerId == farmerId && !it.isDraft }?.associateBy { it.listingId }.orEmpty(), presentationTime = System.currentTimeMillis())
             }.collect { state ->
                 _uiState.value = state
             }

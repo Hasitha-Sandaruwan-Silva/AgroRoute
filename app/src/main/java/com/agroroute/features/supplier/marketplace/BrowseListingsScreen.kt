@@ -46,6 +46,7 @@ import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.acceptsDirectOrders
 import com.agroroute.core.model.acceptsNewBids
+import com.agroroute.core.model.availabilityLabel
 import com.agroroute.core.model.availableStock
 import com.agroroute.core.model.estimatedAvailable
 import com.agroroute.core.navigation.Screen
@@ -261,7 +262,7 @@ private fun MarketplaceListingCard(
             when {
                 canPlaceBid -> StatusChip(label = "Bidding open", tone = ChipTone.Success)
                 canRequestOrder -> StatusChip(label = "Fixed price", tone = ChipTone.Success)
-                else -> StatusChip(label = "Unavailable", tone = ChipTone.Neutral)
+                else -> StatusChip(label = listing.availabilityLabel(), tone = ChipTone.Neutral)
             }
         }
         // Farmer + location metadata row

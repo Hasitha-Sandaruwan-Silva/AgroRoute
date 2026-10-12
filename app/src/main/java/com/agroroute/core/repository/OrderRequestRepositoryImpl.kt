@@ -1,6 +1,7 @@
 package com.agroroute.core.repository
 
 import com.agroroute.core.database.OrderRequestDao
+import com.agroroute.core.model.isExpired
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.ListingStatus
@@ -75,6 +76,7 @@ class OrderRequestRepositoryImpl @Inject constructor(
         firestoreService.runTransaction<Unit> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
                 ?: error("Listing ${pendingRequest.listingId} not found")
+            check(!listing.isExpired()) { "Listing expired" }
             check(listing.status == ListingStatus.OPEN && !listing.isDraft) {
                 "This listing is not available"
             }

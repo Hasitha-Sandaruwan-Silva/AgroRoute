@@ -46,6 +46,17 @@ data class HarvestListing(
     val harvestUpdatedAt: Long? = null
 )
 
+/** Presentation only. Security Rules use request.time at commit. */
+fun HarvestListing.isExpired(now: Long = System.currentTimeMillis()): Boolean =
+    expiresAt?.let { now >= it } == true
+
+fun HarvestListing.availabilityLabel(): String = when {
+    isExpired() -> "Expired"
+    status == ListingStatus.FULFILLED || (harvestStatus == HarvestStatus.READY && availableStock() <= 0) -> "Sold Out"
+    status != ListingStatus.OPEN || isDraft -> "Unavailable"
+    else -> "Available"
+}
+
 fun HarvestListing.availableStock(): Double =
     (availableQuantity ?: (quantity - soldQuantity)).coerceAtLeast(0.0)
 
@@ -55,15 +66,15 @@ fun HarvestListing.hasConfirmedStock(): Boolean =
 
 /** True when the listing may appear in the supplier marketplace. */
 fun HarvestListing.isEligibleForMarketplace(): Boolean =
-    status == ListingStatus.OPEN && !isDraft &&
+    !isExpired() && status == ListingStatus.OPEN && !isDraft &&
         (hasConfirmedStock() || harvestStatus == HarvestStatus.EXPECTED)
 
 fun HarvestListing.acceptsNewBids(): Boolean =
-    status == ListingStatus.OPEN && biddingEnabled && !isDraft &&
+    !isExpired() && status == ListingStatus.OPEN && biddingEnabled && !isDraft &&
         (hasConfirmedStock() || harvestStatus == HarvestStatus.EXPECTED)
 
 fun HarvestListing.acceptsDirectOrders(): Boolean =
-    status == ListingStatus.OPEN && !biddingEnabled && !isDraft &&
+    !isExpired() && status == ListingStatus.OPEN && !biddingEnabled && !isDraft &&
         (hasConfirmedStock() || harvestStatus == HarvestStatus.EXPECTED)
 
 /** Max quantity a pre-harvest (EXPECTED) request may ask for — the farmer's estimate. */
@@ -150,7 +161,7 @@ fun HarvestListing.recordSale(quantitySoldNow: Double): HarvestListing {
     )
 }
 
-fun HarvestListing.releaseSale(quantityToRelease: Double): HarvestListing {
+fun HarvestListing.releaseSale(quantityToRelease: Double, restoredBiddingMode: Boolean = true): HarvestListing {
     require(quantityToRelease > 0.0) { "Released quantity must be greater than zero" }
     val updatedSold = (soldQuantity - quantityToRelease).coerceAtLeast(0.0)
     val updatedAvailable = (availableStock() + quantityToRelease)
@@ -160,6 +171,14 @@ fun HarvestListing.releaseSale(quantityToRelease: Double): HarvestListing {
         availableQuantity = updatedAvailable,
         soldQuantity = updatedSold,
         status = if (reopen) ListingStatus.OPEN else status,
-        biddingEnabled = if (reopen) true else biddingEnabled
+        biddingEnabled = if (reopen) restoredBiddingMode else biddingEnabled
     )
 }
+
+/** Narrow exception to historical edit guard: no commercial fields can change. */
+fun isPickupCoordinateRepair(existing: HarvestListing, proposed: HarvestListing): Boolean =
+    existing.status == ListingStatus.OPEN && !existing.isDraft && !existing.isExpired() &&
+        existing.harvestStatus != HarvestStatus.FAILED &&
+        com.agroroute.core.location.SelectedLocation.fromStoredText(existing.location) == null &&
+        com.agroroute.core.location.SelectedLocation.fromStoredText(proposed.location) != null &&
+        proposed.copy(location = existing.location) == existing

@@ -77,12 +77,25 @@ fun LocationMap(
         var alive = true
         var started = false
         var resumed = false
+        var destroyed = false
+        fun destroy() {
+            if (destroyed) return
+            destroyed = true
+            alive = false
+            if (resumed) mapView?.onPause()
+            if (started) mapView?.onStop()
+            resumed = false
+            started = false
+            mapView?.onDestroy()
+            map = null
+        }
         val observer = LifecycleEventObserver { _, event ->
             if (alive && mapView != null) when (event) {
                 Lifecycle.Event.ON_START -> { mapView.onStart(); started = true }
                 Lifecycle.Event.ON_RESUME -> { mapView.onResume(); resumed = true }
                 Lifecycle.Event.ON_PAUSE -> { mapView.onPause(); resumed = false }
                 Lifecycle.Event.ON_STOP -> { mapView.onStop(); started = false }
+                Lifecycle.Event.ON_DESTROY -> destroy()
                 else -> Unit
             }
         }
@@ -129,24 +142,25 @@ fun LocationMap(
             alive = false
             lifecycle.removeObserver(observer)
             context.applicationContext.unregisterComponentCallbacks(memoryCallbacks)
-            if (resumed) mapView?.onPause()
-            if (started) mapView?.onStop()
-            mapView?.onDestroy()
-            map = null
+            destroy()
         }
     }
     LaunchedEffect(map, styleReady, latitude, longitude, hasSelection) {
-        if (styleReady && hasSelection) map?.style?.getSourceAs<GeoJsonSource>("agroroute-selected")
-            ?.setGeoJson(Point.fromLngLat(longitude, latitude))
+        if (styleReady) map?.style?.getSourceAs<GeoJsonSource>("agroroute-selected")?.let {
+            if (hasSelection) it.setGeoJson(Point.fromLngLat(longitude, latitude))
+            else it.setGeoJson(FeatureCollection.fromFeatures(emptyArray()))
+        }
     }
     LaunchedEffect(map, styleReady, currentFix) {
+        if (styleReady && currentFix == null) map?.style?.getSourceAs<GeoJsonSource>("agroroute-current")
+            ?.setGeoJson(FeatureCollection.fromFeatures(emptyArray()))
         if (styleReady) currentFix?.let { fix ->
             map?.style?.getSourceAs<GeoJsonSource>("agroroute-current")
                 ?.setGeoJson(Point.fromLngLat(fix.longitude, fix.latitude))
         }
     }
-    LaunchedEffect(map, focusRequest, location?.takeIf { onSelect == null }?.coordinates()) {
-        if (focusRequest > 0) map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 16.0))
+    LaunchedEffect(map, styleReady, focusRequest, location?.takeIf { onSelect == null }?.coordinates()) {
+        if (styleReady && (focusRequest > 0 || onSelect == null) && hasSelection) map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 16.0))
     }
     LaunchedEffect(map, styleReady, location?.coordinates(), currentFix) {
         // On order previews, keep both the saved destination and supplier's fix visible.
@@ -168,8 +182,8 @@ fun LocationMap(
         if (mapView != null) AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
         if (!configured || mapFailed) {
             Surface(modifier = Modifier.align(Alignment.Center).padding(16.dp), tonalElevation = 4.dp) {
-                Text(if (!configured) "Map unavailable. Configure your MapTiler key and rebuild."
-                    else "Map could not load. Check your connection and MapTiler settings.",
+                Text(if (!configured) "Map unavailable. Search for a place to select its coordinates."
+                    else "Map could not load. Check your connection or search for a place.",
                     modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
             }
         } else if (!styleReady) CircularProgressIndicator(Modifier.align(Alignment.Center).size(32.dp))

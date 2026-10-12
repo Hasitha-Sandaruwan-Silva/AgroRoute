@@ -50,6 +50,10 @@ service cloud.firestore {
         ? savedStock
         : data.quantity - data.get('soldQuantity', 0);
     }
+    function listingNotExpired(data) {
+      let expiry = data.get('expiresAt', null);
+      return expiry == null || (expiry is int && expiry > request.time.toMillis());
+    }
     function finiteNumber(value) { return value is number && value - value == 0; }
 
     // True if the listing is an expected (future-harvest) listing.
@@ -123,7 +127,7 @@ service cloud.firestore {
         && next.quantity == before.quantity && o.quantity > 0
         && (
           (!exists(orderPath(id)) && farmer() && request.auth.uid == before.farmerId
-            && o.status == 'AWAITING_PICKUP'
+            && o.status == 'AWAITING_PICKUP' && listingNotExpired(before)
             && next.soldQuantity == before.get('soldQuantity', 0) + o.quantity
             && availableStock(next) == availableStock(before) - o.quantity && availableStock(next) >= 0
             && next.status == (availableStock(next) <= 0.000000001 ? 'FULFILLED' : before.status)
@@ -134,7 +138,7 @@ service cloud.firestore {
             && next.soldQuantity == before.get('soldQuantity', 0) - o.quantity
             && availableStock(next) == availableStock(before) + o.quantity
             && next.status == (before.status == 'FULFILLED' ? 'OPEN' : before.status)
-            && next.biddingEnabled == (before.status == 'FULFILLED' ? true : before.biddingEnabled))
+            && next.biddingEnabled == (before.status == 'FULFILLED' ? o.get('bidId', '') != '' : before.biddingEnabled))
         );
     }
 
@@ -294,6 +298,7 @@ service cloud.firestore {
         && request.resource.data.status == 'OPEN'
         && request.resource.data.get('isDraft', false) == false
         && request.resource.data.biddingEnabled is bool
+        && listingNotExpired(request.resource.data)
         && request.resource.data.get('soldQuantity', 0) == 0 && request.resource.data.quantity >= 0
         && finiteNumber(request.resource.data.quantity)
         && finiteNumber(request.resource.data.reservePrice) && request.resource.data.reservePrice > 0
@@ -306,11 +311,19 @@ service cloud.firestore {
           ? (estimatedQty(request.resource.data) > 0 && request.resource.data.get('availableQuantity', 0) == 0)
           : availableStock(request.resource.data) > 0);
 
+      allow update: if farmer() && resource.data.farmerId == request.auth.uid
+        && resource.data.status == 'OPEN' && publishedListing(resource.data)
+        && listingNotExpired(resource.data) && resource.data.get('harvestStatus', 'READY') != 'FAILED'
+        && !coordinateLocation(resource.data.get('location', ''))
+        && coordinateLocation(request.resource.data.location)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['location']);
       allow update: if signedIn() && validStockMutation(resource.data, request.resource.data);
       allow update: if farmer()
         && resource.data.farmerId == request.auth.uid
         && request.resource.data.farmerId == request.auth.uid
         && request.resource.data.listingId == listingId
+        && request.resource.data.get('expiresAt', null) == resource.data.get('expiresAt', null)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['location']) || coordinateLocation(request.resource.data.location))
         && request.resource.data.get('isDraft', false) == false
         && request.resource.data.get('soldQuantity', 0) == resource.data.get('soldQuantity', 0)
         && request.resource.data.get('stockOrderId', '') == resource.data.get('stockOrderId', '')
@@ -355,7 +368,7 @@ service cloud.firestore {
             && request.resource.data.get('harvestStatus', 'READY') == 'FAILED')
         );
 
-      allow delete: if farmer() && resource.data.farmerId == request.auth.uid && resource.data.get('soldQuantity', 0) == 0;
+      allow delete: if farmer() && resource.data.farmerId == request.auth.uid && listingNotExpired(resource.data) && resource.data.get('soldQuantity', 0) == 0;
     }
 
     match /bids/{bidId} {
@@ -366,6 +379,9 @@ service cloud.firestore {
 
       allow create: if supplier()
         && request.resource.data.supplierId == request.auth.uid
+        && (request.resource.data.get('requestedQuantity', null) == null ||
+          (finiteNumber(request.resource.data.requestedQuantity) && request.resource.data.requestedQuantity > 0
+            && request.resource.data.requestedQuantity <= availableStock(get(listingPath(request.resource.data.listingId)).data)))
         && finiteNumber(request.resource.data.offerPrice) && request.resource.data.offerPrice > 0
         && request.resource.data.status == 'PENDING'
         && request.resource.data.bidId == bidId
@@ -373,6 +389,7 @@ service cloud.firestore {
         && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
         && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
         && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && listingNotExpired(get(listingPath(request.resource.data.listingId)).data)
         && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
         && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
         && availableStock(get(listingPath(request.resource.data.listingId)).data) > 0;
@@ -393,6 +410,8 @@ service cloud.firestore {
           || (farmer()
             && ownsListing(resource.data.listingId)
             && request.resource.data.status == 'ACCEPTED'
+            && !exists(orderPath(bidId))
+            && listingNotExpired(get(listingPath(resource.data.listingId)).data)
             && existsAfter(/databases/$(database)/documents/orders/$(bidId))
             && getAfter(/databases/$(database)/documents/orders/$(bidId)).data.bidId == bidId
             && getAfter(/databases/$(database)/documents/orders/$(bidId)).data.listingId == resource.data.listingId)
@@ -417,6 +436,7 @@ service cloud.firestore {
         && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
         && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
         && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && listingNotExpired(get(listingPath(request.resource.data.listingId)).data)
         && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
         && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
         && request.resource.data.farmerId
@@ -460,6 +480,8 @@ service cloud.firestore {
           || (farmer()
             && ownsListing(resource.data.listingId)
             && request.resource.data.status == 'ACCEPTED'
+            && !exists(orderPath(requestId))
+            && listingNotExpired(get(listingPath(resource.data.listingId)).data)
             && existsAfter(/databases/$(database)/documents/orders/$(requestId))
             && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.orderId == requestId
             && getAfter(/databases/$(database)/documents/orders/$(requestId)).data.bidId == ''
@@ -507,11 +529,15 @@ service cloud.firestore {
             && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
             && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == true
             && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && listingNotExpired(get(listingPath(request.resource.data.listingId)).data)
         && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
         && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
             // The harvest must be READY (confirmed) before an order can be created from a bid.
             && get(listingPath(request.resource.data.listingId)).data.get('harvestStatus', 'READY') == 'READY'
-            && request.resource.data.quantity == availableStock(get(listingPath(request.resource.data.listingId)).data)
+            && request.resource.data.quantity == (get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.get('requestedQuantity', null) == null
+              ? availableStock(get(listingPath(request.resource.data.listingId)).data)
+              : get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.requestedQuantity)
+            && request.resource.data.quantity <= availableStock(get(listingPath(request.resource.data.listingId)).data)
             && request.resource.data.agreedPrice == get(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.offerPrice
             && getAfter(/databases/$(database)/documents/bids/$(request.resource.data.bidId)).data.status == 'ACCEPTED'
             && getAfter(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.soldQuantity
@@ -536,6 +562,7 @@ service cloud.firestore {
             && get(listingPath(request.resource.data.listingId)).data.status == 'OPEN'
             && get(listingPath(request.resource.data.listingId)).data.biddingEnabled == false
             && publishedListing(get(listingPath(request.resource.data.listingId)).data)
+        && listingNotExpired(get(listingPath(request.resource.data.listingId)).data)
         && coordinateLocation(get(listingPath(request.resource.data.listingId)).data.get('location', ''))
         && coordinateLocation(request.resource.data.get('deliveryLocation', ''))
             // The harvest must be READY (confirmed) before an order can be created from a request.
@@ -559,6 +586,7 @@ service cloud.firestore {
       allow update: if participant(resource.data) && (
         (supplier() && resource.data.supplierId == request.auth.uid
           && resource.data.status in ['AWAITING_PICKUP', 'IN_TRANSIT']
+          && !coordinateLocation(resource.data.get('deliveryLocation', ''))
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deliveryLocation', 'updatedAt'])
           && coordinateLocation(request.resource.data.deliveryLocation))
         || (supplier() && resource.data.supplierId == request.auth.uid

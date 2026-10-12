@@ -22,6 +22,10 @@ import com.agroroute.core.util.Constants
 import com.agroroute.core.util.Result
 import com.agroroute.core.util.safeCall
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import com.agroroute.core.util.presentationClock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -53,25 +57,51 @@ class HarvestListingRepositoryImpl @Inject constructor(
             .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
             .catch { e -> emit(Result.Error(e.message ?: "Failed to load listings", e)) }
 
-    override fun getListingsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> =
-        dao.getListingsByFarmer(farmerId)
-            .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load farmer listings", e)) }
+    override fun getListingsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> = channelFlow {
+        launch {
+            firestoreService.queryFlow<HarvestListing>(Constants.COLLECTION_LISTINGS, "farmerId", farmerId)
+                .catch { /* Keep cached listings usable when offline; writes still validate remotely. */ }
+                .collect { dao.upsertListings(it) }
+        }
+        combine(dao.getListingsByFarmer(farmerId), presentationClock()) { listings, _ -> Result.Success(listings) }
+            .collect { send(it) }
+    }
 
     override fun getDraftsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> =
         dao.getDraftsByFarmer(farmerId)
             .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
             .catch { e -> emit(Result.Error(e.message ?: "Failed to load listing drafts", e)) }
 
-    override fun getListingsByStatus(status: ListingStatus): Flow<Result<List<HarvestListing>>> =
-        dao.getListingsByStatus(status)
-            .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load listings", e)) }
+    override fun getListingsByStatus(status: ListingStatus): Flow<Result<List<HarvestListing>>> = channelFlow {
+        launch {
+            firestoreService.queryFlow<HarvestListing>(Constants.COLLECTION_LISTINGS, "status", status.name)
+                .catch { /* Keep cached listings usable when offline; writes still validate remotely. */ }
+                .collect { remote ->
+                    // Rows leaving the OPEN query can be fulfilled/closed, not deleted.
+                    val removed = dao.getListingsByStatus(status).first().map { it.listingId }.toSet() - remote.map { it.listingId }.toSet()
+                    dao.upsertListings(remote)
+                    for (id in removed) {
+                        try {
+                            firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, id)
+                                ?.let { dao.upsertListing(it) }
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                        catch (_: Exception) { /* Retry on the next snapshot; never erase cached history. */ }
+                    }
+                }
+        }
+        combine(dao.getListingsByStatus(status), presentationClock()) { listings, _ -> Result.Success(listings) }
+            .collect { send(it) }
+    }
 
-    override fun getListingById(listingId: String): Flow<Result<HarvestListing?>> =
-        dao.getListingById(listingId)
-            .map<HarvestListing?, Result<HarvestListing?>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load listing", e)) }
+    override fun getListingById(listingId: String): Flow<Result<HarvestListing?>> = channelFlow {
+        launch {
+            firestoreService.documentFlow<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
+                .catch { /* Cached presentation remains usable offline. */ }
+                .collect { it?.let { listing -> dao.upsertListing(listing) } }
+        }
+        combine(dao.getListingById(listingId), presentationClock()) { listing, _ -> Result.Success(listing) }
+            .collect { send(it) }
+    }
 
     // ── Write operations (Firestore first, then Room mirror) ───────────────────
 
@@ -100,6 +130,19 @@ class HarvestListingRepositoryImpl @Inject constructor(
             ?: error("Listing not found")
         check(existing.farmerId == farmerId) { "You can only edit your own listing" }
         check(existing.listingId == listing.listingId) { "Listing identity does not match" }
+        if (com.agroroute.core.model.isPickupCoordinateRepair(existing, listing)) {
+            val ref = firestoreService.firestore.collection(Constants.COLLECTION_LISTINGS).document(listing.listingId)
+            val repaired = firestoreService.runTransaction<HarvestListing> { tx ->
+                val current = tx.get(ref).toObject(HarvestListing::class.java) ?: error("Listing not found")
+                check(com.agroroute.core.model.isPickupCoordinateRepair(current, listing)) {
+                    "Listing changed. Refresh before adding pickup coordinates."
+                }
+                tx.update(ref, mapOf("location" to listing.location))
+                current.copy(location = listing.location)
+            }
+            dao.upsertListing(repaired)
+            return@safeCall
+        }
         check(listing.quantity > 0.0) { "Quantity must be greater than zero" }
         check(listing.quantity >= existing.soldQuantity) {
             "Quantity cannot be less than the amount already sold or reserved"

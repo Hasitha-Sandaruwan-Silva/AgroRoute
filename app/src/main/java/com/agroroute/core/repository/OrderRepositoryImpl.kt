@@ -8,6 +8,7 @@ import com.agroroute.core.database.OrderCompletionRecordDao
 import com.agroroute.core.database.UserProfileDao
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.isExpired
 import com.agroroute.core.model.HarvestListing
 import com.agroroute.core.model.HarvestStatus
 import com.agroroute.core.model.OrderRequest
@@ -117,6 +118,7 @@ class OrderRepositoryImpl @Inject constructor(
                 ?: error("Listing ${order.listingId} not found")
             val bid = transaction.get(bidRef).toObject(Bid::class.java)
                 ?: error("Bid ${order.bidId} not found")
+            check(!listing.isExpired()) { "Listing expired" }
             check(listing.status == ListingStatus.OPEN && listing.biddingEnabled && !listing.isDraft) {
                 "This listing is not accepting bids"
             }
@@ -129,7 +131,13 @@ class OrderRepositoryImpl @Inject constructor(
             check(order.farmerId == listing.farmerId && order.supplierId == bid.supplierId) {
                 "Bid and listing ownership does not match"
             }
-            check(order.quantity > 0.0 && order.quantity <= listing.availableStock()) {
+            check(order.orderId == bid.bidId && order.bidId == bid.bidId &&
+                order.quantity == (bid.requestedQuantity ?: listing.availableStock()) &&
+                order.agreedPrice == bid.offerPrice && order.cropName == listing.cropName &&
+                order.quantityUnit == listing.quantityUnit && order.status == OrderStatus.AWAITING_PICKUP) {
+                "Bid terms changed. Refresh and try again."
+            }
+            check(order.quantity.isFinite() && order.quantity > 0.0 && order.quantity <= listing.availableStock()) {
                 "Insufficient listing stock"
             }
 
@@ -191,6 +199,7 @@ class OrderRepositoryImpl @Inject constructor(
             val listing = transaction.get(listingDoc).toObject(HarvestListing::class.java)
                 ?: error("Listing ${request.listingId} not found")
             check(listing.farmerId == userId) { "Only the listing's Farmer can accept this order request" }
+            check(!listing.isExpired()) { "Listing expired" }
             check(listing.status == ListingStatus.OPEN && !listing.isDraft && !listing.biddingEnabled) {
                 "This listing is not accepting direct order requests"
             }
@@ -324,6 +333,9 @@ class OrderRepositoryImpl @Inject constructor(
         val updated = firestoreService.runTransaction<Order> { transaction ->
             val order = transaction.get(ref).toObject(Order::class.java) ?: error("Order not found")
             check(order.supplierId == userId) { "You can only update your own order" }
+            check(com.agroroute.core.location.SelectedLocation.fromStoredText(order.deliveryLocation) == null) {
+                "This order already has a saved delivery destination"
+            }
             check(order.status in listOf(OrderStatus.AWAITING_PICKUP, OrderStatus.IN_TRANSIT)) { "This order can no longer be edited" }
             val result = order.copy(deliveryLocation = location.trim(), updatedAt = System.currentTimeMillis())
             transaction.update(ref, mapOf("deliveryLocation" to result.deliveryLocation, "updatedAt" to result.updatedAt))

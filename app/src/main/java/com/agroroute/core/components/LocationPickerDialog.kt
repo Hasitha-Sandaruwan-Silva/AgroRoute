@@ -48,6 +48,7 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
     var results by remember { mutableStateOf(emptyList<SelectedLocation>()) }
     var message by remember { mutableStateOf<String?>(null) }
     var searching by remember { mutableStateOf(false) }
+    var permissionDenied by remember { mutableStateOf(false) }
     var locating by remember { mutableStateOf(false) }
     var currentFix by remember { mutableStateOf<android.location.Location?>(null) }
     var focusRequest by remember { mutableIntStateOf(0) }
@@ -85,7 +86,10 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
     }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         if (services.hasPermission()) locate()
-        else message = "Location permission denied. Tap the map or search to choose a location."
+        else {
+            permissionDenied = true
+            message = "Location permission denied. Tap the map, search, or enable permission in settings."
+        }
     }
     fun search() {
         if (searching || query.isBlank()) return
@@ -102,10 +106,13 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
     }
 
     LaunchedEffect(latitude, longitude, hasSelection, selectionRevision) {
-        if (hasSelection) {
+        if (hasSelection && selectionRevision > 0) {
             delay(350)
             val address = services.address(latitude, longitude)
-            if (!addressEdited && !address.isNullOrBlank()) label = address
+            if (!addressEdited) {
+                label = address?.takeIf { it.isNotBlank() } ?: "Selected location"
+                if (address.isNullOrBlank()) message = "Address unavailable. The selected coordinates can still be saved."
+            }
         }
     }
     LaunchedEffect(Unit) {
@@ -204,6 +211,10 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                         else Text(selected.coordinates(), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                        if (permissionDenied) TextButton(onClick = {
+                            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                android.net.Uri.parse("package:${context.packageName}")))
+                        }) { Text("Open app settings") }
                     }
                 },
                 confirm = {

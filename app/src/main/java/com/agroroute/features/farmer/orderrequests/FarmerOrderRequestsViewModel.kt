@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 
 /** UI state for the farmer's order-request inbox. */
 data class FarmerOrderRequestsUiState(
+    val presentationTime: Long = System.currentTimeMillis(),
     val requests: List<OrderRequest> = emptyList(),
     val listingsById: Map<String, HarvestListing> = emptyMap(),
     val isLoading: Boolean = false,
@@ -106,6 +107,7 @@ class FarmerOrderRequestsViewModel @Inject constructor(
                     is Result.Success -> _uiState.update {
                         it.copy(
                             isLoading = false,
+                            presentationTime = System.currentTimeMillis(),
                             requests = requestsResult.data.sortedByDescending { r -> r.createdAt },
                             listingsById = listingsById,
                             error = syncError

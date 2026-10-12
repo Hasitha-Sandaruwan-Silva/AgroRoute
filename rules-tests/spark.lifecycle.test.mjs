@@ -217,7 +217,7 @@ test('stale concurrent distinct request acceptance cannot oversell',async()=>{
 test('quantity, price, participant and pickup snapshot remain immutable',async()=>{
   await accept();for(const uid of ['f','s']) for(const fields of [{quantity:9},{agreedPrice:99},{supplierId:'s2'},{farmerId:'f2'},{pickupLocation:'Other\n[1, 1]'}])
     await assertFails(updateDoc(doc(db(uid),'orders/o'),fields));
-  await assertSucceeds(updateDoc(doc(db('s'),'orders/o'),{deliveryLocation:'New destination\n[8, 81]',updatedAt:2}));
+  await assertFails(updateDoc(doc(db('s'),'orders/o'),{deliveryLocation:'New destination\n[8, 81]',updatedAt:2}));
 });
 test('legacy awaiting enrollment has no acceptance backfill; terminal orders cannot enroll or gain retroactive rewards',async()=>{
   await admin(async d=>{const {sparkVersion,...legacy}=order;await setDoc(doc(d,'orders/o'),legacy);await updateDoc(doc(d,'listings/l'),{soldQuantity:5,availableQuantity:5});});
@@ -291,4 +291,120 @@ test(`Spark existing inbox supports constrained ${event} without expression-limi
   const id=event+'_o',row={id,entityId:'o',eventType:event,actorId:actor,recipientId:recipient,createdAt:serverTimestamp(),readAt:null};
   await assertSucceeds(setDoc(doc(db(actor),`user_notifications/${recipient}/items`,id),row));
   await assertFails(setDoc(doc(db(actor),`user_notifications/${recipient==='f'?'f2':'s2'}/items`,id),{...row,recipientId:recipient==='f'?'f2':'s2'}));
+});
+
+
+for (const expiry of [1, Date.now() - 1000, 'invalid']) test(`server time blocks expired or invalid deadline ${expiry} without stock or score writes`, async () => {
+  await admin(d => updateDoc(doc(d,'listings/l'), { expiresAt: expiry }));
+  await assertFails(acceptBatch().commit());
+  assert.equal(await points('f'), 0);
+  assert.equal((await getDoc(doc(db('f'),'listings/l'))).get('availableQuantity'), 10);
+  assert.equal((await getDoc(doc(db('s'),'order_requests/o'))).get('status'), 'PENDING');
+  assert.equal((await getDoc(doc(db('f'),'orders/o'))).exists(), false);
+});
+
+for (const mode of ['request','bid']) test(`${mode} submission uses server expiry and blocks sold-out stock`, async () => {
+  const d=db('s');
+  const proposal=mode==='bid' ? {bidId:'new',listingId:'l',supplierId:'s',offerPrice:9,requestedQuantity:5,status:'PENDING',deliveryLocation:order.deliveryLocation}
+    : {requestId:'new',listingId:'l',farmerId:'f',supplierId:'s',requestedQuantity:5,listedPrice:8,status:'PENDING',deliveryLocation:order.deliveryLocation};
+  const path=mode==='bid'?'bids/new':'order_requests/new';
+  await admin(a=>updateDoc(doc(a,'listings/l'),{biddingEnabled:mode==='bid',expiresAt:Date.now()+3600000}));
+  await assertSucceeds(setDoc(doc(d,path),proposal));
+  await admin(async a=>{ await deleteDoc(doc(a,path)); await updateDoc(doc(a,'listings/l'),{expiresAt:1}); });
+  await assertFails(setDoc(doc(d,path),proposal));
+  await admin(a=>updateDoc(doc(a,'listings/l'),{expiresAt:null,availableQuantity:0}));
+  await assertFails(setDoc(doc(d,path),proposal));
+});
+
+test('expiry after acceptance leaves pickup, handover, delivery and reviews valid', async () => {
+  await enroll();
+  await admin(d=>updateDoc(doc(d,'listings/l'),{expiresAt:1}));
+  await assertSucceeds(handover()); await assertSucceeds(collect()); await assertSucceeds(deliver());
+  assert.equal(await points('f'),10); assert.equal(await points('s'),10);
+  await assertSucceeds(setDoc(doc(db('s'),'reviews/o_s'),{reviewId:'o_s',orderId:'o',reviewerId:'s',revieweeId:'f',rating:5,comment:'Good'}));
+});
+
+test('expired listing still restores cancellation stock, no expiry penalty',async()=>{
+  await accept(); await admin(d=>updateDoc(doc(d,'listings/l'),{expiresAt:1}));
+  await assertSucceeds(cancel());
+  assert.equal((await getDoc(doc(db('f'),'listings/l'))).get('availableQuantity'),10);
+  assert.equal(await points('f'),1); assert.equal(await points('s'),0);
+});
+
+async function seedCompetingBids(quantities=[40,30,70]) {
+  await admin(async d=>{
+    await updateDoc(doc(d,'listings/l'),{quantity:100,availableQuantity:100,soldQuantity:0,biddingEnabled:true,expiresAt:Date.now()+3600000});
+    for(let i=0;i<quantities.length;i++) await setDoc(doc(d,'bids',String.fromCharCode(65+i)),
+      {bidId:String.fromCharCode(65+i),listingId:'l',supplierId:'s',offerPrice:9,requestedQuantity:quantities[i],status:'PENDING',deliveryLocation:order.deliveryLocation});
+  });
+}
+function acceptQuantityBid(id, overrides={}) {
+  const d=db('f');
+  return runTransaction(d,async tx=>{
+    const l=(await tx.get(doc(d,'listings/l'))).data(), bid=(await tx.get(doc(d,'bids',id))).data();
+    const profile=(await tx.get(doc(d,'users/f'))).data();
+    const existing=await tx.get(doc(d,'orders',id));
+    assert.equal(existing.exists(),false); assert.equal(bid.status,'PENDING');
+    const remaining=l.availableQuantity-bid.requestedQuantity;
+    tx.set(doc(d,'orders',id),{...order,orderId:id,bidId:id,quantity:bid.requestedQuantity,agreedPrice:9,...overrides});
+    tx.update(doc(d,'bids',id),{status:'ACCEPTED'});
+    tx.update(doc(d,'listings/l'),{availableQuantity:remaining,soldQuantity:l.soldQuantity+bid.requestedQuantity,
+      status:remaining<=1e-9?'FULFILLED':'OPEN',biddingEnabled:remaining<=1e-9?false:l.biddingEnabled,stockOrderId:id});
+    const event=id+'_farmer_acceptance';
+    tx.set(doc(d,'scoreEvents',event),{orderId:id,userId:'f',role:'FARMER',eventType:'farmer_acceptance',pointsDelta:1,createdAt:serverTimestamp()});
+    tx.update(doc(d,'users/f'),{points:profile.points+1,lastScoreEventId:event});
+  });
+}
+
+test('100kg: accept A40, B30 pending actionable, C70 pending blocked, cancel A restores C',async()=>{
+  await seedCompetingBids(); await assertSucceeds(acceptQuantityBid('A'));
+  const d=db('f');
+  assert.equal((await getDoc(doc(d,'listings/l'))).get('availableQuantity'),60);
+  assert.equal((await getDoc(doc(d,'bids/A'))).get('status'),'ACCEPTED');
+  for(const id of ['B','C']) assert.equal((await getDoc(doc(d,'bids',id))).get('status'),'PENDING');
+  await assertFails(acceptQuantityBid('C'));
+  const sdb=db('s'), b=writeBatch(sdb), event='A_s_cancellation';
+  b.update(doc(sdb,'orders/A'),{status:'CANCELLED',cancelledAt:serverTimestamp(),cancelledBy:'s'});
+  b.update(doc(sdb,'listings/l'),{availableQuantity:100,soldQuantity:0,stockOrderId:'A'});
+  b.set(doc(sdb,'scoreEvents',event),{orderId:'A',userId:'s',role:'SUPPLIER',eventType:'cancellation',pointsDelta:-2,createdAt:serverTimestamp()});
+  b.update(doc(sdb,'users/s'),{points:0,lastScoreEventId:event}); await assertSucceeds(b.commit());
+  assert.equal((await getDoc(doc(d,'listings/l'))).get('availableQuantity'),100);
+  for(const id of ['B','C']) assert.equal((await getDoc(doc(d,'bids',id))).get('status'),'PENDING');
+  await assertSucceeds(acceptQuantityBid('C')); await assertSucceeds(acceptQuantityBid('B'));
+  assert.equal((await getDoc(doc(d,'listings/l'))).get('availableQuantity'),0);
+});
+
+test('simultaneous quantity bids cannot oversell or double-award acceptance',async()=>{
+  await seedCompetingBids([70,70]);
+  const results=await Promise.allSettled([acceptQuantityBid('A'),acceptQuantityBid('B')]);
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  assert.equal((await getDoc(doc(db('f'),'listings/l'))).get('availableQuantity'),30);
+  assert.equal(await points('f'),1);
+});
+
+test('pending bid cannot accept after expiry or change its agreed quantity',async()=>{
+  await seedCompetingBids(); await assertFails(acceptQuantityBid('A',{quantity:30}));
+  await admin(d=>updateDoc(doc(d,'listings/l'),{expiresAt:1}));
+  await assertFails(acceptQuantityBid('A')); assert.equal(await points('f'),0);
+});
+
+test('deadline cannot be extended or cleared and expired history cannot be deleted',async()=>{
+  await admin(d=>updateDoc(doc(d,'listings/l'),{expiresAt:1}));
+  for(const expiresAt of [null,Date.now()+3600000]) await assertFails(updateDoc(doc(db('f'),'listings/l'),{expiresAt}));
+  await assertFails(deleteDoc(doc(db('f'),'listings/l')));
+});
+
+test('legacy pickup repair changes location only and never modifies order snapshot',async()=>{
+  await accept(); await admin(d=>updateDoc(doc(d,'listings/l'),{location:'Legacy farm address'}));
+  await assertFails(updateDoc(doc(db('s'),'listings/l'),{location:'Farm\n[8, 81]'}));
+  await assertFails(updateDoc(doc(db('f'),'listings/l'),{location:'Bad\n[91, 80]'}));
+  await assertSucceeds(updateDoc(doc(db('f'),'listings/l'),{location:'Farm\n[8, 81]'}));
+  assert.equal((await getDoc(doc(db('s'),'orders/o'))).get('pickupLocation'),order.pickupLocation);
+});
+
+test('legacy missing delivery can be repaired once, then stays immutable',async()=>{
+  await accept(); await admin(d=>updateDoc(doc(d,'orders/o'),{deliveryLocation:'Old address'}));
+  await assertFails(updateDoc(doc(db('f'),'orders/o'),{deliveryLocation:'Depot\n[8, 81]'}));
+  await assertSucceeds(updateDoc(doc(db('s'),'orders/o'),{deliveryLocation:'Depot\n[8, 81]'}));
+  await assertFails(updateDoc(doc(db('s'),'orders/o'),{deliveryLocation:'Other\n[6, 79]'}));
 });

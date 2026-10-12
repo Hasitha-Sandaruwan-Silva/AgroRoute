@@ -38,6 +38,17 @@ sealed class Result<out T> {
 /** Wraps a suspending [block] in a try/catch, returning [Result.Success] or [Result.Error]. */
 suspend fun <T> safeCall(block: suspend () -> T): Result<T> = try {
     Result.Success(block())
+} catch (e: kotlinx.coroutines.CancellationException) {
+    throw e
 } catch (e: Exception) {
-    Result.Error(e.message ?: "An unexpected error occurred", e)
+    val message = if (e is com.google.firebase.firestore.FirebaseFirestoreException) when (e.code) {
+        com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED ->
+            "This action is no longer allowed. The listing may have expired or changed. Refresh and try again."
+        com.google.firebase.firestore.FirebaseFirestoreException.Code.UNAVAILABLE ->
+            "Could not reach the server. Check your connection and try again."
+        com.google.firebase.firestore.FirebaseFirestoreException.Code.ABORTED ->
+            "Stock changed while saving. Refresh and try again."
+        else -> "Could not save this change. Refresh and try again."
+    } else e.message ?: "An unexpected error occurred"
+    Result.Error(message, e)
 }

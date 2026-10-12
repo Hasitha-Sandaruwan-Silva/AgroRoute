@@ -149,7 +149,7 @@ class SparkOrderLifecycle @Inject constructor(
             val listing = tx.get(listingRef).toObject(HarvestListing::class.java) ?: error("Reserved listing is unavailable. Cancellation requires its original stock record.")
             val profile = tx.get(db.collection("users").document(actor))
             check(listing.soldQuantity >= order.quantity) { "Reserved stock record needs attention before cancellation" }
-            val restored = listing.releaseSale(order.quantity)
+            val restored = listing.releaseSale(order.quantity, restoredBiddingMode = order.bidId.isNotBlank())
             tx.update(listingRef, mapOf("availableQuantity" to restored.availableQuantity,
                 "soldQuantity" to restored.soldQuantity, "status" to restored.status.name,
                 "biddingEnabled" to restored.biddingEnabled, "stockOrderId" to orderId))
