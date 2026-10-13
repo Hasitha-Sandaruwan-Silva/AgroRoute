@@ -154,9 +154,6 @@ Actively in development — base architecture, Firebase integration, and core Fa
 - `rules-tests/package-lock.json` — rules test dependencies වල නියමිත versions සටහන් කරයි.
 - `.gitignore` — build outputs, local config සහ log වැනි දේ Git වලින් ඉවත් කරයි.
 - `README.md` — project overview එක සහ මෙම code guide එක අඩංගු කරයි.
-- `LOGICS.md` — app logic පිළිබඳ Sinhala audit ලේඛනයකි.
-- `supplier_module_documentation.md` — Supplier module සඳහා ලියූ functional specification එකකි; එය source implementation එකට වඩා වෙනස් විය හැකිය.
-- `business-logic-audit/README.md` — දින සහිත audit වාර්තාවකි; එහි සොයාගැනීම් වත්මන් source සමඟ නැවත පරීක්ෂා කළ යුතුය.
 
 ### Android ආරම්භය සහ resources
 
@@ -352,3 +349,17 @@ Actively in development — base architecture, Firebase integration, and core Fa
 ### ඉවත් කළ ගොනු
 
 Generated outputs සහ dependency folders — `build/`, `app/build/`, `.gradle/`, `.kotlin/errors/`, `node_modules/` — මෙම guide එකේ file list එකට ඇතුළත් කර නැත. IDE workspace metadata සහ local-only metadata ද source structure ලෙස විස්තර කර නැත. Firebase සහ SDK local configuration files වල values මෙහි නැවත පෙන්වා නැත.
+
+## Build and Local Demo Mode
+
+Use the Gradle wrapper with the Android SDK and JDK configured locally:
+
+```powershell
+.\gradlew.bat clean assembleDebug
+.\gradlew.bat assembleRelease
+.\gradlew.bat :app:testDebugUnitTest
+```
+
+Install the debug APK, open AgroRoute and select **Try Demo Mode** from Welcome or Profile. Choose Farmer or Supplier; use the Demo menu to switch sample users, load/reset/clear local records or exit. Demo data uses a separate Room database and business actions are read-only. Release builds exclude Demo Mode. Map tiles, GPS and external navigation retain their usual availability requirements.
+
+Retained Firebase/Rules test tools use their package lockfiles: run `npm ci` inside `functions` or `rules-tests` before their npm scripts. No audit build scripts are needed.
