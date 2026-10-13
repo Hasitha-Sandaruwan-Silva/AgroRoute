@@ -34,7 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -280,12 +280,12 @@ internal fun FarmerOrderRequestCard(
                     text = "Accept",
                     isLoading = isLoading,
                     onClick = onAccept,
-                    enabled = acceptBlockedReason == null,
+                    enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (acceptBlockedReason == null),
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(
                     onClick = onReject,
-                    enabled = !isLoading && listing != null && !listing.isDraft,
+                    enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (!isLoading && listing != null && !listing.isDraft),
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {
                     Text(
@@ -340,7 +340,7 @@ private fun AcceptRequestConfirmationDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, false, request.requestedQuantity, request.deliveryLocation) == null,
+                enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && com.agroroute.core.components.listingAcceptanceBlockedReason(listing, false, request.requestedQuantity, request.deliveryLocation) == null,
                 modifier = Modifier.heightIn(min = 48.dp)
             ) {
                 Text("Accept and create order")

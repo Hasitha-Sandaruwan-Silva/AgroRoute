@@ -10,6 +10,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.collect
 import javax.inject.Inject
 
 /**
@@ -23,13 +26,22 @@ class AgroRouteApp : Application() {
 	override fun onCreate() {
 		super.onCreate()
 		notificationBootstrap.start()
-		FirebaseAuth.getInstance().addAuthStateListener { auth ->
-			val userId = auth.currentUser?.uid ?: return@addAuthStateListener
-			FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-				notificationScope.launch {
-					NotificationService(this@AgroRouteApp).registerDeviceToken(userId, token)
-				}
-			}
-		}
-	}
+        val auth = FirebaseAuth.getInstance()
+        auth.addAuthStateListener { registerCurrentDeviceToken(it) }
+        notificationScope.launch {
+            com.agroroute.core.runtime.BackgroundNetworkAccess.allowed
+                .drop(1).filter { it }.collect { registerCurrentDeviceToken(auth) }
+        }
+    }
+
+    private fun registerCurrentDeviceToken(auth: FirebaseAuth) {
+        if (!com.agroroute.core.runtime.BackgroundNetworkAccess.allowed.value) return
+        val userId = auth.currentUser?.uid ?: return
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            notificationScope.launch {
+                if (!com.agroroute.core.runtime.BackgroundNetworkAccess.allowed.value || auth.currentUser?.uid != userId) return@launch
+                NotificationService(this@AgroRouteApp).registerDeviceToken(userId, token)
+            }
+        }
+    }
 }

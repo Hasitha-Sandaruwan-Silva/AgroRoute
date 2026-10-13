@@ -38,6 +38,7 @@ fun ProfilePhoneContact(
     onNameLoaded: (String?) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val lookup = com.agroroute.core.runtime.LocalContactLookup.current
     var name by remember(userId) { mutableStateOf<String?>(null) }
     var phone by remember(userId) { mutableStateOf<String?>(null) }
     var isLoading by remember(userId) { mutableStateOf(false) }
@@ -54,6 +55,12 @@ fun ProfilePhoneContact(
         isLoading = true
         loadFailed = false
         try {
+            if (lookup != null) {
+                val saved = lookup(userId)
+                name = saved.first; phone = saved.second
+                onNameLoaded(name)
+                return@LaunchedEffect
+            }
             val profile = FirebaseFirestore.getInstance()
                 .collection("users")
                 .document(userId)

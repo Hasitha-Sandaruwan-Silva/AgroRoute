@@ -121,6 +121,7 @@ fun WelcomeScreen(navController: NavController) {
                     Text("I already have an account", color = Color.White.copy(0.9f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
+            com.agroroute.core.runtime.AppEntryAction()
             Spacer(Modifier.height(16.dp))
         }
     }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,7 +36,8 @@ class NotificationBootstrap @Inject constructor(
         harvestReminderScheduler.rescheduleAllStored()
 
         scope.launch {
-            authRepository.getCurrentUserProfile().collectLatest { result ->
+            combine(authRepository.getCurrentUserProfile(), com.agroroute.core.runtime.BackgroundNetworkAccess.allowed) { result, allowed -> result to allowed }.collectLatest { (result, allowed) ->
+                if (!allowed) { realtimeEventNotifier.stop(); return@collectLatest }
                 val profile = (result as? Result.Success)?.data
                 if (profile == null) {
                     realtimeEventNotifier.stop()

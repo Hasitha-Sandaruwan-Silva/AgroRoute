@@ -33,7 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.agroroute.core.theme.ForestDeep
 import com.agroroute.core.theme.ForestMid

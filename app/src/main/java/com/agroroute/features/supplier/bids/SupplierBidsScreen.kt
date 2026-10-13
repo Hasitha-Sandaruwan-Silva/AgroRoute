@@ -33,7 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
@@ -274,7 +274,7 @@ private fun BidCard(
                 Spacer(Modifier.width(8.dp))
                 OutlinedButton(
                     onClick = onWithdraw,
-                    enabled = !withdrawing,
+                    enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (!withdrawing),
                     shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier

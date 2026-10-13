@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
@@ -290,14 +290,14 @@ private fun FarmerBidCard(
             ) {
                 LoadingButton(
                     text = "Accept",
-                    enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation) == null,
+                    enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation) == null,
                     isLoading = isLoading,
                     onClick = onAccept,
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(
                     onClick = onReject,
-                    enabled = !isLoading,
+                    enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (!isLoading),
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {
                     Text(

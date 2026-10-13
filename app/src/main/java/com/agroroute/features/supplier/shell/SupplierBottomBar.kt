@@ -45,7 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.agroroute.core.navigation.Screen
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.agroroute.features.auth.AuthViewModel
 

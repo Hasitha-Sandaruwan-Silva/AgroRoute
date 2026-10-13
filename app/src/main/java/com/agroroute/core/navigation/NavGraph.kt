@@ -22,7 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.navigation.navArgument
 import com.agroroute.features.auth.LoginScreen
 import com.agroroute.features.auth.RegisterScreen
@@ -92,15 +92,17 @@ fun NavGraph(
     navController: NavHostController = rememberNavController(),
     notificationRoute: String? = null,
     notificationEventId: String? = null,
-    onNotificationRouteHandled: (String?) -> Unit = {}
+    onNotificationRouteHandled: (String?) -> Unit = {},
+    resumeSessionAtStart: Boolean = true
 ) {
     var currentUserRole by remember { mutableStateOf<UserRole?>(null) }
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val mutationAllowed = com.agroroute.core.runtime.LocalMutationAllowed.current
 
     LaunchedEffect(authState.sessionResolved, authState.user?.userId) {
-        if (authState.sessionResolved && authState.user != null) {
+        if (mutationAllowed && authState.sessionResolved && authState.user != null) {
             (context as? Activity)?.let { activity -> NotificationPermission.requestIfNeeded(activity) }
         }
     }
@@ -117,7 +119,7 @@ fun NavGraph(
         val role = if (authState.sessionResolved) authState.user?.role else currentUserRole
         val destination = roleHomeDestination(role)
         when {
-            destination != null && currentRoute == Screen.Welcome.route && notificationRoute == null -> {
+            resumeSessionAtStart && destination != null && currentRoute == Screen.Welcome.route && notificationRoute == null -> {
                 navController.navigate(destination) {
                     popUpTo(Screen.Welcome.route) { inclusive = true }
                     launchSingleTop = true
@@ -313,7 +315,8 @@ fun NavGraph(
                 }
 
                 composable(Screen.NotificationSettings.route) {
-                    com.agroroute.features.settings.NotificationSettingsScreen()
+                    if (mutationAllowed) com.agroroute.features.settings.NotificationSettingsScreen()
+                    else androidx.compose.material3.Text(com.agroroute.core.runtime.LocalActionUnavailableMessage.current.orEmpty())
                 }
 
                 composable(Screen.NotificationInbox.route) {

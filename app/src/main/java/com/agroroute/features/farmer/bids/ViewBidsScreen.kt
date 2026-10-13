@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
@@ -270,13 +270,13 @@ internal fun SuperbBidCard(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     LoadingButton(
                         text = "Accept This Bid",
-                        enabled = blockedReason == null,
+                        enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (blockedReason == null),
                         isLoading = isAccepting,
                         onClick = onAcceptClick,
                         modifier = Modifier.fillMaxWidth().height(52.dp).shadow(2.dp, RoundedCornerShape(14.dp))
                     )
                     blockedReason?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                    TextButton(onClick = onRejectClick, enabled = !isAccepting && listingAvailable, modifier = Modifier.align(Alignment.End).heightIn(min = 40.dp)) {
+                    TextButton(onClick = onRejectClick, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (!isAccepting && listingAvailable), modifier = Modifier.align(Alignment.End).heightIn(min = 40.dp)) {
                         Text("Reject bid", color = if (isAccepting) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
@@ -311,7 +311,7 @@ internal fun AcceptBidConfirmationDialog(bid: Bid, listing: com.agroroute.core.m
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm, enabled = com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation) == null, modifier = Modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = ForestDeep)) {
+            Button(onClick = onConfirm, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && com.agroroute.core.components.listingAcceptanceBlockedReason(listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation) == null, modifier = Modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = ForestDeep)) {
                 Text("Accept and create order", fontWeight = FontWeight.Bold)
             }
         },

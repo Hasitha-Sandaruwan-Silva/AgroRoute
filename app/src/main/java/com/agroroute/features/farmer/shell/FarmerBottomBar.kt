@@ -3,7 +3,7 @@ package com.agroroute.features.farmer.shell
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.agroroute.core.components.AnimatedBottomBar
 import com.agroroute.core.components.BottomNavItem

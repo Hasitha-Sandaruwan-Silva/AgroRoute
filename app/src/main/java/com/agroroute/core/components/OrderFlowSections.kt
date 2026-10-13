@@ -6,7 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.OrderStatus
@@ -48,7 +48,7 @@ fun OrderLifecycleActions(order: Order, forSupplier: Boolean, loading: Boolean,
     var confirmingCancel by remember(order.orderId) { mutableStateOf(false) }
     when (order.status) {
         OrderStatus.AWAITING_PICKUP -> OutlinedButton(
-            onClick = { confirmingCancel = true }, enabled = !loading,
+            onClick = { confirmingCancel = true }, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (!loading),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
         ) { Text("Cancel Order") }
@@ -65,7 +65,7 @@ fun OrderLifecycleActions(order: Order, forSupplier: Boolean, loading: Boolean,
             title = { Text("Cancel ${order.cropName} order?") },
             text = { Text("Cancelling this order will deduct 2 points from your score only. Your score cannot go below 0. The reserved stock will be released.") },
             dismissButton = { TextButton(onClick = { confirmingCancel = false }, enabled = !loading) { Text("Keep Order") } },
-            confirmButton = { TextButton(onClick = { confirmingCancel = false; onCancel() }, enabled = !loading,
+            confirmButton = { TextButton(onClick = { confirmingCancel = false; onCancel() }, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (!loading),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Cancel Order") } })
     }
 }
@@ -88,7 +88,7 @@ fun ReviewEligibilitySection(checking: Boolean, eligible: Boolean, reviewed: Boo
         reviewed -> Text("Review submitted", color = MaterialTheme.colorScheme.primary)
         error != null -> { Text("Could not check review eligibility. Please retry.", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = onRetry) { Text("Retry review check") } }
-        eligible -> OutlinedButton(onClick = onReview, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Rate $counterpartLabel") }
+        eligible -> OutlinedButton(onClick = onReview, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Rate $counterpartLabel") }
         else -> Text("Reviews are available to participants after delivery.", style = MaterialTheme.typography.bodySmall)
     }
 }

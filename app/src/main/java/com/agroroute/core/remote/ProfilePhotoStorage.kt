@@ -14,14 +14,18 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
+interface ProfilePhotoUploader {
+    suspend fun upload(uri: Uri, userId: String): String
+}
+
 @Singleton
 class ProfilePhotoStorage @Inject constructor(
     private val cloudinary: CloudinaryPhotoStorage,
     private val firebase: StorageService,
     @ApplicationContext private val context: Context
-) {
+) : ProfilePhotoUploader {
     /** Decode a bounded avatar off the main thread; Firebase rules require less than 5 MB. */
-    suspend fun upload(uri: Uri, userId: String): String = withContext(Dispatchers.IO) {
+    override suspend fun upload(uri: Uri, userId: String): String = withContext(Dispatchers.IO) {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }

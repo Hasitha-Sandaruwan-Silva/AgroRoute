@@ -24,6 +24,10 @@ fun OrderPickupSection(
     onVerify: (String) -> Unit = {},
     onCollect: () -> Unit = {}
 ) {
+    if (!com.agroroute.core.runtime.LocalMutationAllowed.current) {
+        Text(com.agroroute.core.runtime.LocalActionUnavailableMessage.current.orEmpty())
+        return
+    }
     if (status == OrderStatus.CANCELLED) return
     var enteredCode by remember(orderId) { mutableStateOf("") }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }

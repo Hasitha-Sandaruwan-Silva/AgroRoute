@@ -24,7 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.location.SelectedLocation
@@ -364,28 +364,28 @@ private fun SuperbListingCard(
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Allow bidding", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         if (isBiddingUpdating) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                        Switch(checked = listing.biddingEnabled, onCheckedChange = onToggleBidding, enabled = !isBiddingUpdating && !isFailed && !listing.isDraft &&
+                        Switch(checked = listing.biddingEnabled, onCheckedChange = onToggleBidding, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && !isBiddingUpdating && !isFailed && !listing.isDraft &&
                             (listing.harvestStatus == HarvestStatus.EXPECTED || listing.availableStock() > 0))
                     }
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onEditClick, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onEditClick, modifier = Modifier.weight(1f)) {
                         Icon(Lucide.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(if (SelectedLocation.fromStoredText(listing.location) == null) "Add pickup pin" else "Edit listing")
                     }
                     if (listing.status == ListingStatus.OPEN) {
-                        TextButton(onClick = onCloseClick) { Text("Close", color = MaterialTheme.colorScheme.error) }
+                        TextButton(onClick = onCloseClick, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current) { Text("Close", color = MaterialTheme.colorScheme.error) }
                     }
                 }
                 if (listing.harvestStatus == HarvestStatus.EXPECTED) {
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = onMarkFailedClick) { Text("Failed", color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+                            TextButton(onClick = onMarkFailedClick, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current) { Text("Failed", color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
                             Button(
-                                onClick = onMarkReadyClick,
+                                enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onMarkReadyClick,
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.height(36.dp)

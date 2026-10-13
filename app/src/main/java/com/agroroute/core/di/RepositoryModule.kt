@@ -25,6 +25,9 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds
+    abstract fun bindProfilePhotoUploader(impl: com.agroroute.core.remote.ProfilePhotoStorage): com.agroroute.core.remote.ProfilePhotoUploader
+
 
     @Binds
     @Singleton

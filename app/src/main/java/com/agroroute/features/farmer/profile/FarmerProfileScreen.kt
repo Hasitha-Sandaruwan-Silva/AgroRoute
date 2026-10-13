@@ -40,7 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.UserRole
@@ -73,6 +73,7 @@ fun FarmerProfileScreen(
     val themeMode by themeViewModel.mode.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val mutationAllowed = com.agroroute.core.runtime.LocalMutationAllowed.current
     var showProfileEditor by remember { mutableStateOf(false) }
 
     val user = uiState.user
@@ -114,7 +115,7 @@ fun FarmerProfileScreen(
                         uploading = uiState.photoUploading,
                         size = 96.dp,
                         selected = true,
-                        editable = !uiState.isLoading && !uiState.photoUploading,
+                        editable = mutationAllowed && !uiState.isLoading && !uiState.photoUploading,
                         onPhotoSelected = viewModel::uploadProfilePhoto
                     )
                     Spacer(Modifier.height(16.dp))
@@ -249,7 +250,8 @@ fun FarmerProfileScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            ProfileLocationCard(user?.location, onClick = { showProfileEditor = true })
+            ProfileLocationCard(user?.location, onClick = { if (mutationAllowed) showProfileEditor = true })
+            com.agroroute.core.runtime.AppEntryAction(tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             SettingsSection(
                 themeMode = themeMode,
@@ -266,7 +268,7 @@ fun FarmerProfileScreen(
                         }
                     }
                 },
-                onEditProfile = { showProfileEditor = true },
+                onEditProfile = { if (mutationAllowed) showProfileEditor = true },
                 onHelp = { navController.navigate(Screen.HelpSupport.route) },
                 onAbout = { navController.navigate(Screen.About.route) },
                 onPrivacy = { navController.navigate(Screen.Privacy.route) },
@@ -292,8 +294,9 @@ fun FarmerProfileScreen(
             Spacer(Modifier.height(24.dp))
 
             OutlinedButton(
+                enabled = mutationAllowed,
                 onClick = {
-                    viewModel.logout {
+                    if (mutationAllowed) viewModel.logout {
                         navController.navigate(Screen.Welcome.route) {
                             popUpTo(0) { inclusive = true }
                         }

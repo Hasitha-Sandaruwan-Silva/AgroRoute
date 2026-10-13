@@ -15,7 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.agroroute.core.navigation.NavGraph
@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
             }
 
             AgroRouteTheme(darkTheme = darkTheme) {
-                NavGraph(
+                com.agroroute.core.runtime.AppExperience(
                     notificationRoute = notificationRoute,
                     notificationEventId = notificationEventId,
                     onNotificationRouteHandled = { eventId ->

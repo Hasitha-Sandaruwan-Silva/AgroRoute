@@ -31,7 +31,7 @@ fun LoadingButton(
 ) {
     Button(
         onClick = onClick,
-        enabled = enabled && !isLoading,
+        enabled = enabled && !isLoading && com.agroroute.core.runtime.LocalMutationAllowed.current,
         // Keep every primary action at the 48dp minimum touch target.
         modifier = modifier.heightIn(min = 48.dp),
         shape = PillShape,

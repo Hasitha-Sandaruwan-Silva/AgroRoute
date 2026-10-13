@@ -20,7 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +48,10 @@ internal fun AccountNotificationInbox(
         markRead: (NotificationInboxItem) -> Unit
     ) -> Unit
 ) {
+    if (!com.agroroute.core.runtime.LocalMutationAllowed.current) {
+        content(NotificationInboxUiState(), {}, {}, {})
+        return
+    }
     val context = LocalContext.current
     val activity = remember(context) {
         generateSequence(context) { (it as? ContextWrapper)?.baseContext }

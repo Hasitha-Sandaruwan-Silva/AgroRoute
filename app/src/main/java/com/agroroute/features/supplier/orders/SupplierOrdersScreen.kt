@@ -34,7 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -338,7 +338,7 @@ internal fun SupplierOrderRequestCard(
         if (request.status == OrderRequestStatus.PENDING && onCancel != null) {
             TextButton(
                 onClick = onCancel,
-                enabled = !loading,
+                enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && (!loading),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier
                     .align(Alignment.End)

@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
-import com.agroroute.core.remote.ProfilePhotoStorage
+import com.agroroute.core.remote.ProfilePhotoUploader
 import com.agroroute.core.repository.AuthRepository
 import com.agroroute.core.repository.GoogleSignInOutcome
 import com.agroroute.core.util.Result
@@ -37,7 +37,7 @@ class AuthViewModel @Inject constructor(
     private val registerUseCase: RegisterUseCase,
     private val sendPasswordResetEmailUseCase: SendPasswordResetEmailUseCase,
     private val authRepository: AuthRepository,
-    private val storageService: ProfilePhotoStorage
+    private val storageService: ProfilePhotoUploader
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())

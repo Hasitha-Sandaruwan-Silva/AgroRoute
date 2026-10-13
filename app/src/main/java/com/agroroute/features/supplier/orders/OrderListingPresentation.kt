@@ -22,9 +22,10 @@ interface OrderListingPresentationEntryPoint {
 @Composable
 internal fun orderListingPresentation(): Map<String, HarvestListing> {
     val context = LocalContext.current.applicationContext
-    val flow = remember(context) {
-        EntryPointAccessors.fromApplication(context, OrderListingPresentationEntryPoint::class.java)
-            .listings().getAll().map { result ->
+    val source = com.agroroute.core.runtime.LocalListingSource.current
+    val flow = remember(context, source) {
+        val records = source?.getAllListings() ?: EntryPointAccessors.fromApplication(context, OrderListingPresentationEntryPoint::class.java).listings().getAll()
+        records.map { result ->
                 (result as? Result.Success)?.data.orEmpty().filterNot { it.isDraft }.associateBy { it.listingId }
             }
     }

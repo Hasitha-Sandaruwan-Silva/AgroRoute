@@ -28,9 +28,10 @@ class FirebaseNotificationService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
+        if (!com.agroroute.core.runtime.BackgroundNetworkAccess.allowed.value) return
         val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
         currentUserId?.let { userId ->
-            serviceScope.launch { notificationService.registerDeviceToken(userId, token) }
+            serviceScope.launch { if (com.agroroute.core.runtime.BackgroundNetworkAccess.allowed.value) notificationService.registerDeviceToken(userId, token) }
         }
     }
 
@@ -64,12 +65,13 @@ class FirebaseNotificationService : FirebaseMessagingService() {
 
     override fun onDeletedMessages() {
         super.onDeletedMessages()
+        if (!com.agroroute.core.runtime.BackgroundNetworkAccess.allowed.value) return
         // FCM may delete messages when the device is offline or under bulk deletion;
         // re-register the token to ensure resync.
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
             val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
             currentUserId?.let { userId ->
-                serviceScope.launch { notificationService.registerDeviceToken(userId, token) }
+                serviceScope.launch { if (com.agroroute.core.runtime.BackgroundNetworkAccess.allowed.value) notificationService.registerDeviceToken(userId, token) }
             }
         }
     }

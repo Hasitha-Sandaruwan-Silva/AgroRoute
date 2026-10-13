@@ -36,8 +36,8 @@ class RealtimeEventNotifier @Inject constructor(
         stop()
         sessionJob = scope.launch {
             when (profile.role) {
-                UserRole.FARMER -> observeFarmer(scope, profile.userId)
-                UserRole.SUPPLIER -> observeSupplier(scope, profile.userId)
+                UserRole.FARMER -> observeFarmer(this, profile.userId)
+                UserRole.SUPPLIER -> observeSupplier(this, profile.userId)
             }
         }
     }

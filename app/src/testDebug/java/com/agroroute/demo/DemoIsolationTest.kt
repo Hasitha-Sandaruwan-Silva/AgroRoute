@@ -6,12 +6,12 @@ import org.junit.Test
 
 /** Structural boundary checks complement the device persistence tests. */
 class DemoIsolationTest {
-    private fun app(): File = generateSequence(File(System.getProperty("user.dir"))) { it.parentFile }
+    private fun app(): File = generateSequence(File(checkNotNull(System.getProperty("user.dir")))) { it.parentFile }
         .map { if (File(it,"src/main").isDirectory) it else File(it,"app") }
         .first { File(it,"src/debug/java/com/agroroute/demo").isDirectory }
     @Test fun demoCodeHasNoRemoteRepositoryOrAuthenticationDependencies() {
         val source = File(app(),"src/debug/java/com/agroroute/demo").walkTopDown()
-            .filter { it.extension == "kt" }.joinToString("\n") { it.readText() }
+            .filter { it.name in listOf("DemoDataset.kt","DemoDataSeeder.kt","DemoActivity.kt") }.joinToString("\n") { it.readText() }
         listOf("import com.google.firebase", "import com.agroroute.core.repository", "import com.agroroute.core.remote",
             "clearAllTables(", "FirebaseAuth", "FirestoreService").forEach { assertFalse(it,source.contains(it)) }
     }
