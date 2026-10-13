@@ -20,7 +20,9 @@ fun SupplierScaffold(
         content(PaddingValues())
         return
     }
-    val showTopBar = currentRoute in supplierRoutes
+    // Home owns its photographic branding/profile/notification header.
+    val showTopBar = currentRoute in supplierRoutes &&
+        currentRoute != com.agroroute.core.navigation.Screen.SupplierHome.route
     val showBottomBar = currentRoute in supplierTabRoutes
 
     Scaffold(

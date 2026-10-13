@@ -14,6 +14,7 @@ import com.agroroute.core.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import javax.inject.Inject
 
 /** UI state for supplier order screens. */
@@ -44,6 +45,9 @@ class SupplierOrderViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SupplierOrderUiState())
     val uiState: StateFlow<SupplierOrderUiState> = _uiState.asStateFlow()
+    private var ordersObserver: Job? = null
+    private var requestsObserver: Job? = null
+    private var observedSupplierId: String? = null
     val currentSupplierId: String get() = authRepository.currentUserId.orEmpty()
 
     init {
@@ -77,13 +81,18 @@ class SupplierOrderViewModel @Inject constructor(
     }
 
     fun loadOrdersForSupplier(supplierId: String) {
+        if (supplierId.isBlank() || (observedSupplierId == supplierId &&
+                ordersObserver?.isActive == true && requestsObserver?.isActive == true)) return
+        ordersObserver?.cancel()
+        requestsObserver?.cancel()
+        observedSupplierId = supplierId
         viewModelScope.launch {
             when (val sync = orderRepository.syncOrders(supplierId)) {
                 is Result.Error -> _uiState.update { it.copy(error = sync.message) }
                 else -> Unit
             }
         }
-        getOrdersUseCase.forSupplier(supplierId)
+        ordersObserver = getOrdersUseCase.forSupplier(supplierId)
             .onEach { result ->
                 when (result) {
                     is Result.Loading -> _uiState.update { it.copy(isLoading = true) }
@@ -99,7 +108,7 @@ class SupplierOrderViewModel @Inject constructor(
                 else -> Unit
             }
         }
-        orderRequestRepository.getRequestsForSupplier(supplierId)
+        requestsObserver = orderRequestRepository.getRequestsForSupplier(supplierId)
             .onEach { result ->
                 when (result) {
                     is Result.Loading -> _uiState.update { it.copy(isLoading = true) }

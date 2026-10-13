@@ -68,6 +68,10 @@ fun SupplierBottomBar(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (selectedRoute == Screen.SupplierHome.route) {
+        com.agroroute.features.supplier.home.SupplierHomeBottomNavigation(onNavigate, modifier)
+        return
+    }
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     com.agroroute.core.components.AnimatedBottomBar(

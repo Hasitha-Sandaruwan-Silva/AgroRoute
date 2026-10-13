@@ -1,5 +1,8 @@
 package com.agroroute.features.supplier.marketplace
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.runtime.LaunchedEffect
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,6 +79,13 @@ fun BrowseListingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var searchQuery by remember { mutableStateOf("") }
+    val homeSearchFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val focusFromHome = remember {
+        navController.previousBackStackEntry?.savedStateHandle?.remove<Boolean>("supplier_home_search") == true
+    }
+    LaunchedEffect(focusFromHome) {
+        if (focusFromHome) homeSearchFocus.requestFocus()
+    }
     var filter by remember { mutableStateOf(MarketFilter.ALL) }
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { /* flows from VM */ }
@@ -115,7 +125,9 @@ fun BrowseListingsScreen(
                 textStyle = MaterialTheme.typography.bodyMedium,
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp).then(
+                    Modifier.focusRequester(homeSearchFocus)
+                )
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 item {

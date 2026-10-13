@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import javax.inject.Inject
 
 data class SupplierBidsUiState(
@@ -33,12 +34,17 @@ class SupplierBidsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SupplierBidsUiState())
     val uiState: StateFlow<SupplierBidsUiState> = _uiState.asStateFlow()
+    private var bidsObserver: Job? = null
+    private var observedSupplierId: String? = null
 
     val currentSupplierId: String
         get() = authRepository.currentUserId ?: ""
 
     fun loadBids(supplierId: String) {
-        getBidsBySupplierUseCase(supplierId)
+        if (supplierId.isBlank() || (observedSupplierId == supplierId && bidsObserver?.isActive == true)) return
+        bidsObserver?.cancel()
+        observedSupplierId = supplierId
+        bidsObserver = getBidsBySupplierUseCase(supplierId)
             .onEach { result ->
                 when (result) {
                     is Result.Success -> _uiState.update {
