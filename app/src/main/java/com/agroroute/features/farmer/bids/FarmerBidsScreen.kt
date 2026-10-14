@@ -90,7 +90,7 @@ fun FarmerBidsScreen(
             ) {
                 Text(
                     text = "Incoming bids",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -188,6 +188,8 @@ private fun FarmerBidCard(
     onReject: () -> Unit
 ) {
     AppCard(onClick = onOpen) {
+        com.agroroute.core.components.ListingImage(listing.imageUrls.firstOrNull(), height = 112.dp)
+        Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -196,7 +198,7 @@ private fun FarmerBidCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     listing.cropName,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -256,6 +258,10 @@ private fun FarmerBidCard(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
+        Text("Available stock: ${listing.availableStock()} ${listing.quantityUnit.name}",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (listing.location.isNotBlank()) Text(com.agroroute.core.components.profileLocationLabel(listing.location),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             text = "Bid date: ${formatBidDate(bid.createdAt)}",
             style = MaterialTheme.typography.bodySmall,
@@ -302,7 +308,7 @@ private fun FarmerBidCard(
                 ) {
                     Text(
                         text = "Reject",
-                        color = if (isLoading) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        color = if (!com.agroroute.core.runtime.LocalMutationAllowed.current || isLoading) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         else MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -315,4 +321,4 @@ private fun FarmerBidCard(
 private fun BidStatus.label(): String = name.lowercase().replaceFirstChar { it.uppercase() }
 
 private fun formatBidDate(timestamp: Long): String =
-    SimpleDateFormat("MMM dd, yyyy Â· hh:mm a", Locale.getDefault()).format(Date(timestamp))
+    SimpleDateFormat("MMM dd, yyyy · hh:mm a", Locale.getDefault()).format(Date(timestamp))

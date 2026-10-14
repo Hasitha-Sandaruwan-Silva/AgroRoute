@@ -186,258 +186,62 @@ fun FarmerOrdersScreen(
     // SCREEN
     // =========================================================
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                MaterialTheme.colorScheme.background
-            )
-    ) {
-
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            // =================================================
-            // SIMPLE UNIQUE HEADER
-            // =================================================
-
-            OrdersHeader(
-                totalOrders = rangedOrders.size,
-                selectedRange = selectedRange
-            )
-
-
-            // =================================================
-            // FILTER AREA
-            // =================================================
-
-            Column(
-                modifier = Modifier.padding(
-                    start = 18.dp,
-                    end = 18.dp,
-                    top = 8.dp,
-                    bottom = 10.dp
-                ),
-                verticalArrangement =
-                    Arrangement.spacedBy(12.dp)
-            ) {
-
-                // ---------------------------------------------
-                // Range selector
-                // ---------------------------------------------
-
-                RangeSelector(
-                    selectedRange = selectedRange,
-                    onRangeSelected = {
-                        selectedRange = it
-                    }
-                )
-
-
-                // ---------------------------------------------
-                // Stats
-                // ---------------------------------------------
-
-                OrderStatsStrip(
-                    deliveredCount =
-                        deliveredOrders.size,
-                    deliveredQuantity =
-                        deliveredQuantity.toString(),
-                    deliveredValue =
-                        "Rs. $deliveredValue"
-                )
-
-
-                // ---------------------------------------------
-                // Search
-                // ---------------------------------------------
-
-                OrderSearchField(
-                    value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
-                    },
-                    onClear = {
-                        searchQuery = ""
-                    }
-                )
-
-
-                // ---------------------------------------------
-                // Status
-                // ---------------------------------------------
-
-                StatusSelector(
-                    selectedStatus = selectedStatus,
-                    onStatusSelected = {
-                        selectedStatus = it
-                    }
-                )
-            }
-
-
-            // =================================================
-            // RESULT HEADER
-            // =================================================
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = 20.dp,
-                        vertical = 6.dp
-                    ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                Text(
-                    text = "Orders",
-                    style =
-                        MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color =
-                        MaterialTheme.colorScheme.onBackground
-                )
-
-                Spacer(Modifier.width(7.dp))
-
-                Surface(
-                    shape = CircleShape,
-                    color =
-                        MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = visibleOrders.size.toString(),
-                        modifier = Modifier.padding(
-                            horizontal = 8.dp,
-                            vertical = 3.dp
-                        ),
-                        style =
-                            MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color =
-                            MaterialTheme.colorScheme
-                                .onPrimaryContainer
-                    )
-                }
-
-
-                Spacer(Modifier.weight(1f))
-
-
-                Text(
-                    text = selectedRange.label,
-                    style =
-                        MaterialTheme.typography.labelSmall,
-                    color =
-                        MaterialTheme.colorScheme
-                            .onSurfaceVariant
-                )
-            }
-
-
-            // =================================================
-            // ORDER LIST
-            // =================================================
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-
-                when {
-
-                    uiState.isLoading &&
-                            uiState.orders.isEmpty() -> {
-
-                        ListSkeleton()
-                    }
-
-
-                    uiState.orders.isEmpty() -> {
-
-                        OrdersEmptyState(
-                            title = "No orders yet",
-                            message =
-                                "Your orders will appear here once a supplier order is created.",
-                            searchState = false
-                        )
-                    }
-
-
-                    visibleOrders.isEmpty() -> {
-
-                        OrdersEmptyState(
-                            title = "Nothing found",
-                            message =
-                                "Try a different search, status, or time range.",
-                            searchState = true
-                        )
-                    }
-
-
-                    else -> {
-
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
-                                start = 18.dp,
-                                end = 18.dp,
-                                top = 8.dp,
-                                bottom = 28.dp
-                            ),
-                            verticalArrangement =
-                                Arrangement.spacedBy(11.dp)
-                        ) {
-
-                            items(
-                                items = visibleOrders,
-                                key = {
-                                    it.orderId
-                                }
-                            ) { order ->
-
-                                ModernOrderCard(
-                                    order = order,
-                                    supplierName =
-                                        uiState.supplierNames[
-                                            order.orderId
-                                        ],
-                                    onCardClick = {
-
-                                        navController.navigate(
-                                            Screen
-                                                .FarmerOrderDetail
-                                                .createRoute(
-                                                    order.orderId
-                                                )
-                                        )
-                                    }
-                                )
-                            }
+    Box(Modifier.fillMaxSize().background(com.agroroute.features.farmer.components.FarmerForest)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item(key = "controls") {
+                FarmerOrdersControls {
+                    OrdersHeader(rangedOrders.size, selectedRange)
+                    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RangeSelector(selectedRange) { selectedRange = it }
+                        OrderStatsStrip(deliveredOrders.size, deliveredQuantity.toString(), "Rs. $deliveredValue")
+                        OrderSearchField(searchQuery, { searchQuery = it }, { searchQuery = "" })
+                        StatusSelector(selectedStatus) { selectedStatus = it }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Orders", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(8.dp))
+                            Text("${visibleOrders.size}", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
-
-
-                AgroSnackbarHost(
-                    snackbarHostState =
-                        snackbarHostState,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 12.dp)
-                )
+            }
+            when {
+                uiState.isLoading && uiState.orders.isEmpty() -> item { ListSkeleton() }
+                uiState.orders.isEmpty() -> item {
+                    FarmerOrdersControls { OrdersEmptyState("No orders yet",
+                        "Your orders will appear here once a supplier order is created.", false) }
+                }
+                visibleOrders.isEmpty() -> item {
+                    FarmerOrdersControls { OrdersEmptyState("Nothing found",
+                        "Try a different search, status, or time range.", true) }
+                }
+                else -> items(visibleOrders, key = { it.orderId }) { order ->
+                    Box(Modifier.padding(horizontal = 16.dp)) {
+                        ModernOrderCard(order, uiState.supplierNames[order.orderId]) {
+                            navController.navigate(Screen.FarmerOrderDetail.createRoute(order.orderId))
+                        }
+                    }
+                }
             }
         }
+        AgroSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 }
 
-
-// =============================================================
-// HEADER
-// =============================================================
+@Composable
+private fun FarmerOrdersControls(content: @Composable () -> Unit) {
+    val colors = MaterialTheme.colorScheme.copy(
+        background = com.agroroute.features.farmer.components.FarmerForest,
+        onBackground = com.agroroute.features.farmer.components.FarmerCream,
+        surface = Color(0xFF153D2E), onSurface = com.agroroute.features.farmer.components.FarmerCream,
+        surfaceVariant = Color(0xFF244A39), onSurfaceVariant = Color(0xFFCBDCCB),
+        primary = Color(0xFFBEF477), onPrimary = Color(0xFF153D2E),
+        primaryContainer = Color(0xFF38642D), onPrimaryContainer = Color(0xFFECFFD9),
+        outlineVariant = Color(0xFF3D604B))
+    MaterialTheme(colorScheme = colors) {
+        CompositionLocalProvider(LocalContentColor provides colors.onSurface, content = content)
+    }
+}
 
 @Composable
 private fun OrdersHeader(
@@ -577,8 +381,8 @@ private fun RangeSelector(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .heightIn(min = 48.dp),
+                    shape = RoundedCornerShape(24.dp),
                     color = containerColor,
                     shadowElevation =
                         if (selected) 1.dp else 0.dp
@@ -620,8 +424,9 @@ private fun OrderStatsStrip(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant
@@ -866,7 +671,7 @@ private fun StatusFilterChip(
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
         color = containerColor,
         border = BorderStroke(
             1.dp,
@@ -932,8 +737,9 @@ private fun ModernOrderCard(
     Surface(
         onClick = onCardClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant
@@ -949,8 +755,8 @@ private fun ModernOrderCard(
             // making the whole card colourful.
             Box(
                 modifier = Modifier
-                    .width(4.dp)
-                    .heightIn(min = 178.dp)
+                    .width(0.dp)
+                    .heightIn(min = 0.dp)
                     .background(
                         MaterialTheme.colorScheme.primary
                     )
@@ -976,7 +782,7 @@ private fun ModernOrderCard(
 
                     Surface(
                         modifier = Modifier.size(38.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(24.dp),
                         color =
                             MaterialTheme.colorScheme
                                 .primaryContainer
@@ -1133,9 +939,7 @@ private fun ModernOrderCard(
 
                 Text("Total agreed: Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.bodySmall)
                 Text(com.agroroute.core.components.orderNextStep(order.status, false), style = MaterialTheme.typography.bodySmall)
-                OrderProgressStrip(
-                    currentStatus = order.status
-                )
+                com.agroroute.features.farmer.components.FarmerOrderProgress(order.status)
 
 
                 Row(

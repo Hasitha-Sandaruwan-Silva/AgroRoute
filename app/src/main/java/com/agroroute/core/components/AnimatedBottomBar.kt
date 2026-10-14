@@ -44,6 +44,8 @@ fun AnimatedBottomBar(
     modifier: Modifier = Modifier
 ) {
 
+    val farmer = com.agroroute.features.farmer.components.LocalFarmerPresentation.current
+    val farmerBarHeight = (68f + (androidx.compose.ui.platform.LocalDensity.current.fontScale - 1f).coerceAtLeast(0f) * 30f).dp
     val selectedIndex = items
         .indexOfFirst {
             selectedRoute.startsWith(
@@ -58,8 +60,8 @@ fun AnimatedBottomBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(
-                horizontal = 16.dp,
-                vertical = 10.dp
+                horizontal = if (farmer) 0.dp else 16.dp,
+                vertical = if (farmer) 0.dp else 10.dp
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -68,7 +70,7 @@ fun AnimatedBottomBar(
             modifier = Modifier
                 .widthIn(max = 520.dp)
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
+            shape = if (farmer) RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp) else RoundedCornerShape(28.dp),
 
             // Automatically changes with Light / Dark theme
             color = MaterialTheme.colorScheme.surface,
@@ -82,7 +84,7 @@ fun AnimatedBottomBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(68.dp)
+                    .height(if (farmer) farmerBarHeight else 68.dp)
                     .padding(
                         horizontal = 6.dp,
                         vertical = 6.dp

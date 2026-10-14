@@ -16,6 +16,22 @@ fun FarmerScaffold(
     onNavigate: (String) -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    com.agroroute.features.farmer.components.FarmerPresentation {
+        FarmerScaffoldContent(currentRoute, navController, onNavigate, content)
+    }
+}
+
+@Composable
+private fun FarmerScaffoldContent(
+    currentRoute: String,
+    navController: NavController,
+    onNavigate: (String) -> Unit,
+    content: @Composable (PaddingValues) -> Unit
+) {
+    if (currentRoute == com.agroroute.core.navigation.Screen.NotificationInbox.route) {
+        content(PaddingValues())
+        return
+    }
     val showTopBar = currentRoute in farmerRoutes
     val showBottomBar = currentRoute in farmerTabRoutes
 

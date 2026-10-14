@@ -31,6 +31,8 @@ fun OrderSummarySection(order: Order, forSupplier: Boolean, counterpartName: Str
         Spacer(Modifier.height(8.dp))
         if (forSupplier && com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
             com.agroroute.features.supplier.components.SupplierOrderProgress(order.status)
+        } else if (!forSupplier && com.agroroute.features.farmer.components.LocalFarmerPresentation.current) {
+            com.agroroute.features.farmer.components.FarmerOrderProgress(order.status)
         } else OrderProgressStrip(order.status)
         Text(orderNextStep(order.status, forSupplier), style = MaterialTheme.typography.bodySmall)
         if (order.status == OrderStatus.AWAITING_PICKUP && !forSupplier) {

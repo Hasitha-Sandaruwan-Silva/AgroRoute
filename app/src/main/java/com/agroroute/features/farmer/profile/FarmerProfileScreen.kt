@@ -100,13 +100,13 @@ fun FarmerProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(26.dp))
-                    .background(
-                        AgroGradients.forest
-                    )
-                    .padding(horizontal = 20.dp, vertical = 28.dp)
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
+                androidx.compose.foundation.Image(
+                    androidx.compose.ui.res.painterResource(com.agroroute.R.drawable.farmer_home_hero), null,
+                    Modifier.fillMaxWidth().height(150.dp), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 96.dp, bottom = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     UserProfileAvatar(
@@ -123,14 +123,14 @@ fun FarmerProfileScreen(
                         text = displayName,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = email,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.75f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 4.dp)
@@ -251,6 +251,9 @@ fun FarmerProfileScreen(
             Spacer(Modifier.height(16.dp))
 
             ProfileLocationCard(user?.location, onClick = { if (mutationAllowed) showProfileEditor = true })
+            Spacer(Modifier.height(12.dp))
+            com.agroroute.features.farmer.components.FarmerPromo()
+            Spacer(Modifier.height(12.dp))
             com.agroroute.core.runtime.AppEntryAction(tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             SettingsSection(

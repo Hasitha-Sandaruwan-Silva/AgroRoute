@@ -45,24 +45,25 @@ fun FarmerTopBar(
     // WIFI/BATTERY/TIME 100% VISIBLE - LIGHT MODE FIX - BASED ON SURFACE LUMINANCE
     val view = LocalView.current
     val isDarkTheme = isSystemInDarkTheme()
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    val surfaceColor = if (isTab) com.agroroute.features.farmer.components.FarmerForest else MaterialTheme.colorScheme.surface
     // Use luminance to decide icon color - light surface = dark icons, dark surface = light icons
     val isSurfaceLight = surfaceColor.luminance() > 0.5f
+    val navigationSurfaceLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = isSurfaceLight
-                isAppearanceLightNavigationBars = isSurfaceLight
+                isAppearanceLightNavigationBars = navigationSurfaceLight
             }
         }
     }
 
     var showAvatarMenu by remember { mutableStateOf(false) }
 
-    Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shadowElevation = 0.dp) {
+    Surface(modifier = modifier.fillMaxWidth(), color = surfaceColor, contentColor = if (isTab) com.agroroute.features.farmer.components.FarmerCream else MaterialTheme.colorScheme.onSurface, shadowElevation = 0.dp) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars).background(MaterialTheme.colorScheme.surface))
+            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars).background(surfaceColor))
             Row(
                 modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -80,8 +81,8 @@ fun FarmerTopBar(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         if (isTab) {
-                            Text("AgroRoute", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.3).sp, color = MaterialTheme.colorScheme.primary)
-                            Text("FARMER", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("AgroRoute", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.3).sp, color = com.agroroute.core.theme.LeafAccent)
+                            Text("FARMER", style = MaterialTheme.typography.labelSmall, color = com.agroroute.features.farmer.components.FarmerCream.copy(alpha = .8f))
                         } else {
                             Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (subtitle != null) {
@@ -92,7 +93,7 @@ fun FarmerTopBar(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    NotificationBell(navController = navController)
+                    NotificationBell(navController = navController, tint = if (isTab) com.agroroute.features.farmer.components.FarmerCream else MaterialTheme.colorScheme.onSurface)
 
                     Box {
                         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
@@ -147,7 +148,7 @@ internal val farmerRoutes = setOf(
     *farmerTabRoutes.toTypedArray(), Screen.FarmerBids.route, Screen.HarvestCalendar.route,
     Screen.CreateListing.route, Screen.EditListing.route, Screen.ViewBids.route,
     Screen.FarmerOrderDetail.route, Screen.FarmerOrderRequests.route, Screen.FarmerLeaderboard.route,
-    Screen.SubmitReview.route, Screen.HelpSupport.route, Screen.About.route, Screen.Privacy.route
+    Screen.NotificationInbox.route, Screen.NotificationSettings.route, Screen.SubmitReview.route, Screen.HelpSupport.route, Screen.About.route, Screen.Privacy.route
 )
 internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerHome.route -> "Home"
@@ -159,6 +160,7 @@ internal fun farmerTitle(route: String): String = when {
     route == Screen.FarmerProfile.route -> "Profile"
     route == Screen.FarmerLeaderboard.route -> "Farmer Leaderboard"
     route == Screen.CreateListing.route -> "Create Listing"
+    route == Screen.NotificationSettings.route -> "Notification settings"
     route == Screen.HelpSupport.route -> "Help & Support"
     route == Screen.About.route -> "About"
     route == Screen.Privacy.route -> "Privacy & Terms"

@@ -52,6 +52,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
     var listingPendingReady by remember { mutableStateOf<HarvestListing?>(null) }
     var listingPickupRepair by remember { mutableStateOf<HarvestListing?>(null) }
     var listingPendingFailure by remember { mutableStateOf<HarvestListing?>(null) }
+    val keyboardVisible = WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
 
     listingPickupRepair?.let { listing ->
         LocationPickerDialog(listing.location, onDismiss = { listingPickupRepair = null }, onConfirm = {
@@ -100,7 +101,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Scaffold(
             floatingActionButton = {
-                ExtendedFloatingActionButton(
+                if (!keyboardVisible) ExtendedFloatingActionButton(
                     onClick = { navController.navigate(Screen.CreateListing.route) },
                     icon = { Icon(Lucide.Plus, contentDescription = null) },
                     text = { Text("New Listing", fontWeight = FontWeight.Bold) },
@@ -127,7 +128,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                Column(Modifier.weight(1f)) {
                                     Text("My Harvests", fontWeight = FontWeight.Black, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF4CAF50)))
@@ -146,7 +147,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                             .clickable { sortMenuExpanded = true },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(Lucide.RefreshCw, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                                        Icon(Lucide.Settings, contentDescription = "Sort listings", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
                                     }
                                     Box(
                                         modifier = Modifier.size(40.dp).clip(CircleShape)
@@ -154,7 +155,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                             .clickable { navController.navigate(Screen.FarmerBids.route) },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(Lucide.Gavel, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
+                                        Icon(Lucide.Gavel, contentDescription = "View bids", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
                                     }
                                 }
                             }
@@ -180,14 +181,14 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                     }
                                 },
                                 singleLine = true,
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(28.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                                     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                 ),
-                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -304,14 +305,14 @@ private fun SuperbListingCard(
 ) {
     val isFailed = listing.harvestStatus == HarvestStatus.FAILED
     Surface(
-        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(18.dp)),
-        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(22.dp)),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
         onClick = onCardClick
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(170.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
-                ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 170.dp)
+            Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
+                ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 150.dp)
                 Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.45f)))))
                 Row(modifier = Modifier.align(Alignment.TopStart).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (listing.isExpired( com.agroroute.core.components.listingPresentationTime())) {
@@ -360,6 +361,9 @@ private fun SuperbListingCard(
                         Text(listing.category?.displayName ?: "-", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
+                Text("Posted ${remember(listing.createdAt) { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(listing.createdAt)) }}",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp))
                 if (listing.status == ListingStatus.OPEN) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Allow bidding", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
@@ -376,7 +380,7 @@ private fun SuperbListingCard(
                         Text(if (SelectedLocation.fromStoredText(listing.location) == null) "Add pickup pin" else "Edit listing")
                     }
                     if (listing.status == ListingStatus.OPEN) {
-                        TextButton(onClick = onCloseClick, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current) { Text("Close", color = MaterialTheme.colorScheme.error) }
+                        TextButton(onClick = onCloseClick, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current) { Text("Close", color = if (com.agroroute.core.runtime.LocalMutationAllowed.current) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)) }
                     }
                 }
                 if (listing.harvestStatus == HarvestStatus.EXPECTED) {

@@ -58,14 +58,14 @@ fun ViewBidsScreen(
             uiState.isLoading && uiState.bids.isEmpty() -> ListSkeleton()
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 12.dp, bottom = 100.dp, start = 12.dp, end = 12.dp),
+                contentPadding = PaddingValues(top = 12.dp, bottom = 100.dp, start = 16.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 uiState.listing?.let { listing ->
                     item {
                         Surface(
-                            modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(18.dp)),
-                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(22.dp)),
+                            shape = RoundedCornerShape(22.dp),
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Column {
@@ -113,6 +113,28 @@ fun ViewBidsScreen(
                                             Spacer(Modifier.width(6.dp))
                                             Text("${listing.quantity} ${listing.quantityUnit.name} • Rs. ${listing.reservePrice} per ${listing.quantityUnit.name}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                         }
+                                    }
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text("Available stock", style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text("${listing.availableStock()} ${listing.quantityUnit.name}",
+                                                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary)
+                                        }
+                                        Column(Modifier.weight(1f)) {
+                                            Text("Original quantity", style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text("${listing.quantity} ${listing.quantityUnit.name}",
+                                                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text(if (listing.biddingEnabled) "Bidding enabled" else "Fixed price",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    listing.expiresAt?.let { expiry ->
+                                        Text("Expires: ${formatDate(expiry)}", style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     listing.expectedHarvestAt?.let { at ->
                                         Row(verticalAlignment = Alignment.CenterVertically) {

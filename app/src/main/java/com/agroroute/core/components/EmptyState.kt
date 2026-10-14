@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,6 +40,19 @@ fun EmptyState(
 ) {
     if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
         com.agroroute.features.supplier.components.SupplierEmptyState(icon, title, subtitle, modifier)
+        return
+    }
+    if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current) {
+        Column(modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            androidx.compose.foundation.Image(
+                androidx.compose.ui.res.painterResource(com.agroroute.R.drawable.supplier_empty_state), null,
+                Modifier.size(112.dp).clip(RoundedCornerShape(24.dp)))
+            Spacer(Modifier.height(16.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp))
+        }
         return
     }
     var visible by remember { mutableStateOf(false) }

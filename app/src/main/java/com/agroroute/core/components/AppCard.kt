@@ -47,7 +47,8 @@ fun AppCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val extended = LocalAgroExtendedColors.current
-    val supplier = com.agroroute.features.supplier.components.LocalSupplierPresentation.current
+    val supplier = com.agroroute.features.supplier.components.LocalSupplierPresentation.current ||
+        com.agroroute.features.farmer.components.LocalFarmerPresentation.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(

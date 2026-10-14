@@ -937,7 +937,7 @@ private fun FormSection(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Column(modifier = modifier) {
+    AppCard(modifier = modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 4.dp)
@@ -1180,9 +1180,9 @@ private fun PhotoPickerCard(
                     modifier = Modifier.heightIn(min = 48.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selectedUri != null) Color.White.copy(alpha = 0.22f)
+                        containerColor = if (selectedUri != null && !imageFailed) Color.White.copy(alpha = 0.22f)
                         else MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = if (selectedUri != null) Color.White
+                        contentColor = if (selectedUri != null && !imageFailed) Color.White
                         else MaterialTheme.colorScheme.onPrimaryContainer
                     ),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)

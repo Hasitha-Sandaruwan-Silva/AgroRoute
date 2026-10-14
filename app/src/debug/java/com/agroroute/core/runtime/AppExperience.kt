@@ -108,12 +108,12 @@ class DemoSessionViewModel : ViewModel() {
     BackHandler(enabled = state.enabled) { exit() }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(Modifier.padding(vertical = 6.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
                     Text("DEMO MODE | ${state.selectedRole?.name ?: "LOCAL"}", style = MaterialTheme.typography.labelMedium)
                     Text(DemoRepositories.UNAVAILABLE, style = MaterialTheme.typography.labelSmall)
                 }
-                TextButton(onClick = { menu = true }) { Text("Demo menu") }
+                TextButton(onClick = { menu = true }) { Text("Demo menu", maxLines = 1) }
             }
         }
         if (state.selectedRole == null) {

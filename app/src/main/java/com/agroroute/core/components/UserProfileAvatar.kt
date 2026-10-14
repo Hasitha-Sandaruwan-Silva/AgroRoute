@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import com.agroroute.core.theme.AgroGradients
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -151,6 +153,14 @@ fun ProfileEditDialog(
                 if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
                     com.agroroute.features.supplier.components.SupplierSectionHeader(
                         "Your details", "Keep your contact and delivery information up to date")
+                    Spacer(Modifier.height(16.dp))
+                }
+                if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        UserProfileAvatar(displayName = displayName, imageUrl = null, size = 48.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Your farm profile", style = MaterialTheme.typography.titleMedium)
+                    }
                     Spacer(Modifier.height(16.dp))
                 }
                 OutlinedTextField(

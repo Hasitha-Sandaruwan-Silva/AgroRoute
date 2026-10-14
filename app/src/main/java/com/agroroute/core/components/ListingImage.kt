@@ -45,7 +45,12 @@ fun ListingImage(
         contentAlignment = Alignment.Center
     ) {
         if (shouldUseListingImageFallback(imageUrl, imageFailed)) {
-            Box(
+            if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current) {
+                androidx.compose.foundation.Image(
+                    androidx.compose.ui.res.painterResource(com.agroroute.R.drawable.supplier_produce_fallback),
+                    "Listing photo unavailable; generic produce artwork", Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop)
+            } else Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(MaterialTheme.shapes.medium)

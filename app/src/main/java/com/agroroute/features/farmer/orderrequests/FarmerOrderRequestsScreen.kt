@@ -93,7 +93,7 @@ fun FarmerOrderRequestsScreen(
             ) {
                 Text(
                     text = "Order requests",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -191,6 +191,10 @@ internal fun FarmerOrderRequestCard(
     val isPreHarvest = request.isPreHarvest || harvestStatus == HarvestStatus.EXPECTED
 
     AppCard {
+        listing?.let {
+            com.agroroute.core.components.ListingImage(it.imageUrls.firstOrNull(), height = 112.dp)
+            Spacer(Modifier.height(12.dp))
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -199,7 +203,7 @@ internal fun FarmerOrderRequestCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     request.cropName.ifBlank { listing?.cropName.orEmpty() }.ifBlank { "Crop" },
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -261,6 +265,15 @@ internal fun FarmerOrderRequestCard(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
+        if (request.deliveryLocation.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Lucide.MapPin, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(com.agroroute.core.components.profileLocationLabel(request.deliveryLocation),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(8.dp))
+        }
         Text(
             text = "Requested: ${formatRequestDate(request.createdAt)}",
             style = MaterialTheme.typography.bodySmall,
@@ -290,7 +303,7 @@ internal fun FarmerOrderRequestCard(
                 ) {
                     Text(
                         text = "Reject",
-                        color = if (isLoading) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        color = if (!com.agroroute.core.runtime.LocalMutationAllowed.current || isLoading) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         else MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold
                     )

@@ -42,6 +42,10 @@ fun OrderPickupSection(
     if (forSupplier && status == OrderStatus.DELIVERED && verification?.supplierConfirmed == true &&
         verification.farmerConfirmed) return
     AppCard {
+        if (!forSupplier && com.agroroute.features.farmer.components.LocalFarmerPresentation.current) {
+            AgroIconBox(com.github.thelacspace.icons.Lucide.Package)
+            Spacer(Modifier.height(12.dp))
+        }
         Text(if (forSupplier) "Pickup Verification" else "Pickup Handover",
             style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
