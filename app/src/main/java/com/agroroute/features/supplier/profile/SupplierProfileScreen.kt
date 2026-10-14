@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -52,7 +53,7 @@ import com.agroroute.core.theme.ForestSoft
 import com.agroroute.core.theme.LeafAccent
 import com.agroroute.core.theme.ThemeViewModel
 import com.agroroute.core.components.AgroSnackbarHost
-import com.agroroute.core.components.AppCard
+import com.agroroute.features.supplier.components.SupplierCard as AppCard
 import com.agroroute.core.components.RoleBadge
 import com.agroroute.core.components.SettingsSection
 import com.agroroute.core.components.ProfileEditDialog
@@ -103,11 +104,11 @@ fun SupplierProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(26.dp))
-                    .background(
-                        AgroGradients.forest
-                    )
-                    .padding(22.dp)
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
+                androidx.compose.foundation.Image(
+                    androidx.compose.ui.res.painterResource(com.agroroute.R.drawable.supplier_farm_hero), null,
+                    Modifier.fillMaxWidth().height(140.dp), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                 Icon(
                     imageVector = Lucide.Leaf,
                     contentDescription = null,
@@ -116,47 +117,50 @@ fun SupplierProfileScreen(
                         .align(Alignment.TopEnd)
                         .size(88.dp)
                 )
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        UserProfileAvatar(
-                            displayName = displayName,
-                            imageUrl = uiState.photoPreviewUri?.toString() ?: user?.profileImageUrl,
-                        uploading = uiState.photoUploading,
-                            size = 88.dp,
-                            selected = true,
-                            editable = mutationAllowed && !uiState.isLoading && !uiState.photoUploading,
-                            onPhotoSelected = viewModel::uploadProfilePhoto
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = displayName,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                Column(Modifier.padding(top = 100.dp)) {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surface).padding(18.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            UserProfileAvatar(
+                                displayName = displayName,
+                                imageUrl = uiState.photoPreviewUri?.toString() ?: user?.profileImageUrl,
+                            uploading = uiState.photoUploading,
+                                size = 88.dp,
+                                selected = true,
+                                editable = mutationAllowed && !uiState.isLoading && !uiState.photoUploading,
+                                onPhotoSelected = viewModel::uploadProfilePhoto
                             )
-                            if (email.isNotBlank()) {
+                            Spacer(Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = email,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.78f),
+                                    text = displayName,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(top = 2.dp)
+                                    overflow = TextOverflow.Ellipsis
                                 )
+                                if (email.isNotBlank()) {
+                                    Text(
+                                        text = email,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
                             }
                         }
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.14f), thickness = 1.dp)
-                    Spacer(Modifier.height(14.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RoleBadge(role = role)
+                        Spacer(Modifier.height(16.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
+                        Spacer(Modifier.height(14.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RoleBadge(role = role)
+                        }
                     }
                 }
             }
@@ -175,7 +179,7 @@ fun SupplierProfileScreen(
                     color = MaterialTheme.colorScheme.errorContainer
                 ) {
                     Text(
-                        text = error,
+                        text = com.agroroute.core.components.presentationError(error),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
@@ -252,7 +256,7 @@ fun SupplierProfileScreen(
                     }
                     OutlinedButton(
                         onClick = { navController.navigate(Screen.SupplierLeaderboard.route) },
-                        modifier = Modifier.height(40.dp)
+                        modifier = Modifier.heightIn(min = 48.dp)
                     ) {
                         Icon(
                             imageVector = Lucide.Trophy,
@@ -268,6 +272,9 @@ fun SupplierProfileScreen(
             Spacer(Modifier.height(16.dp))
 
             ProfileLocationCard(user?.location, onClick = { if (mutationAllowed) showProfileEditor = true })
+            Spacer(Modifier.height(16.dp))
+            com.agroroute.features.supplier.components.SupplierMarketBanner()
+            Spacer(Modifier.height(16.dp))
             com.agroroute.core.runtime.AppEntryAction(tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             SettingsSection(
@@ -320,7 +327,7 @@ fun SupplierProfileScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .heightIn(min = 52.dp),
                 enabled = mutationAllowed && !uiState.isLoading,
                 shape = MaterialTheme.shapes.large,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),

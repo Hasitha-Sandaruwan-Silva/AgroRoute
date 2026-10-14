@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,11 +39,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Bid
 import com.agroroute.core.model.BidStatus
+import com.agroroute.core.model.availabilityLabel
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.components.AgroSnackbarHost
-import com.agroroute.core.components.AppCard
+import com.agroroute.features.supplier.components.SupplierCard as AppCard
 import com.agroroute.core.components.BidStatusChip
-import com.agroroute.core.components.EmptyState
+import com.agroroute.features.supplier.components.SupplierEmptyState as EmptyState
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ListSkeleton
 import com.github.thelacspace.icons.Lucide
@@ -59,6 +61,7 @@ fun SupplierBidsScreen(
     viewModel: SupplierBidsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listings = com.agroroute.features.supplier.orders.orderListingPresentation()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -83,7 +86,7 @@ fun SupplierBidsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
-                        icon = Lucide.ShoppingCart,
+                        icon = Lucide.Gavel,
                         title = "Bids couldn't be loaded",
                         subtitle = "Check your connection and try again"
                     )
@@ -93,7 +96,7 @@ fun SupplierBidsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyState(
-                        icon = Lucide.ShoppingCart,
+                        icon = Lucide.Gavel,
                         title = "No Bids Yet",
                         subtitle = "Your bid history will appear here after you place bids on listings"
                     )
@@ -107,7 +110,7 @@ fun SupplierBidsScreen(
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = "Pending bids",
-                                    style = MaterialTheme.typography.titleLarge,
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
@@ -122,6 +125,7 @@ fun SupplierBidsScreen(
                         items(pendingBids, key = { it.bidId }) { bid ->
                             BidCard(
                                 bid = bid,
+                                listing = listings[bid.listingId],
                                 onWithdraw = { viewModel.withdrawBid(bid.bidId) },
                                 navController = navController,
                                 withdrawing = uiState.isWithdrawing
@@ -132,7 +136,7 @@ fun SupplierBidsScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Bid history",
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.padding(top = if (pendingBids.isEmpty()) 0.dp else 8.dp)
@@ -148,6 +152,7 @@ fun SupplierBidsScreen(
                     items(uiState.bids.filter { it.status != BidStatus.PENDING }, key = { it.bidId }) { bid ->
                         BidCard(
                             bid = bid,
+                            listing = listings[bid.listingId],
                             onWithdraw = if (bid.status == BidStatus.PENDING) {
                                 { viewModel.withdrawBid(bid.bidId) }
                             } else null,
@@ -168,11 +173,29 @@ fun SupplierBidsScreen(
 @Composable
 private fun BidCard(
     bid: Bid,
+    listing: com.agroroute.core.model.HarvestListing?,
     onWithdraw: (() -> Unit)?,
     navController: NavController,
     withdrawing: Boolean
 ) {
     AppCard {
+        Row(verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            com.agroroute.features.supplier.components.SupplierListingImage(
+                listing?.imageUrls?.firstOrNull(), Modifier.width(76.dp), height = 76.dp)
+            Column(Modifier.weight(1f)) {
+                Text(listing?.cropName ?: "Listing unavailable", style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold)
+                listing?.let {
+                    Text("Farmer: ${it.farmerName}", style = MaterialTheme.typography.bodySmall)
+                    Text(com.agroroute.core.components.profileLocationLabel(it.location),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    com.agroroute.core.components.StatusChip(
+                        it.availabilityLabel(), tone = com.agroroute.core.components.ChipTone.Neutral)
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -266,7 +289,7 @@ private fun BidCard(
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
+                    .heightIn(min = 48.dp)
             ) {
                 Text(if (bid.status == BidStatus.ACCEPTED) "View order" else "View listing", fontWeight = FontWeight.SemiBold)
             }
@@ -279,7 +302,7 @@ private fun BidCard(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
+                        .heightIn(min = 48.dp)
                 ) {
                     Text(if (withdrawing) "Withdrawing…" else "Withdraw", fontWeight = FontWeight.SemiBold)
                 }

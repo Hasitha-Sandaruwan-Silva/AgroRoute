@@ -43,7 +43,7 @@ fun NotificationInboxScreen(navController: NavController) {
             LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item(key = "filters") {
                     Column {
@@ -56,8 +56,10 @@ fun NotificationInboxScreen(navController: NavController) {
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(selected = !unreadOnly, onClick = { unreadOnly = false },
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
                                 label = { Text("All (${state.items.size})") })
                             FilterChip(selected = unreadOnly, onClick = { unreadOnly = true },
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
                                 label = { Text("Unread ($unreadCount)") })
                         }
                     }
@@ -74,9 +76,9 @@ fun NotificationInboxScreen(navController: NavController) {
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                     }
                     items(notifications, key = { "notification:${it.id}" }) { item ->
-                        Surface(shape = MaterialTheme.shapes.medium,
+                        Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
                             color = MaterialTheme.colorScheme.surface,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                            shadowElevation = 2.dp) {
                             NotificationRow(item, onClick = { open(item) }, markRead = { markRead(item) })
                         }
                     }

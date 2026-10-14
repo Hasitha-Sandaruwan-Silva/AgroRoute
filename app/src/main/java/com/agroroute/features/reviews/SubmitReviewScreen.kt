@@ -2,6 +2,7 @@ package com.agroroute.features.reviews
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -35,6 +37,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.Role
 import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -91,6 +97,8 @@ fun SubmitReviewScreen(
                 .padding(16.dp)
         ) {
             ReviewHeader(revieweeName = revieweeName)
+            Text("Order #${orderId.take(8)}", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             if (uiState.isChecking || uiState.hasReviewed || uiState.error != null)
                 com.agroroute.core.components.ReviewEligibilitySection(uiState.isChecking, false,
                 uiState.hasReviewed, uiState.error, revieweeName, {},
@@ -122,7 +130,7 @@ fun SubmitReviewScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .heightIn(min = 52.dp)
             )
             Spacer(Modifier.height(4.dp))
         }
@@ -136,14 +144,21 @@ fun SubmitReviewScreen(
 
 @Composable
 private fun ReviewHeader(revieweeName: String) {
-    Text("Review $revieweeName", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-    Text("Share your experience with this delivered order.", style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
+        AppCard {
+            com.agroroute.features.supplier.components.SupplierSectionHeader(
+                "Review $revieweeName", "Share your experience with this delivered order.", Lucide.Star)
+        }
+    } else {
+        Text("Review $revieweeName", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Share your experience with this delivered order.", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 @Composable
-private fun RatingCard(rating: Int, onRatingChange: (Int) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+internal fun RatingCard(rating: Int, onRatingChange: (Int) -> Unit) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Rating",
             style = MaterialTheme.typography.titleMedium,
@@ -152,26 +167,28 @@ private fun RatingCard(rating: Int, onRatingChange: (Int) -> Unit) {
         )
         Spacer(Modifier.height(16.dp))
         Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             (1..5).forEach { star ->
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(48.dp)
+                        .semantics { contentDescription = "$star out of 5 stars"; selected = star == rating }
                         .clip(RoundedCornerShape(8.dp))
                         .background(
                             if (star <= rating)
-                                LeafAccent.copy(alpha = 0.1f)
+                                MaterialTheme.colorScheme.primaryContainer
                             else
                                 MaterialTheme.colorScheme.surfaceVariant
                         )
-                        .clickable { onRatingChange(star) },
+                        .clickable(role = Role.Button) { onRatingChange(star) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (star <= rating) "★" else "☆",
                         style = MaterialTheme.typography.titleLarge,
-                        color = if (star <= rating) LeafAccent else MaterialTheme.colorScheme.outline
+                        color = if (star <= rating) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -194,8 +211,8 @@ private fun RatingCard(rating: Int, onRatingChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun CommentCard(comment: String, onCommentChange: (String) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+internal fun CommentCard(comment: String, onCommentChange: (String) -> Unit) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Write a Review",
             style = MaterialTheme.typography.titleMedium,
@@ -209,7 +226,9 @@ private fun CommentCard(comment: String, onCommentChange: (String) -> Unit) {
             placeholder = { Text("Share your experience...") },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .heightIn(min = 120.dp),
+            shape = RoundedCornerShape(16.dp),
+            minLines = 3,
             maxLines = 5
         )
     }

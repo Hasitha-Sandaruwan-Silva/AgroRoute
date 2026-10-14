@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,18 +42,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.agroroute.core.model.Order
 import com.agroroute.core.model.HarvestListing
-import com.agroroute.core.components.ListingImage
+import com.agroroute.features.supplier.components.SupplierListingImage as ListingImage
 import com.agroroute.core.components.profileLocationLabel
 import com.agroroute.core.model.OrderRequest
 import com.agroroute.core.model.OrderRequestStatus
 import com.agroroute.core.navigation.Screen
 import com.agroroute.core.components.AgroSnackbarHost
-import com.agroroute.core.components.AppCard
+import com.agroroute.features.supplier.components.SupplierCard as AppCard
 import com.agroroute.core.components.ChipTone
-import com.agroroute.core.components.EmptyState
+import com.agroroute.features.supplier.components.SupplierEmptyState as EmptyState
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ListSkeleton
-import com.agroroute.core.components.OrderProgressStrip
+import com.agroroute.features.supplier.components.SupplierOrderProgress as OrderProgressStrip
 import com.agroroute.core.components.OrderRequestStatusChip
 import com.agroroute.core.components.OrderStatusChip
 import com.agroroute.core.components.StatusChip
@@ -119,12 +120,18 @@ fun SupplierOrdersScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    if (uiState.requests.isEmpty()) {
+                        item(key = "no-requests") {
+                            com.agroroute.features.supplier.components.SupplierSectionHeader(
+                                "No requests yet", "Your fixed-price requests will appear here", Lucide.Inbox)
+                        }
+                    }
                     if (uiState.requests.isNotEmpty()) {
                         item {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = "Order requests",
-                                    style = MaterialTheme.typography.titleLarge,
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
@@ -182,7 +189,7 @@ fun SupplierOrdersScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Your orders",
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.padding(top = if (uiState.requests.isEmpty()) 0.dp else 8.dp)
@@ -301,6 +308,11 @@ internal fun SupplierOrderRequestCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (request.deliveryLocation.isNotBlank()) {
+            Text("Delivery: ${profileLocationLabel(request.deliveryLocation)}",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp))
+        }
         if (request.isPreHarvest && request.status == OrderRequestStatus.PENDING &&
             listing?.harvestStatus == com.agroroute.core.model.HarvestStatus.EXPECTED) {
             Surface(
@@ -343,7 +355,7 @@ internal fun SupplierOrderRequestCard(
                 modifier = Modifier
                     .align(Alignment.End)
                     .padding(top = 4.dp)
-                    .height(48.dp)
+                    .heightIn(min = 48.dp)
             ) {
                 Text("Cancel request", fontWeight = FontWeight.SemiBold)
             }
@@ -358,28 +370,19 @@ private fun OrderCard(
     onCardClick: () -> Unit
 ) {
     AppCard(onClick = onCardClick) {
-        ListingImage(listing?.imageUrls?.firstOrNull(), height = 96.dp)
-        Spacer(Modifier.height(14.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = order.cropName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(8.dp))
-            OrderStatusChip(order.status)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ListingImage(listing?.imageUrls?.firstOrNull(), Modifier.width(92.dp), height = 112.dp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OrderStatusChip(order.status)
+                Text(order.cropName, style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text("Farmer: ${listing?.farmerName?.takeIf(String::isNotBlank) ?: "Name unavailable"}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("#${order.orderId.takeLast(12)}", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
-        Text("Farmer: ${listing?.farmerName?.takeIf(String::isNotBlank) ?: "Name unavailable"}",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(14.dp))
         Text(com.agroroute.core.components.orderNextStep(order.status, true), style = MaterialTheme.typography.bodySmall)
         OrderProgressStrip(currentStatus = order.status)
@@ -459,7 +462,10 @@ private fun OrderCard(
             onClick = onCardClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .heightIn(min = 48.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.textButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
         ) {
             Text("View order details", fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(4.dp))

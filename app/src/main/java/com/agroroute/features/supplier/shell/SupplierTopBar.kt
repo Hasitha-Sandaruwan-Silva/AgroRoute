@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -39,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
@@ -70,12 +72,11 @@ fun SupplierTopBar(
 
     // ─── STATUS BAR ICONS කළු පැහැයට හැරවීම ───
     val view = LocalView.current
-    val isDarkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Light theme = dark icons, Dark theme = light icons
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDarkTheme
+            // The forest header uses light system icons in both app themes.
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }
 
@@ -83,7 +84,8 @@ fun SupplierTopBar(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
+        color = Color(0xFF003C29),
+        contentColor = Color.White,
         shadowElevation = 0.dp
     ) {
         Column(
@@ -94,7 +96,7 @@ fun SupplierTopBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(68.dp)
+                    .heightIn(min = 68.dp)
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -129,14 +131,14 @@ fun SupplierTopBar(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isTab) "AgroRoute" else supplierTitle(currentRoute),
+                            text = supplierTitle(currentRoute),
                             style = if (isTab) {
                                 // Fresh Premium Gradient Text Style
                                 TextStyle(
                                     brush = Brush.linearGradient(
                                         colors = listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+                                            Color.White,
+                                            Color.White.copy(alpha = 0.92f)
                                         )
                                     ),
                                     fontWeight = FontWeight.ExtraBold,
@@ -150,15 +152,15 @@ fun SupplierTopBar(
                                 )
                             },
                             color = if (isTab) androidx.compose.ui.graphics.Color.Unspecified
-                            else MaterialTheme.colorScheme.onSurface,
+                            else Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        if (isTab) {
+                        run {
                             Text(
-                                text = "SUPPLIER",
+                                text = "AgroRoute · Supplier",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = Color.White.copy(alpha = 0.8f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -166,7 +168,7 @@ fun SupplierTopBar(
                     }
                 }
 
-                NotificationBell(navController = navController)
+                NotificationBell(navController = navController, tint = Color.White)
 
                 // ─── Right Section: Profile Avatar + Dropdown ───
                 Box {

@@ -29,7 +29,9 @@ fun OrderSummarySection(order: Order, forSupplier: Boolean, counterpartName: Str
         Text("${order.quantity} ${order.quantityUnit.name} · Rs. ${order.agreedPrice}/${order.quantityUnit.name}")
         Text("Total agreed: Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(8.dp))
-        OrderProgressStrip(order.status)
+        if (forSupplier && com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
+            com.agroroute.features.supplier.components.SupplierOrderProgress(order.status)
+        } else OrderProgressStrip(order.status)
         Text(orderNextStep(order.status, forSupplier), style = MaterialTheme.typography.bodySmall)
         if (order.status == OrderStatus.AWAITING_PICKUP && !forSupplier) {
             Text("Acceptance reward: +1 once, confirmed by the server.", style = MaterialTheme.typography.bodySmall,

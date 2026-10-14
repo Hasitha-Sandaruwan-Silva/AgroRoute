@@ -15,6 +15,20 @@ fun SupplierScaffold(
     onNavigate: (String) -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.agroroute.features.supplier.components.LocalSupplierPresentation provides true
+    ) {
+        SupplierScaffoldContent(currentRoute, navController, onNavigate, content)
+    }
+}
+
+@Composable
+private fun SupplierScaffoldContent(
+    currentRoute: String,
+    navController: NavController,
+    onNavigate: (String) -> Unit,
+    content: @Composable (PaddingValues) -> Unit
+) {
     // History owns its app bar and insets for both roles; avoid nested shell padding.
     if (currentRoute == com.agroroute.core.navigation.Screen.NotificationInbox.route) {
         content(PaddingValues())

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,7 +63,7 @@ import com.agroroute.core.components.ChipTone
 import com.agroroute.core.components.EmptyState
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.ListSkeleton
-import com.agroroute.core.components.ListingImage
+import com.agroroute.features.supplier.components.SupplierListingImage as ListingImage
 import com.agroroute.core.components.LoadingButton
 import com.agroroute.core.components.SectionTitle
 import com.agroroute.core.components.StatusChip
@@ -117,8 +119,9 @@ fun PlaceOrderRequestScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 18.dp)
-                .verticalScroll(rememberScrollState()),
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             when (val result = listingState) {
@@ -205,7 +208,7 @@ fun PlaceOrderRequestScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .heightIn(min = 52.dp),
                     enabled = listing.acceptsDirectOrders() && quantityText.toDoubleOrNull()?.let {
                         it.isFinite() && it > 0 && it <= (if (isPreHarvest) listing.estimatedAvailable() else listing.availableStock())
                     } == true && pickupAvailable &&
@@ -281,10 +284,10 @@ private fun PreHarvestInfoBannerPreview() {
 }
 
 @Composable
-private fun ListingSummaryCard(listing: HarvestListing) {
+internal fun ListingSummaryCard(listing: HarvestListing) {
     val isExpected = listing.harvestStatus == HarvestStatus.EXPECTED
-    AppCard {
-        ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 164.dp)
+    com.agroroute.features.supplier.components.SupplierCard {
+        com.agroroute.features.supplier.components.SupplierListingGallery(listing.imageUrls)
         Spacer(modifier = Modifier.height(14.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -437,6 +440,7 @@ private fun ListingSummaryCard(listing: HarvestListing) {
                 modifier = Modifier.padding(top = 10.dp)
             )
         }
+        com.agroroute.features.supplier.components.SupplierListingContext(listing)
     }
 }
 

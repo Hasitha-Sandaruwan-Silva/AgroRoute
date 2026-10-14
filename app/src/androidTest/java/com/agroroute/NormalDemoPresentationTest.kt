@@ -2,6 +2,9 @@ package com.agroroute
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -25,11 +28,12 @@ class NormalDemoPresentationTest {
     @get:Rule val compose=createComposeRule()
     private lateinit var db: AppDatabase
     private lateinit var session: DemoSessionManager
+    private var dark by mutableStateOf(false)
     @Before fun open() {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         db=Room.inMemoryDatabaseBuilder(context,AppDatabase::class.java).build()
         session=DemoSessionManager()
-        compose.setContent { AgroRouteTheme {
+        compose.setContent { AgroRouteTheme(darkTheme = dark) {
             DemoExperience(session,db) { enter ->
                 CompositionLocalProvider(LocalEntry provides enter) { WelcomeScreen(rememberNavController()) }
             }
@@ -167,5 +171,47 @@ class NormalDemoPresentationTest {
                 .contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled).not()
         }
         assertEquals(10,db.harvestListingDao().getAllListings().first().size)
+    }
+
+    @Test fun supplierRedesignJourneyKeepsRealRoutesAndReadOnlyActionsInBothThemes() {
+        enter(UserRole.SUPPLIER)
+        for (night in listOf(false, true)) {
+            compose.runOnIdle { dark = night }
+            val scheme = if (night) "dark" else "light"
+            menu("Browse listings")
+            awaitText("Tomato")
+            capture("supplier-marketplace-$scheme.png")
+            compose.onNode(hasSetTextAction()).performTextReplacement("Tomato")
+            compose.onNodeWithText("View / Bid").performScrollTo().performClick()
+            awaitText("Your offer")
+            capture("supplier-listing-bid-$scheme.png")
+            compose.onNode(hasText("Place Bid") and hasClickAction()).performScrollTo().assertIsNotEnabled()
+            capture("supplier-bid-form-$scheme.png")
+            menu("Browse listings")
+            compose.onNode(hasSetTextAction()).performTextReplacement("Carrot")
+            compose.onNodeWithText("View / Request").performScrollTo().performClick()
+            awaitText("Your order request")
+            capture("supplier-listing-request-$scheme.png")
+            compose.onNodeWithText("Request Order").performScrollTo().assertIsNotEnabled()
+            capture("supplier-request-form-$scheme.png")
+            menu("Browse bids")
+            awaitText("Requested: 40.0")
+            capture("supplier-bids-$scheme.png")
+            menu("Orders and history")
+            awaitText("Carrot")
+            capture("supplier-orders-$scheme.png")
+            compose.onAllNodesWithText("Carrot", substring = false).onFirst().performClick()
+            awaitText("Farmer: Nimal Perera")
+            capture("supplier-order-detail-$scheme.png")
+            compose.onNodeWithText("Go to Farmer pickup").performScrollTo().assertExists()
+            capture("supplier-order-map-$scheme.png")
+            menu("Profile summary")
+            awaitText("FreshMart Traders")
+            capture("supplier-profile-$scheme.png")
+            compose.onNodeWithText("Notifications", substring = false).performScrollTo().performClick()
+            awaitText("No notifications yet")
+            capture("supplier-notifications-$scheme.png")
+            assertFalse(BackgroundNetworkAccess.allowed.value)
+        }
     }
 }

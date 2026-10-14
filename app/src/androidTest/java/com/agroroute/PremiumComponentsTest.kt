@@ -53,7 +53,9 @@ class PremiumComponentsTest(private val dark: Boolean, private val width: Int) {
                 }
             }
         }
-        compose.onAllNodesWithText("AM", useUnmergedTree = true).assertCountEquals(2)
+        // The generic dock renders a profile icon; initials belong to the standalone avatar.
+        compose.onAllNodesWithText("AM", useUnmergedTree = true).assertCountEquals(1)
+        compose.onNodeWithContentDescription("Profile").assertExists()
         listOf("Home", "Marketplace", "Orders", "Profile").forEach { label ->
             compose.onNodeWithText(label).assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
         }

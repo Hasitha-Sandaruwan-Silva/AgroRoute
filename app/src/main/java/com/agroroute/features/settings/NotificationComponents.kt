@@ -243,6 +243,12 @@ internal fun NotificationLoading() {
 
 @Composable
 internal fun NotificationEmpty(unreadOnly: Boolean = false) {
+    if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
+        com.agroroute.features.supplier.components.SupplierEmptyState(Lucide.Bell,
+            if (unreadOnly) "No unread notifications" else "No notifications yet",
+            "Updates for your account will appear here.")
+        return
+    }
     Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Lucide.Bell, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)

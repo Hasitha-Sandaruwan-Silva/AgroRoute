@@ -11,6 +11,8 @@ import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
 /** Presentation only: reserve the action before measuring the flexible map/editor region. */
@@ -41,13 +43,13 @@ internal fun LocationPickerLayout(
                 BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
                     if (maxHeight < 180.dp || (maxWidth >= 480.dp && maxHeight < 360.dp)) {
                         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(Modifier.weight(1f).fillMaxHeight()) { mapContent() }
+                            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(22.dp))) { mapContent() }
                             Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) { address() }
                         }
                     } else {
                         val editorHeight = (maxHeight * 0.42f).coerceAtMost(200.dp)
                         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.fillMaxWidth().weight(1f)) { mapContent() }
+                            Box(Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(22.dp))) { mapContent() }
                             Column(Modifier.fillMaxWidth().heightIn(max = editorHeight)
                                 .verticalScroll(rememberScrollState())) { address() }
                         }
@@ -55,7 +57,7 @@ internal fun LocationPickerLayout(
                 }
             }
         }
-        Surface(color = MaterialTheme.colorScheme.background) {
+        Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp) {
             Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) { confirm() }
         }
     }

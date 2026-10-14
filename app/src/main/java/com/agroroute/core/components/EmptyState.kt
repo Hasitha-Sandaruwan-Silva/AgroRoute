@@ -37,6 +37,10 @@ fun EmptyState(
     subtitle: String? = null,
     modifier: Modifier = Modifier
 ) {
+    if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
+        com.agroroute.features.supplier.components.SupplierEmptyState(icon, title, subtitle, modifier)
+        return
+    }
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
     val alpha by animateFloatAsState(

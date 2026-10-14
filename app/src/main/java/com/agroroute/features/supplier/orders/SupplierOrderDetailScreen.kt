@@ -24,6 +24,7 @@ import java.util.Date
 fun SupplierOrderDetailScreen(orderId: String, navController: NavController,
     viewModel: SupplierOrderViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val listings = orderListingPresentation()
     val snackbar = remember { SnackbarHostState() }
     var counterpartName by remember(orderId) { mutableStateOf<String?>(null) }
     var showLocationPicker by remember { mutableStateOf(false) }
@@ -42,6 +43,18 @@ fun SupplierOrderDetailScreen(orderId: String, navController: NavController,
             order != null -> {
                 Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())
                     .padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box {
+                        com.agroroute.features.supplier.components.SupplierListingImage(
+                            listings[order.listingId]?.imageUrls?.firstOrNull(), height = 208.dp)
+                        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            OrderStatusChip(order.status)
+                            Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                                color = androidx.compose.ui.graphics.Color(0xCC003C29)) {
+                                Text("#${order.orderId.takeLast(12)}", Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
                     OrderSummarySection(order, forSupplier = true, counterpartName = counterpartName)
                     OrderPickupSection(orderId, order.status, forSupplier = true,
                         verification = state.pickup, loading = state.pickupLoading || state.isLoading || state.isSubmitting,
@@ -58,7 +71,11 @@ fun SupplierOrderDetailScreen(orderId: String, navController: NavController,
                         OutlinedButton(onClick = { showLocationPicker = true }, enabled = !state.isLoading && !state.isSubmitting,
                             modifier = Modifier.fillMaxWidth()) { Text("Add missing delivery location") }
                     }
-                    AppCard { ProfilePhoneContact(userId = order.farmerId, personLabel = "Farmer", onNameLoaded = { counterpartName = it }) }
+                    AppCard {
+                        com.agroroute.features.supplier.components.SupplierSectionHeader("Farmer", icon = Lucide.User)
+                        Spacer(Modifier.height(12.dp))
+                        ProfilePhoneContact(userId = order.farmerId, personLabel = "Farmer", onNameLoaded = { counterpartName = it })
+                    }
                     AppCard {
                         Text("Order details", style = MaterialTheme.typography.titleMedium)
                         Text("Order ID: ${order.orderId}", style = MaterialTheme.typography.bodySmall)

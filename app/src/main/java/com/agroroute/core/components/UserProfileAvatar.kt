@@ -144,13 +144,20 @@ fun ProfileEditDialog(
     }
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
+        shape = RoundedCornerShape(24.dp),
         title = { Text("Edit profile", fontWeight = FontWeight.Bold) },
         text = {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
+                    com.agroroute.features.supplier.components.SupplierSectionHeader(
+                        "Your details", "Keep your contact and delivery information up to date")
+                    Spacer(Modifier.height(16.dp))
+                }
                 OutlinedTextField(
                     value = editedName,
                     onValueChange = { editedName = it },
                     label = { Text("Full name") },
+                    shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -159,6 +166,7 @@ fun ProfileEditDialog(
                     value = editedPhone,
                     onValueChange = { editedPhone = it },
                     label = { Text("Phone number") },
+                    shape = RoundedCornerShape(16.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -168,6 +176,7 @@ fun ProfileEditDialog(
                     value = editedLocation,
                     onValueChange = { editedLocation = it },
                     label = { Text("Location") },
+                    shape = RoundedCornerShape(16.dp),
                     placeholder = { Text("Enter your farm / business location") },
                     minLines = 1,
                     maxLines = 2,
@@ -176,7 +185,7 @@ fun ProfileEditDialog(
                 TextButton(onClick = { showLocationPicker = true }, enabled = !isSaving) {
                     Text("Choose location on map")
                 }
-                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                errorMessage?.let { Text(presentationError(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
         },
         confirmButton = {

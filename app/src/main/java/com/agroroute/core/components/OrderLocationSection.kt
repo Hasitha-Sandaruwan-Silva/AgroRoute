@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
@@ -110,7 +111,7 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
         Text(presentation.heading, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(10.dp))
         if (destination != null) {
-            Box(Modifier.fillMaxWidth().height(mapHeight)) {
+            Box(Modifier.fillMaxWidth().height(mapHeight).clip(RoundedCornerShape(18.dp))) {
                 LocationMap(location = destination, currentFix = fix.takeIf { active },
                     orderViewport = OrderMapViewport(presentation.sceneKey, presentation.kind,
                         initialCameraPending = active && (!locationReady || (fix != null && routeResult == null)),

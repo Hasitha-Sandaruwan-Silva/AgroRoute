@@ -331,7 +331,8 @@ private fun LocalFarmersPromo(onExplore: () -> Unit, modifier: Modifier) {
 
 /** Keep the four real destinations; AgroRoute has no standalone marketplace map route. */
 @Composable
-fun SupplierHomeBottomNavigation(onNavigate: (String) -> Unit, modifier: Modifier = Modifier) {
+fun SupplierHomeBottomNavigation(onNavigate: (String) -> Unit, modifier: Modifier = Modifier,
+    selectedRoute: String = com.agroroute.core.navigation.Screen.SupplierHome.route) {
     val tabs = listOf(
         Triple(com.agroroute.core.navigation.Screen.SupplierHome.route, "Home", Lucide.Home),
         Triple(com.agroroute.core.navigation.Screen.SupplierMarketplace.route, "Marketplace", Lucide.Store),
@@ -342,13 +343,14 @@ fun SupplierHomeBottomNavigation(onNavigate: (String) -> Unit, modifier: Modifie
         shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp), shadowElevation = 3.dp) {
         Row(Modifier.navigationBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp)) {
             tabs.forEachIndexed { index, (route, label, icon) ->
-                val tint = if (index == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                val selected = route == selectedRoute
+                val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onNavigate(route) }
                     .heightIn(min = 56.dp).padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(icon, label, Modifier.size(24.dp), tint = tint)
                     Text(label, fontSize = 11.sp, lineHeight = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        color = tint, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal)
+                        color = tint, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
                 }
             }
         }

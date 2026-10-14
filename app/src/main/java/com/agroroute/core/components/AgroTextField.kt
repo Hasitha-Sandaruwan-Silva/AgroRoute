@@ -43,7 +43,9 @@ fun AgroTextField(
         isError = isError,
         supportingText = supportingText,
         visualTransformation = visualTransformation,
-        shape = MaterialTheme.shapes.small,
+        shape = if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current)
+            androidx.compose.foundation.shape.RoundedCornerShape(androidx.compose.ui.unit.Dp(16f))
+            else MaterialTheme.shapes.small,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = com.agroroute.core.theme.LocalAgroExtendedColors.current.inputBorder,
