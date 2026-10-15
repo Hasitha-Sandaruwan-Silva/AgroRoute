@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.location.Location
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -255,18 +257,32 @@ fun LocationMap(
         if (viewport.recenterRequest > 0) readyMap.animateCamera(update) else readyMap.moveCamera(update)
     }
 
-    val mapShape = RoundedCornerShape(16.dp)
-    Box(modifier.clip(mapShape).border(1.dp, MaterialTheme.colorScheme.outlineVariant, mapShape)
+    val mapShape = RoundedCornerShape(22.dp)
+    Box(modifier.shadow(2.dp, mapShape).clip(mapShape)
+        .background(MaterialTheme.colorScheme.surfaceVariant)
+        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f), mapShape)
         .testTag("location-map")) {
         if (mapView != null) AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
         if (!configured || mapFailed) {
-            Surface(modifier = Modifier.align(Alignment.Center).padding(16.dp), tonalElevation = 4.dp) {
-                Text(if (orderViewport != null) "Map unavailable. The saved destination is shown below."
-                    else if (!configured) "Map unavailable. Search for a place to select its coordinates."
-                    else "Map could not load. Check your connection or search for a place.",
-                    modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
+            Surface(modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                shape = RoundedCornerShape(16.dp), tonalElevation = 4.dp) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Unable to load map", style = MaterialTheme.typography.titleSmall)
+                    Text(if (orderViewport != null) "Map unavailable. The saved destination is shown below."
+                        else if (!configured) "Map unavailable. Search for a place to select its coordinates."
+                        else "Map could not load. Check your connection or search for a place.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-        } else if (!styleReady) CircularProgressIndicator(Modifier.align(Alignment.Center).size(32.dp))
+        } else if (!styleReady) {
+            Surface(Modifier.align(Alignment.Center), shape = RoundedCornerShape(16.dp), tonalElevation = 4.dp) {
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Text("Loading map…", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
     }
 }
 /** Code-drawn marker: its bottom tip is anchored to the selected coordinate. */

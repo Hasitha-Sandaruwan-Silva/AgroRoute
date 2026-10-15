@@ -7,6 +7,10 @@ import android.net.Uri
 import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import com.github.thelacspace.icons.Lucide
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,7 +50,7 @@ import kotlin.coroutines.resume
 internal fun MarketplaceLocationPreview(location: SelectedLocation, modifier: Modifier = Modifier) {
     val context = LocalContext.current.applicationContext
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val pinColor = MaterialTheme.colorScheme.primary.toArgb()
+    val pinColor = com.agroroute.core.theme.GreenEmerald.toArgb()
     var size by remember { mutableStateOf(IntSize.Zero) }
     val key = remember(location, size, pinColor) { PreviewKey(location.latitude, location.longitude, size, pinColor) }
     var bitmap by remember(key) { mutableStateOf<Bitmap?>(null) }
@@ -68,7 +72,8 @@ internal fun MarketplaceLocationPreview(location: SelectedLocation, modifier: Mo
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(
-            Modifier.fillMaxWidth().height(120.dp).clip(MaterialTheme.shapes.medium)
+            Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(22.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(22.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .onSizeChanged { measured ->
                     // Bound bitmap memory while retaining the card's aspect ratio.
@@ -80,8 +85,21 @@ internal fun MarketplaceLocationPreview(location: SelectedLocation, modifier: Mo
             bitmap?.let {
                 Image(it.asImageBitmap(), contentDescription = "Farmer pickup location",
                     modifier = Modifier.fillMaxSize())
-            } ?: Text(if (failed) "Map preview unavailable" else "Loading map preview…",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } ?: Column(horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (failed) Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary)
+                else CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                Text(if (failed) "Map preview unavailable" else "Loading map preview…",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (bitmap != null) Surface(modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)) {
+                Row(Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Lucide.MapPin, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text("Pickup", style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
         Text(location.address.ifBlank { location.coordinates() },
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,

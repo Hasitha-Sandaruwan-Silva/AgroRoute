@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -34,6 +35,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
@@ -139,25 +141,38 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             LocationPickerLayout(
                 search = {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilledTonalIconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) { Icon(Lucide.ArrowLeft, "Back") }
-                        OutlinedTextField(query, { query = it }, placeholder = {
-                            Text("Search a place or address", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }, singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = {
-                                search()
-                                focusManager.clearFocus()
-                                keyboard?.hide()
-                            }),
-                            trailingIcon = {
-                                IconButton(onClick = { search(); focusManager.clearFocus(); keyboard?.hide() },
-                                    enabled = query.isNotBlank() && !searching) {
-                                    if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                                    else Icon(Lucide.Search, "Search")
-                                }
-                            })
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (!keyboardVisible) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            FilledTonalIconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) { Icon(Lucide.ArrowLeft, "Back") }
+                            Column(Modifier.weight(1f)) {
+                                Text("Choose location", style = MaterialTheme.typography.titleLarge)
+                                Text("Find a place or position the pin", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (keyboardVisible) FilledTonalIconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
+                                Icon(Lucide.ArrowLeft, "Back")
+                            }
+                            OutlinedTextField(query, { query = it }, placeholder = {
+                                Text("Search a place or address", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }, singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(onSearch = {
+                                    search()
+                                    focusManager.clearFocus()
+                                    keyboard?.hide()
+                                }),
+                                trailingIcon = {
+                                    IconButton(onClick = { search(); focusManager.clearFocus(); keyboard?.hide() },
+                                        enabled = query.isNotBlank() && !searching) {
+                                        if (searching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                                        else Icon(Lucide.Search, "Search")
+                                    }
+                                })
+                        }
                     }
                 },
                 results = if (results.isEmpty()) null else ({
@@ -175,46 +190,42 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                             modifier = Modifier.fillMaxSize())
                         if (maxHeight >= 140.dp) {
                             Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface,
-                                modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp)) {
+                                modifier = Modifier.align(Alignment.TopStart).padding(top = 12.dp, start = 12.dp, end = 72.dp)) {
                                 Text("Tap to place a pin", style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
                             }
                         }
-                        Surface(onClick = {
+                        MapLocationControl(locating = locating, description = "Go to my current location", onClick = {
                             if (services.hasPermission()) locate() else permissionLauncher.launch(arrayOf(
                                 Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-                        }, shape = CircleShape, color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
-                            modifier = Modifier.align(Alignment.BottomEnd)
-                                .padding(if (maxHeight < 100.dp) 4.dp else 8.dp).size(48.dp)) {
-                            Box(contentAlignment = Alignment.Center) {
-                                if (locating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-                                else Icon(Lucide.MyLocation, "Go to my current location", tint = MaterialTheme.colorScheme.primary)
-                            }
-                        }
+                        }, modifier = Modifier.align(Alignment.TopEnd)
+                            .padding(if (maxHeight < 100.dp) 4.dp else 12.dp))
                     }
                 },
                 address = {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            Text("Your selected location", style = MaterialTheme.typography.labelLarge,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Text("Your selected location", style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            // The editable address is shown once; saved coordinates remain unchanged.
+                            OutlinedTextField(label, { label = it; addressEdited = true },
+                                label = { Text("Selected address / place name") }, maxLines = 2,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus(); keyboard?.hide() }),
+                                shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
+                            if (!hasSelection) Text("Tap the map or search for your pickup / delivery location.",
+                                style = MaterialTheme.typography.bodySmall)
+                            else Text(selected.coordinates(), style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                            if (permissionDenied) TextButton(onClick = {
+                                context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    android.net.Uri.parse("package:${context.packageName}")))
+                            }) { Text("Open app settings") }
                         }
-                        // The editable address is shown once; saved coordinates remain unchanged.
-                        OutlinedTextField(label, { label = it; addressEdited = true },
-                            label = { Text("Selected address / place name") }, maxLines = 2,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus(); keyboard?.hide() }),
-                            shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
-                        if (!hasSelection) Text("Tap the map or search for your pickup / delivery location.",
-                            style = MaterialTheme.typography.bodySmall)
-                        else Text(selected.coordinates(), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                        if (permissionDenied) TextButton(onClick = {
-                            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                android.net.Uri.parse("package:${context.packageName}")))
-                        }) { Text("Open app settings") }
                     }
                 },
                 confirm = {

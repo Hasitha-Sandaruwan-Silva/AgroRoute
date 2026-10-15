@@ -34,10 +34,19 @@ fun DeliveryLocationField(value: String, onSelected: (String) -> Unit, enabled: 
     var choosing by remember { mutableStateOf(false) }
     val location = SelectedLocation.fromStoredText(value)
     AppCard {
-        Text("Delivery destination", style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            AgroIconBox(icon = Lucide.MapPin)
+            Column {
+                Text("Delivery destination", style = MaterialTheme.typography.titleMedium)
+                Text(if (location == null) "Select on the map" else "Saved destination", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
         Text(location?.address?.ifBlank { location.coordinates() } ?: "Choose where this order should be delivered.",
             style = MaterialTheme.typography.bodyMedium)
-        OutlinedButton(onClick = { choosing = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = { choosing = true }, enabled = enabled, shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(if (location == null) "Choose delivery location on map" else "Change delivery location")
         }
     }
@@ -111,23 +120,17 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
         Text(presentation.heading, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(10.dp))
         if (destination != null) {
-            Box(Modifier.fillMaxWidth().height(mapHeight).clip(RoundedCornerShape(18.dp))) {
+            Box(Modifier.fillMaxWidth().height(mapHeight).clip(RoundedCornerShape(22.dp))) {
                 LocationMap(location = destination, currentFix = fix.takeIf { active },
                     orderViewport = OrderMapViewport(presentation.sceneKey, presentation.kind,
                         initialCameraPending = active && (!locationReady || (fix != null && routeResult == null)),
                         recenterRequest = recenterRequest, route = roadRoute),
                     modifier = Modifier.fillMaxSize())
-                if (active) Surface(onClick = {
+                if (active) MapLocationControl(locating = locating,
+                    description = "Recenter current location and destination", onClick = {
                     if (services.hasPermission()) scope.launch { locate(recenter = true) }
                     else permissions.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-                }, enabled = !locating, shape = CircleShape, color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 3.dp, modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
-                        .size(48.dp).testTag("order-map-recenter")) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (locating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-                        else Icon(Lucide.MyLocation, "Recenter current location and destination", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+                }, modifier = Modifier.align(Alignment.TopEnd).padding(12.dp).testTag("order-map-recenter"))
             }
         } else {
             Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(16.dp)) {
@@ -136,7 +139,9 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
             }
         }
         Spacer(Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Lucide.MapPin, null, tint = pinColor, modifier = Modifier.size(20.dp))
             Column(Modifier.weight(1f)) {
                 Text(presentation.destinationLabel, style = MaterialTheme.typography.labelLarge)
@@ -151,6 +156,7 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
                     modifier = Modifier.testTag("order-route-summary"))
             }
         }
+        }
         if (active) {
             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -162,7 +168,8 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
             }
             Button(onClick = {
                 if (destination != null && !openOrderDirections(context, destination)) message = "No maps app or browser is available."
-            }, enabled = destination != null, modifier = Modifier.fillMaxWidth()) {
+            }, enabled = destination != null, shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 52.dp)) {
                 Icon(Lucide.Navigation, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(presentation.navigationLabel.orEmpty())

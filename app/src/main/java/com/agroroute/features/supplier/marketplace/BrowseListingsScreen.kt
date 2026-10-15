@@ -321,7 +321,7 @@ internal fun MarketplaceListingCard(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "Location: ${listing.location}",
+                        text = "Location: ${com.agroroute.core.components.profileLocationLabel(listing.location)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

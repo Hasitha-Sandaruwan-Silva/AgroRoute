@@ -147,7 +147,7 @@ fun ViewBidsScreen(
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Lucide.MapPin, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                             Spacer(Modifier.width(6.dp))
-                                            Text("Location: ${listing.location}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("Location: ${com.agroroute.core.components.profileLocationLabel(listing.location)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
                                     listing.description.takeIf { it.isNotBlank() }?.let { notes ->
