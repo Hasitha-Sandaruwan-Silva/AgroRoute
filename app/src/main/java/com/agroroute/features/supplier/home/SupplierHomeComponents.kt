@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -74,7 +75,8 @@ internal fun SupplierHomeContent(
     loading: Boolean = false, now: Long,
     onMarketplace: () -> Unit, onOrders: () -> Unit, onBids: () -> Unit, onProfile: () -> Unit,
     onCommunity: () -> Unit, onListing: (HarvestListing) -> Unit, notification: @Composable () -> Unit,
-    onSearch: () -> Unit = onMarketplace
+    onSearch: () -> Unit = onMarketplace,
+    heroStatusBar: Boolean = false
 ) {
     var category by rememberSaveable { mutableStateOf("All") }
     val active = remember(listings, now) { homeActiveListings(listings, now) }
@@ -84,7 +86,7 @@ internal fun SupplierHomeContent(
         contentPadding = PaddingValues(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item(key = "hero") {
-            SupplierHeroHeader(user, category, { category = it }, onSearch, onProfile, notification)
+            SupplierHeroHeader(user, category, { category = it }, onSearch, onProfile, notification, heroStatusBar)
         }
         item(key = "feature") { SupplierFeatureBanner(onMarketplace, Modifier.padding(horizontal = 16.dp)) }
         item(key = "statistics") {
@@ -130,11 +132,18 @@ internal fun SupplierHomeContent(
 
 @Composable
 private fun SupplierHeroHeader(user: UserProfile?, selected: String, onCategory: (String) -> Unit,
-    onSearch: () -> Unit, onProfile: () -> Unit, notification: @Composable () -> Unit) {
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))) {
+    onSearch: () -> Unit, onProfile: () -> Unit, notification: @Composable () -> Unit, heroStatusBar: Boolean) {
+    val view = LocalView.current
+    if (heroStatusBar && !view.isInEditMode) SideEffect {
+        (view.context as? android.app.Activity)?.window?.let { window ->
+            androidx.core.view.WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+        }
+    }
+    Box(Modifier.fillMaxWidth().testTag("supplier-home-hero").clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))) {
         Image(painterResource(R.drawable.supplier_farm_hero), null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color(0xB8003017), Color(0x4D003017), Color(0xBB064925)))))
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().then(if (heroStatusBar) Modifier.statusBarsPadding() else Modifier)
+            .padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.agroroute1), null, Modifier.size(30.dp))
                 Spacer(Modifier.width(7.dp))

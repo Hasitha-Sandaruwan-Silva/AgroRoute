@@ -45,7 +45,7 @@ fun SupplierHomeScreen(
     ErrorSnackbarEffect(bids.error, snackbar) { bidsViewModel.clearError() }
     Box(Modifier.fillMaxSize()) {
         SupplierHomeContent(
-            user = auth.user, listings = market.listings, bids = bids.bids,
+            user = auth.user, listings = market.listings, bids = bids.bids, heroStatusBar = true,
             orders = orders.orders, loading = market.isLoading && market.listings.isEmpty(), now = now,
             onMarketplace = { navController.navigate(Screen.SupplierMarketplace.route) },
             onOrders = { navController.navigate(Screen.SupplierOrders.route) },

@@ -62,6 +62,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -172,7 +173,10 @@ fun CreateListingScreen(
             onConfirm = { location = it; showLocationPicker = false }
         )
     }
-    var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedPhotoUri by rememberSaveable(editListingId, stateSaver = ListingPhotoUriSaver) { mutableStateOf<Uri?>(null) }
+    var photoRemoved by rememberSaveable(editListingId) { mutableStateOf(false) }
+    var photoEdited by rememberSaveable(editListingId) { mutableStateOf(false) }
+    var photoInputBusy by remember { mutableStateOf(false) }
     var listingId by remember { mutableStateOf(UUID.randomUUID().toString()) }
     var selectedCategory by remember { mutableStateOf<ListingCategory?>(null) }
     var categorySelectionError by remember { mutableStateOf(false) }
@@ -210,7 +214,7 @@ fun CreateListingScreen(
             price = listing.reservePrice.toString()
             description = listing.description
             location = listing.location
-            selectedPhotoUri = listing.imageUrls.firstOrNull()?.let(Uri::parse)
+            if (!photoEdited) selectedPhotoUri = listing.imageUrls.firstOrNull()?.let(Uri::parse)
             selectedCategory = listing.category
             expectedHarvestAt = listing.expectedHarvestAt
             qualityGrade = listing.qualityGrade.orEmpty()
@@ -305,7 +309,7 @@ fun CreateListingScreen(
             quantity = if (isExpected) parsedEstimate else parsedQuantity,
             quantityUnit = selectedUnit,
             reservePrice = price.toDoubleOrNull() ?: 0.0,
-            imageUrls = selectedPhotoUri?.toString()?.let(::listOf)
+            imageUrls = if (photoRemoved) emptyList() else selectedPhotoUri?.toString()?.let(::listOf)
                 ?: existing?.imageUrls.orEmpty(),
             location = location,
             status = existing?.status ?: ListingStatus.OPEN,
@@ -356,6 +360,8 @@ fun CreateListingScreen(
         description = values.description
         location = values.location
         selectedPhotoUri = values.photoUri?.let(Uri::parse)
+        photoRemoved = false
+        photoEdited = true
         selectedCategory = values.category
         expectedHarvestAt = values.expectedHarvestAt
         qualityGrade = values.qualityGrade
@@ -389,6 +395,7 @@ fun CreateListingScreen(
         bottomBar = {
             CreateListingBottomBar(
                 isLoading = uiState.isLoading,
+                isPreparingPhoto = photoInputBusy,
                 isPhotoUploadRequired = hasLocalPhotoUri(selectedPhotoUri),
                 isEditing = editListingId != null,
                 canSubmit = (expiryHours.isBlank() || expiryHours.toDoubleOrNull()?.let { it.isFinite() && it > 0 && it <= 8760 } == true) && cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank() &&
@@ -722,15 +729,26 @@ fun CreateListingScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 // Photo preview / picker — always visible
-                PhotoPickerCard(
+                ListingPhotoInput(
                     selectedUri = selectedPhotoUri,
                     isLoading = uiState.isLoading && hasLocalPhotoUri(selectedPhotoUri),
                     isEditing = editListingId != null,
-                    enabled = !uiState.isLoading,
+                    enabled = !uiState.isLoading && (editListingId == null ||
+                        (uiState.editingListing?.listingId == editListingId &&
+                            uiState.editingListing?.harvestStatus != HarvestStatus.FAILED)),
                     onImageSelected = {
                         selectedPhotoUri = it
+                        photoRemoved = false
+                        photoEdited = true
                         viewModel.clearPhotoUploadError()
-                    }
+                    },
+                    onRemove = {
+                        selectedPhotoUri = null
+                        photoRemoved = true
+                        photoEdited = true
+                        viewModel.clearPhotoUploadError()
+                    },
+                    onBusyChanged = { photoInputBusy = it }
                 )
                 // Upload progress indicator
                 AnimatedVisibility(
@@ -1091,145 +1109,6 @@ private fun ErrorBanner(message: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Full-width photo picker card with an integrated image preview overlay, a
- * camera/change-photo icon button, and a state label.
- */
-@Composable
-private fun PhotoPickerCard(
-    selectedUri: Uri?,
-    isLoading: Boolean,
-    isEditing: Boolean,
-    enabled: Boolean,
-    onImageSelected: (Uri) -> Unit
-) {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    it,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }
-            onImageSelected(it)
-        }
-    }
-
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-    ) {
-        var imageFailed by remember(selectedUri) { mutableStateOf(false) }
-        Box(contentAlignment = Alignment.Center) {
-            if (selectedUri != null && !imageFailed) {
-                AsyncImage(
-                    model = selectedUri,
-                    contentDescription = "Selected listing photo",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize().clip(MaterialTheme.shapes.large),
-                    onError = { imageFailed = true }
-                )
-                // Darken overlay so the action button is readable
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(Color.Black.copy(alpha = 0.28f))
-                        .clip(MaterialTheme.shapes.large)
-                )
-            }
-            // Empty, failed or change-photo prompt
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                if (selectedUri == null || imageFailed) {
-                    Surface(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.surface,
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (selectedUri == null) Lucide.ImagePlus else Lucide.AlertCircle,
-                                contentDescription = if (selectedUri == null) "Pick a photo" else "Selected photo unavailable",
-                                tint = if (selectedUri == null) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    if (imageFailed) {
-                        Text(
-                            text = "This photo could not be loaded.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(Modifier.height(8.dp))
-                    }
-                }
-                Button(
-                    onClick = { if (enabled) launcher.launch(arrayOf("image/*")) },
-                    enabled = enabled,
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    shape = MaterialTheme.shapes.large,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selectedUri != null && !imageFailed) Color.White.copy(alpha = 0.22f)
-                        else MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = if (selectedUri != null && !imageFailed) Color.White
-                        else MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(
-                            imageVector = Lucide.ImagePlus,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (selectedUri == null) "Choose photo" else "Change photo",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-                if (selectedUri == null) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "JPEG · PNG · WebP · up to 10 MB",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
-    // Caption below the photo card
-    val captionText = if (selectedUri == null) {
-        "A clear photo helps buyers assess quality and builds trust."
-    } else {
-        if (isEditing) "Keep the current photo or choose a replacement. Changes upload when saved."
-        else "Photo selected. Upload happens when you tap \"Publish listing\"."
-    }
-    Text(
-        text = captionText,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 6.dp)
-    )
-}
-
-/**
  * Sticky bottom bar — publish button (primary) + save-draft link.
  */
 @Composable
@@ -1239,7 +1118,8 @@ private fun CreateListingBottomBar(
     isEditing: Boolean,
     canSubmit: Boolean,
     onPublish: () -> Unit,
-    onSaveDraft: () -> Unit
+    onSaveDraft: () -> Unit,
+    isPreparingPhoto: Boolean = false
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -1254,13 +1134,14 @@ private fun CreateListingBottomBar(
         ) {
             LoadingButton(
                 text = when {
+                    isPreparingPhoto -> "Preparing photo..."
                     isLoading && isPhotoUploadRequired -> "Uploading photo…"
                     isLoading && isEditing -> "Saving changes…"
                     isLoading -> "Publishing listing…"
                     isEditing -> "Save changes"
                     else -> "Publish listing"
                 },
-                isLoading = isLoading,
+                isLoading = isLoading || isPreparingPhoto,
                 onClick = onPublish,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1270,7 +1151,7 @@ private fun CreateListingBottomBar(
             if (!isEditing) {
                 TextButton(
                     onClick = onSaveDraft,
-                    enabled = !isLoading,
+                    enabled = !isLoading && !isPreparingPhoto,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)

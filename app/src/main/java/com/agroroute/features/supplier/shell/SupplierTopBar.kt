@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -83,7 +84,7 @@ fun SupplierTopBar(
     var showAvatarMenu by remember { mutableStateOf(false) }
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().testTag("supplier-shared-top-bar"),
         color = Color(0xFF003C29),
         contentColor = Color.White,
         shadowElevation = 0.dp
@@ -96,7 +97,7 @@ fun SupplierTopBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 68.dp)
+                    .heightIn(min = 64.dp)
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -111,12 +112,12 @@ fun SupplierTopBar(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f))
+                                .background(Color.White.copy(alpha = 0.1f))
                         ) {
                             Icon(
                                 imageVector = Lucide.ArrowLeft,
                                 contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -132,31 +133,13 @@ fun SupplierTopBar(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = supplierTitle(currentRoute),
-                            style = if (isTab) {
-                                // Fresh Premium Gradient Text Style
-                                TextStyle(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            Color.White,
-                                            Color.White.copy(alpha = 0.92f)
-                                        )
-                                    ),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 22.sp,
-                                    letterSpacing = (-0.3).sp
-                                )
-                            } else {
-                                MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.2.sp
-                                )
-                            },
-                            color = if (isTab) androidx.compose.ui.graphics.Color.Unspecified
-                            else Color.White,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        run {
+                        if (isTab) {
                             Text(
                                 text = "AgroRoute · Supplier",
                                 style = MaterialTheme.typography.labelSmall,
@@ -253,7 +236,7 @@ fun SupplierTopBar(
 
             // Subtle divider at the bottom
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                color = Color.White.copy(alpha = 0.1f),
                 thickness = 1.dp
             )
         }

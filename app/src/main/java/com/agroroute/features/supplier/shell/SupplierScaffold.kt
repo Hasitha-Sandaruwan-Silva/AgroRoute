@@ -4,7 +4,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 
@@ -40,8 +45,13 @@ private fun SupplierScaffoldContent(
     val showBottomBar = currentRoute in supplierTabRoutes
 
     Scaffold(
+        // Home's photographic hero owns the status-bar area, just like the shared bar.
+        contentWindowInsets = if (currentRoute == com.agroroute.core.navigation.Screen.SupplierHome.route)
+            WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+        else ScaffoldDefaults.contentWindowInsets,
         topBar = {
-            AnimatedVisibility(visible = showTopBar, enter = fadeIn(), exit = fadeOut()) {
+            // Remove immediately on Home; an exit animation would retain a second header.
+            if (showTopBar) {
                 SupplierTopBar(currentRoute = currentRoute, navController = navController)
             }
         },
