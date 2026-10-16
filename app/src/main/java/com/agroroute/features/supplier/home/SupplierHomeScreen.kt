@@ -52,6 +52,15 @@ fun SupplierHomeScreen(
             onBids = { navController.navigate(Screen.SupplierBids.route) },
             onProfile = { navController.navigate(Screen.SupplierProfile.route) },
             onCommunity = { navController.navigate(Screen.SupplierLeaderboard.route) },
+            communityLeaders = {
+                com.agroroute.features.leaderboard.CommunityLeaderboards(
+                    onViewAll = { role ->
+                        navController.navigate(Screen.SupplierLeaderboard.route)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("leaderboardRole", role)
+                    },
+                    onParticipant = { id -> navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(id)) }
+                )
+            },
             onListing = { listing ->
                 navController.navigate(if (listing.biddingEnabled) Screen.PlaceBid.createRoute(listing.listingId)
                     else Screen.PlaceOrderRequest.createRoute(listing.listingId))

@@ -1,5 +1,6 @@
 package com.agroroute.features.farmer.bids
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -182,7 +183,7 @@ fun ViewBidsScreen(
                     }
                     items(uiState.bids, key = { it.bidId }) { bid ->
                         val isBest = bid.status == BidStatus.PENDING && bid.bidId == bestPendingBid?.bidId
-                        SuperbBidCard(onOpenOrder = { navController.navigate(com.agroroute.core.navigation.Screen.FarmerOrderDetail.createRoute(bid.bidId)) }, listingAvailable = uiState.listing != null && uiState.listing?.isDraft == false, bid = bid, isBestOffer = isBest, onAcceptClick = { bidToAccept = bid }, onRejectClick = { viewModel.rejectBid(bid) }, isAccepting = uiState.isLoading || uiState.isSubmitting, blockedReason = com.agroroute.core.components.listingAcceptanceBlockedReason(uiState.listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation))
+                        SuperbBidCard(onProfile = { navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(bid.supplierId)) }, onOpenOrder = { navController.navigate(com.agroroute.core.navigation.Screen.FarmerOrderDetail.createRoute(bid.bidId)) }, listingAvailable = uiState.listing != null && uiState.listing?.isDraft == false, bid = bid, isBestOffer = isBest, onAcceptClick = { bidToAccept = bid }, onRejectClick = { viewModel.rejectBid(bid) }, isAccepting = uiState.isLoading || uiState.isSubmitting, blockedReason = com.agroroute.core.components.listingAcceptanceBlockedReason(uiState.listing, true, quantity = bid.requestedQuantity, deliveryLocation = bid.deliveryLocation))
                     }
                 }
             }
@@ -211,7 +212,8 @@ internal fun SuperbBidCard(
     isAccepting: Boolean,
     blockedReason: String?,
     listingAvailable: Boolean = true,
-    onOpenOrder: () -> Unit = {}
+    onOpenOrder: () -> Unit = {},
+    onProfile: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().shadow(if (isBestOffer) 12.dp else 4.dp, RoundedCornerShape(20.dp), ambientColor = if (isBestOffer) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.05f)),
@@ -221,9 +223,10 @@ internal fun SuperbBidCard(
         else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), Arrangement.spacedBy(12.dp)) {
+            if (com.agroroute.core.runtime.LocalMutationAllowed.current) TextButton(onClick = onProfile) { Text("View Supplier profile") }
             if (bid.status == BidStatus.ACCEPTED) TextButton(onClick = onOpenOrder) { Text("View order") }
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f).clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile)) {
                     Box(
                         Modifier.size(46.dp).clip(CircleShape)
                             .background(if (isBestOffer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer)

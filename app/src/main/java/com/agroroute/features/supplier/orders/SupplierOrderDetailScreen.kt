@@ -56,6 +56,10 @@ fun SupplierOrderDetailScreen(orderId: String, navController: NavController,
                         }
                     }
                     OrderSummarySection(order, forSupplier = true, counterpartName = counterpartName)
+                    if (com.agroroute.core.runtime.LocalMutationAllowed.current) {
+                        com.agroroute.features.participants.OrderParticipantCard(order.farmerId, "Farmer", navController,
+                            onNameLoaded = { counterpartName = it })
+                    }
                     OrderPickupSection(orderId, order.status, forSupplier = true,
                         verification = state.pickup, loading = state.pickupLoading || state.isLoading || state.isSubmitting,
                         error = state.pickupError, onRefresh = { viewModel.loadPickupVerification(orderId, generateNewCode = true) },
@@ -71,7 +75,7 @@ fun SupplierOrderDetailScreen(orderId: String, navController: NavController,
                         OutlinedButton(onClick = { showLocationPicker = true }, enabled = !state.isLoading && !state.isSubmitting,
                             modifier = Modifier.fillMaxWidth()) { Text("Add missing delivery location") }
                     }
-                    AppCard {
+                    if (!com.agroroute.core.runtime.LocalMutationAllowed.current) AppCard {
                         com.agroroute.features.supplier.components.SupplierSectionHeader("Farmer", icon = Lucide.User)
                         Spacer(Modifier.height(12.dp))
                         ProfilePhoneContact(userId = order.farmerId, personLabel = "Farmer", onNameLoaded = { counterpartName = it })

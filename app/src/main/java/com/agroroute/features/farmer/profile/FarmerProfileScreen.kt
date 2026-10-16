@@ -250,6 +250,10 @@ fun FarmerProfileScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            if (mutationAllowed) androidx.compose.material3.TextButton(onClick = {
+                navController.navigate(com.agroroute.features.participants.ParticipantRoutes.MESSAGES)
+            }) { Text("Messages") }
+
             ProfileLocationCard(user?.location, onClick = { if (mutationAllowed) showProfileEditor = true })
             Spacer(Modifier.height(12.dp))
             com.agroroute.features.farmer.components.FarmerPromo()

@@ -164,6 +164,18 @@ fun NavGraph(
                 modifier = Modifier.padding(paddingValues).consumeWindowInsets(paddingValues)
             ) {
 
+                composable(com.agroroute.features.participants.ParticipantRoutes.PROFILE,
+                    arguments = listOf(navArgument("participantId") { type = NavType.StringType })) { entry ->
+                    entry.arguments?.getString("participantId")?.let { ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.ParticipantProfileScreen(it, navController) } }
+                }
+                composable(com.agroroute.features.participants.ParticipantRoutes.CHAT,
+                    arguments = listOf(navArgument("participantId") { type = NavType.StringType })) { entry ->
+                    entry.arguments?.getString("participantId")?.let { ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.ChatScreen(it, navController) } }
+                }
+                composable(com.agroroute.features.participants.ParticipantRoutes.MESSAGES) {
+                    ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.MessagesScreen(navController) }
+                }
+
                 composable(Screen.Welcome.route) {
                     WelcomeScreen(navController = navController)
                 }
@@ -323,12 +335,12 @@ fun NavGraph(
                     com.agroroute.features.settings.NotificationInboxScreen(navController)
                 }
 
-                composable(Screen.FarmerLeaderboard.route) {
-                    LeaderboardScreen(role = "FARMER")
+                composable(Screen.FarmerLeaderboard.route) { entry ->
+                    LeaderboardScreen(role = entry.savedStateHandle.get<String>("leaderboardRole") ?: "FARMER", onParticipant = { id -> navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(id)) })
                 }
 
-                composable(Screen.SupplierLeaderboard.route) {
-                    LeaderboardScreen(role = "SUPPLIER")
+                composable(Screen.SupplierLeaderboard.route) { entry ->
+                    LeaderboardScreen(role = entry.savedStateHandle.get<String>("leaderboardRole") ?: "SUPPLIER", onParticipant = { id -> navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(id)) })
                 }
 
                 composable(
@@ -394,4 +406,10 @@ fun NavGraph(
         )
         else -> hostContent(PaddingValues())
     }
+}
+
+@Composable
+private fun ParticipantPresentation(role: UserRole?, content: @Composable () -> Unit) {
+    if (role == UserRole.SUPPLIER) androidx.compose.runtime.CompositionLocalProvider(com.agroroute.features.supplier.components.LocalSupplierPresentation provides true, content = content)
+    else com.agroroute.features.farmer.components.FarmerPresentation(content = content)
 }

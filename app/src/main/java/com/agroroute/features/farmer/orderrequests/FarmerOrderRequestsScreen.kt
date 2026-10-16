@@ -1,5 +1,6 @@
 package com.agroroute.features.farmer.orderrequests
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -146,6 +147,7 @@ fun FarmerOrderRequestsScreen(
                             request = request,
                             listing = listing,
                             isLoading = uiState.isLoading || uiState.isSubmitting,
+                            onProfile = { navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(request.supplierId)) },
                             onAccept = { requestToAccept = request },
                             onReject = { viewModel.rejectRequest(request) },
                             onOpenOrder = { navController.navigate(com.agroroute.core.navigation.Screen.FarmerOrderDetail.createRoute(request.requestId)) }
@@ -181,7 +183,8 @@ internal fun FarmerOrderRequestCard(
     isLoading: Boolean,
     onAccept: () -> Unit,
     onReject: () -> Unit,
-    onOpenOrder: () -> Unit = {}
+    onOpenOrder: () -> Unit = {},
+    onProfile: () -> Unit = {}
 ) {
     // The accept flow blocks requests whose harvest is not READY yet, so the
     // button is shown disabled with a short hint instead of failing on tap.
@@ -191,6 +194,7 @@ internal fun FarmerOrderRequestCard(
     val isPreHarvest = request.isPreHarvest || harvestStatus == HarvestStatus.EXPECTED
 
     AppCard {
+        if (com.agroroute.core.runtime.LocalMutationAllowed.current) TextButton(onClick = onProfile) { Text("View Supplier profile") }
         listing?.let {
             com.agroroute.core.components.ListingImage(it.imageUrls.firstOrNull(), height = 112.dp)
             Spacer(Modifier.height(12.dp))
@@ -215,7 +219,7 @@ internal fun FarmerOrderRequestCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 2.dp).clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile)
                 )
             }
             Spacer(Modifier.width(8.dp))

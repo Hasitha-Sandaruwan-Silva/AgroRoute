@@ -142,6 +142,59 @@ service cloud.firestore {
         );
     }
 
+    // Text-only private chat, independent of marketplace writes.
+    function chatPath(id) { return /databases/$(database)/documents/conversations/$(id); }
+    function chatMessagePath(id, mid) { return /databases/$(database)/documents/conversations/$(id)/messages/$(mid); }
+    function chatParticipant(d) { return signedIn() && request.auth.uid in d.participantIds; }
+    function chatIdentity(d, id) {
+      return d.farmerId is string && d.supplierId is string
+        && d.farmerId != d.supplierId
+        && d.participantIds == [d.farmerId, d.supplierId]
+        && id == string(d.farmerId.size()) + ':' + d.farmerId + string(d.supplierId.size()) + ':' + d.supplierId
+        && get(userProfilePath(d.farmerId)).data.userId == d.farmerId
+        && get(userProfilePath(d.farmerId)).data.role == 'FARMER'
+        && get(userProfilePath(d.supplierId)).data.userId == d.supplierId
+        && get(userProfilePath(d.supplierId)).data.role == 'SUPPLIER';
+    }
+    function validChatSummary(d, id) {
+      let message = getAfter(chatMessagePath(id, d.lastMessageId)).data;
+      return d.keys().hasOnly(['participantIds', 'farmerId', 'supplierId', 'createdAt', 'updatedAt',
+          'lastMessage', 'lastSenderId', 'lastMessageId'])
+        && d.lastMessageId is string && d.lastMessageId.size() > 0
+        && !exists(chatMessagePath(id, d.lastMessageId))
+        && d.updatedAt == request.time && d.lastSenderId == request.auth.uid
+        && d.lastMessage == message.text && message.senderId == request.auth.uid
+        && message.sentAt == request.time;
+    }
+    match /conversations/{id} {
+      // A missing document contains no private data; needed for lazy first-send transactions.
+      allow get: if signedIn() && !exists(chatPath(id)) && (farmer() || supplier());
+      allow get, list: if chatParticipant(resource.data);
+      allow create: if chatParticipant(request.resource.data)
+        && chatIdentity(request.resource.data, id)
+        && request.resource.data.createdAt == request.time
+        && validChatSummary(request.resource.data, id);
+      allow update: if chatParticipant(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'lastMessage', 'lastSenderId', 'lastMessageId'])
+        && validChatSummary(request.resource.data, id);
+      allow delete: if false;
+      match /messages/{mid} {
+        allow get, list: if chatParticipant(get(chatPath(id)).data);
+        allow create: if chatParticipant(getAfter(chatPath(id)).data)
+          && request.resource.data.keys().hasOnly(['senderId', 'text', 'sentAt'])
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 4000
+          && request.resource.data.text.matches('(?s).*\\S.*')
+          && request.resource.data.sentAt == request.time
+          && getAfter(chatPath(id)).data.lastMessageId == mid
+          && getAfter(chatPath(id)).data.lastMessage == request.resource.data.text
+          && getAfter(chatPath(id)).data.lastSenderId == request.auth.uid
+          && getAfter(chatPath(id)).data.updatedAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+
     match /scoreEvents/{id} {
       allow read: if signedIn() && (resource.data.userId == request.auth.uid
         || participant(get(orderPath(resource.data.orderId)).data));

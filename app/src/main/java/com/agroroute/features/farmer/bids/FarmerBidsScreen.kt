@@ -1,5 +1,6 @@
 package com.agroroute.features.farmer.bids
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -148,6 +149,7 @@ fun FarmerBidsScreen(
                                 onOpen = {
                                     navController.navigate(Screen.ViewBids.createRoute(listing.listingId))
                                 },
+                                onProfile = { navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(bid.supplierId)) },
                                 onAccept = { bidToAccept = bid },
                                 onReject = { viewModel.rejectBid(bid) }
                             )
@@ -185,7 +187,8 @@ private fun FarmerBidCard(
     isLoading: Boolean,
     onOpen: () -> Unit,
     onAccept: () -> Unit,
-    onReject: () -> Unit
+    onReject: () -> Unit,
+    onProfile: () -> Unit = {}
 ) {
     AppCard(onClick = onOpen) {
         com.agroroute.core.components.ListingImage(listing.imageUrls.firstOrNull(), height = 112.dp)
@@ -210,13 +213,14 @@ private fun FarmerBidCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 2.dp).clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile)
                 )
             }
             Spacer(Modifier.width(8.dp))
             BidStatusChip(bid.status)
         }
         Spacer(Modifier.height(8.dp))
+        if (com.agroroute.core.runtime.LocalMutationAllowed.current) TextButton(onClick = onProfile) { Text("View Supplier profile") }
         ProfilePhoneContact(userId = bid.supplierId, personLabel = "Supplier")
         Spacer(Modifier.height(12.dp))
         Row(

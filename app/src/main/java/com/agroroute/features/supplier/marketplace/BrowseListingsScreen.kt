@@ -1,5 +1,6 @@
 package com.agroroute.features.supplier.marketplace
 
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.LaunchedEffect
 
@@ -231,6 +232,7 @@ fun BrowseListingsScreen(
                             listing = listing,
                             canPlaceBid = listing.acceptsNewBids(),
                             canRequestOrder = listing.acceptsDirectOrders(),
+                            onFarmerProfile = { navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(listing.farmerId)) },
                             onCardClick = {
                                 if (listing.acceptsNewBids()) {
                                     navController.navigate(Screen.PlaceBid.createRoute(listing.listingId))
@@ -256,6 +258,7 @@ internal fun MarketplaceListingCard(
     listing: HarvestListing,
     canPlaceBid: Boolean,
     canRequestOrder: Boolean,
+    onFarmerProfile: (() -> Unit)? = null,
     onCardClick: () -> Unit
 ) {
     val isExpected = listing.harvestStatus == HarvestStatus.EXPECTED
@@ -309,7 +312,7 @@ internal fun MarketplaceListingCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false).clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current && onFarmerProfile != null) { onFarmerProfile?.invoke() }
                 )
                 if (listing.location.isNotBlank()) {
                     Spacer(Modifier.width(10.dp))

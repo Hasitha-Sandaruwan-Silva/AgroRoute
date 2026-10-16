@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
@@ -46,10 +47,32 @@ class LeaderboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LeaderboardUiState())
     val uiState: StateFlow<LeaderboardUiState> = _uiState.asStateFlow()
 
+    private val community = MutableStateFlow(CommunityLeadersState())
+    val communityState = community.asStateFlow()
+    private var communityJob: Job? = null
+
+    /** Both previews share one refresh and preserve each repository's existing ranking order. */
+    fun loadCommunity() {
+        if (communityJob?.isActive == true) return
+        communityJob = viewModelScope.launch {
+            community.update { it.copy(loading = true, error = null) }
+            val refresh = leaderboardRepository.syncLeaderboard()
+            combine(leaderboardRepository.getFarmerLeaderboard(), leaderboardRepository.getSupplierLeaderboard()) { farmers, suppliers ->
+                CommunityLeadersState(
+                    farmers = (farmers as? Result.Success)?.data.orEmpty(),
+                    suppliers = (suppliers as? Result.Success)?.data.orEmpty(),
+                    loading = farmers is Result.Loading || suppliers is Result.Loading,
+                    error = if (refresh is Result.Error || farmers is Result.Error || suppliers is Result.Error) "Couldn't refresh rankings." else null
+                )
+            }.collect { community.value = it }
+        }
+    }
+    fun retryCommunity() { communityJob?.cancel(); communityJob = null; loadCommunity() }
+
     fun loadLeaderboard(role: String) {
         leaderboardLoadJob?.cancel()
         leaderboardLoadJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.value = LeaderboardUiState(isLoading = true)
 
             // Sync latest data from Firestore
             when (val syncResult = leaderboardRepository.syncLeaderboard()) {
@@ -95,3 +118,8 @@ class LeaderboardViewModel @Inject constructor(
 
     fun clearError() = _uiState.update { it.copy(error = null) }
 }
+
+data class CommunityLeadersState(
+    val farmers: List<UserProfile> = emptyList(), val suppliers: List<UserProfile> = emptyList(),
+    val loading: Boolean = true, val error: String? = null
+)

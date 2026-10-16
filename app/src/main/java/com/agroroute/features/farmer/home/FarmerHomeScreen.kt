@@ -37,7 +37,6 @@ import com.agroroute.features.farmer.orders.FarmerOrderViewModel
 import com.github.thelacspace.icons.Lucide
 import com.agroroute.core.components.*
 import com.agroroute.core.theme.*
-import com.agroroute.features.leaderboard.HomeLeaderboard
 
 internal enum class FarmerHomeDestination(val route: String) {
     CREATE_LISTING(Screen.CreateListing.route),
@@ -97,7 +96,14 @@ fun FarmerHomeScreen(
             com.agroroute.features.farmer.components.FarmerPromo {
                 navController.navigate(FarmerHomeDestination.CREATE_LISTING.route)
             }
-            HomeLeaderboard("FARMER", onViewAll = { navController.navigate(Screen.FarmerLeaderboard.route) })
+            if (com.agroroute.core.runtime.LocalMutationAllowed.current) com.agroroute.features.leaderboard.CommunityLeaderboards(
+                onViewAll = { role ->
+                        navController.navigate(Screen.FarmerLeaderboard.route)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("leaderboardRole", role)
+                    },
+                onParticipant = { id -> navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(id)) }
+            )
+            else com.agroroute.features.leaderboard.HomeLeaderboard("FARMER", onViewAll = { navController.navigate(Screen.FarmerLeaderboard.route) })
             Text("Farm essentials", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FarmAction("New listing", "Share your harvest", Lucide.Plus, Modifier.weight(1f)) {

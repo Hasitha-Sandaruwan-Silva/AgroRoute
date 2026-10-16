@@ -13,6 +13,9 @@ import androidx.compose.ui.unit.dp
  * Vectors are lazily cached; no icon dependency or bitmap allocation is required.
  */
 object Lucide {
+    val MessageCircle: ImageVector by lazy { outline("MessageCircle", "M21 11.5 A8.5 8.5 0 0 1 12.5 20 H4 L3 21 V12.5 A8.5 8.5 0 1 1 21 11.5 Z") }
+    val Send: ImageVector by lazy { outline("Send", "M22 2 L15 22 L11 13 L2 9 Z M11 13 L22 2", mirrored = true) }
+
     private fun outline(name: String, data: String, mirrored: Boolean = false): ImageVector =
         ImageVector.Builder(
             name = "AgroRoute.$name", defaultWidth = 24.dp, defaultHeight = 24.dp,

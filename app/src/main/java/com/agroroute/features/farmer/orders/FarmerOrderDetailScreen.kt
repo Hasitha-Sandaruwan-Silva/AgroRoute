@@ -35,6 +35,10 @@ fun FarmerOrderDetailScreen(orderId: String, navController: NavController,
                 Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())
                     .padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OrderSummarySection(order, forSupplier = false, counterpartName = counterpartName)
+                    if (com.agroroute.core.runtime.LocalMutationAllowed.current) {
+                        com.agroroute.features.participants.OrderParticipantCard(order.supplierId, "Supplier", navController,
+                            onNameLoaded = { counterpartName = it })
+                    }
                     OrderPickupSection(orderId, order.status, forSupplier = false,
                         verification = state.pickup, loading = state.pickupLoading || state.isLoading || state.isSubmitting,
                         error = state.pickupError, onRefresh = { viewModel.loadPickupVerification(orderId) },
@@ -46,7 +50,7 @@ fun FarmerOrderDetailScreen(orderId: String, navController: NavController,
                         navController.navigate(Screen.SubmitReview.createRoute(orderId, order.supplierId, "Supplier"))
                     })
                     OrderLocationSection(order, forSupplier = false)
-                    AppCard { ProfilePhoneContact(userId = order.supplierId, personLabel = "Supplier", onNameLoaded = { counterpartName = it }) }
+                    if (!com.agroroute.core.runtime.LocalMutationAllowed.current) AppCard { ProfilePhoneContact(userId = order.supplierId, personLabel = "Supplier", onNameLoaded = { counterpartName = it }) }
                     AppCard {
                         Text("Order details", style = MaterialTheme.typography.titleMedium)
                         Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.bodySmall)

@@ -1,6 +1,11 @@
 package com.agroroute.features.leaderboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.FilterChip
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.agroroute.core.runtime.LocalMutationAllowed
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,65 +57,38 @@ import java.util.Locale
  */
 @Composable
 fun LeaderboardScreen(
-    role: String, // "FARMER" or "SUPPLIER"
-    viewModel: LeaderboardViewModel = hiltViewModel()
+    role: String,
+    viewModel: LeaderboardViewModel = hiltViewModel(),
+    onParticipant: (String) -> Unit
 ) {
+    var selectedRole by rememberSaveable(role) { mutableStateOf(role) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(selectedRole) { viewModel.loadLeaderboard(selectedRole) }
+    LeaderboardContent(selectedRole, uiState, { selectedRole = it }, onParticipant) { viewModel.loadLeaderboard(selectedRole) }
+}
 
-    LaunchedEffect(role) {
-        viewModel.loadLeaderboard(role)
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+@Composable
+internal fun LeaderboardContent(role: String, uiState: LeaderboardUiState, onRole: (String) -> Unit,
+    onParticipant: (String) -> Unit, onRetry: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FilterChip(selected = role == "FARMER", onClick = { onRole("FARMER") }, label = { Text("Farmers") })
+            FilterChip(selected = role == "SUPPLIER", onClick = { onRole("SUPPLIER") }, label = { Text("Suppliers") })
+        }
+        LeaderboardHeader(role)
+        Spacer(Modifier.height(16.dp))
         when {
             uiState.isLoading && uiState.items.isEmpty() -> ListSkeleton(count = 5)
-            uiState.error != null && uiState.items.isEmpty() -> Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                EmptyState(
-                    icon = Lucide.Award,
-                    title = "Leaderboard unavailable",
-                    subtitle = "Check your connection and try again"
-                )
-                TextButton(onClick = { viewModel.clearError(); viewModel.loadLeaderboard(role) }) {
-                    Text("Try again")
-                }
+            uiState.error != null && uiState.items.isEmpty() -> {
+                EmptyState(icon = Lucide.Award, title = "Leaderboard unavailable", subtitle = "Check your connection and try again")
+                TextButton(onClick = onRetry) { Text("Try again") }
             }
-            uiState.items.isEmpty() -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                EmptyState(
-                    icon = Lucide.Award,
-                    title = "No rankings yet",
-                    subtitle = "Complete orders to earn points and appear on the leaderboard"
-                )
-            }
+            uiState.items.isEmpty() -> EmptyState(icon = Lucide.Award, title = "No rankings yet",
+                subtitle = "Complete orders to earn points and appear on the leaderboard")
             else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                ) {
-                    LeaderboardHeader(role = role)
-                    uiState.error?.let { error ->
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            text = "Showing saved rankings. Refresh is currently unavailable.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        )
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    LeaderboardList(items = uiState.items)
-                }
+                if (uiState.error != null) Text("Showing saved rankings. Refresh is currently unavailable.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                LeaderboardList(items = uiState.items, onParticipant = onParticipant)
             }
         }
     }
@@ -155,20 +133,20 @@ private fun LeaderboardHeader(role: String) {
 }
 
 @Composable
-private fun LeaderboardList(items: List<LeaderboardUserItem>) {
+private fun LeaderboardList(items: List<LeaderboardUserItem>, onParticipant: (String) -> Unit) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(items, key = { _, item -> item.user.userId }) { index, item ->
-            LeaderboardItem(item = item, rank = index + 1)
+            LeaderboardItem(item = item, rank = index + 1, onParticipant = onParticipant)
         }
     }
 }
 
 @Composable
-private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
+private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int, onParticipant: (String) -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable(enabled = LocalMutationAllowed.current && item.user.userId.isNotBlank()) { onParticipant(item.user.userId) },
         colors = CardDefaults.cardColors(
             containerColor = when (rank) {
                 1 -> LocalAgroExtendedColors.current.goldSoft
@@ -206,7 +184,8 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
                     fontWeight = FontWeight.Bold,
                     color = when (rank) {
                         1 -> com.agroroute.core.theme.GreenDeep
-                        2, 3 -> MaterialTheme.colorScheme.onSecondaryContainer
+                        2 -> MaterialTheme.colorScheme.onSecondaryContainer
+                        3 -> MaterialTheme.colorScheme.onTertiaryContainer
                         else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
@@ -226,7 +205,7 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
             // User info and average rating
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.user.displayName,
+                    text = item.user.displayName.ifBlank { "Participant unavailable" },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -234,7 +213,7 @@ private fun LeaderboardItem(item: LeaderboardUserItem, rank: Int) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = item.user.location.ifBlank { "Location not specified" },
+                    text = com.agroroute.core.components.profileLocationLabel(item.user.location).ifBlank { "Location not specified" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -7,7 +7,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment
 } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, runTransaction, serverTimestamp } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, runTransaction, serverTimestamp, collection, query, where, getDocs, onSnapshot, orderBy } from "firebase/firestore";
 import { after, before, beforeEach, test } from "node:test";
 
 const projectId = "demo-agroroute-rules";
@@ -2279,3 +2279,99 @@ for (const uid of ["farmer-2", "supplier-1"]) {
     await assertFails(updateDoc(doc(db, "listings/listing-1"), {status: "CLOSED", biddingEnabled: false}));
   });
 }
+
+// Private chat fixtures deliberately use UIDs containing separators.
+const chatId = "8:farmer-110:supplier-1";
+async function sendChat(db, mid = "message-1", sender = "farmer-1", text = "Hello", first = true) {
+  const batch = writeBatch(db);
+  batch.set(doc(db, `conversations/${chatId}/messages/${mid}`), { senderId: sender, text, sentAt: serverTimestamp() });
+  batch.set(doc(db, `conversations/${chatId}`), {
+    participantIds: ["farmer-1", "supplier-1"], farmerId: "farmer-1", supplierId: "supplier-1",
+    ...(first ? { createdAt: serverTimestamp() } : {}), updatedAt: serverTimestamp(),
+    lastMessage: text, lastSenderId: sender, lastMessageId: mid
+  }, { merge: true });
+  return batch.commit();
+}
+function chatDb(uid) { return testEnvironment.authenticatedContext(uid).firestore(); }
+test("chat: both roles send and reopen exactly one canonical conversation", async () => {
+  const a = chatDb("farmer-1"), b = chatDb("supplier-1");
+  await assertSucceeds(sendChat(a));
+  await assertSucceeds(sendChat(b, "message-2", "supplier-1", "Reply", false));
+  for (const db of [a, b]) {
+    await assertSucceeds(getDoc(doc(db, `conversations/${chatId}`)));
+    const messages = await assertSucceeds(getDocs(collection(db, `conversations/${chatId}/messages`)));
+    assert.equal(messages.size, 2);
+    const conversations = await assertSucceeds(getDocs(query(collection(db, "conversations"), where("participantIds", "array-contains", db === a ? "farmer-1" : "supplier-1"))));
+    assert.equal(conversations.size, 1);
+  }
+  assert.equal((await getDoc(doc(a, `conversations/${chatId}`))).data().lastMessage, "Reply");
+});
+test("chat: third users and anonymous users cannot read, query or send", async () => {
+  await sendChat(chatDb("farmer-1"));
+  for (const db of [chatDb("farmer-2"), chatDb("supplier-2"), testEnvironment.unauthenticatedContext().firestore()]) {
+    await assertFails(getDoc(doc(db, `conversations/${chatId}`)));
+    await assertFails(getDoc(doc(db, `conversations/${chatId}/messages/message-1`)));
+    await assertFails(getDocs(collection(db, `conversations/${chatId}/messages`)));
+    await assertFails(sendChat(db, "attack", "farmer-1", "Forged", false));
+  }
+  await assertFails(getDocs(collection(chatDb("farmer-1"), "conversations")));
+});
+test("chat: forged sender, blanks, oversized text and standalone writes are denied", async () => {
+  const a = chatDb("farmer-1");
+  await assertFails(sendChat(a, "forged", "supplier-1"));
+  await assertFails(sendChat(a, "blank", "farmer-1", " \n "));
+  await assertFails(sendChat(a, "long", "farmer-1", "x".repeat(4001)));
+  await assertSucceeds(sendChat(a));
+  await assertFails(setDoc(doc(a, `conversations/${chatId}/messages/orphan`), { senderId: "farmer-1", text: "Orphan", sentAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(a, `conversations/${chatId}`), { lastMessage: "Fake preview", updatedAt: serverTimestamp() }));
+});
+test("chat: messages and membership are immutable; duplicate IDs and same-role pairs denied", async () => {
+  const a = chatDb("farmer-1");
+  await sendChat(a);
+  await assertFails(updateDoc(doc(a, `conversations/${chatId}/messages/message-1`), { text: "Edited" }));
+  await assertFails(deleteDoc(doc(a, `conversations/${chatId}/messages/message-1`)));
+  await assertFails(deleteDoc(doc(a, `conversations/${chatId}`)));
+  await assertFails(updateDoc(doc(a, `conversations/${chatId}`), { participantIds: ["farmer-1", "supplier-2"] }));
+  await assertFails(sendChat(a, "message-1", "farmer-1", "Replay", false));
+  await assertFails(setDoc(doc(a, "conversations/random-duplicate"), {
+    participantIds: ["farmer-1", "supplier-1"], farmerId: "farmer-1", supplierId: "supplier-1",
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastMessage: "Hello", lastSenderId: "farmer-1", lastMessageId: "message-1"
+  }));
+  await assertFails(setDoc(doc(a, "conversations/8:farmer-18:farmer-2"), {
+    participantIds: ["farmer-1", "farmer-2"], farmerId: "farmer-1", supplierId: "farmer-2",
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastMessage: "Hello", lastSenderId: "farmer-1", lastMessageId: "message-1"
+  }));
+});
+
+test("chat: receiver listeners see new messages, previews and server-time ordering", async () => {
+  const a = chatDb("farmer-1"), b = chatDb("supplier-1");
+  await sendChat(a);
+  const waitFor = (ref, predicate) => {
+    let unsubscribe;
+    let timer;
+    const promise = new Promise((resolve, reject) => {
+      timer = setTimeout(() => { unsubscribe?.(); reject(new Error("Realtime update timed out")); }, 10000);
+      unsubscribe = onSnapshot(ref, snapshot => {
+        if (predicate(snapshot)) { clearTimeout(timer); unsubscribe?.(); resolve(snapshot); }
+      }, error => { clearTimeout(timer); reject(error); });
+    });
+    return { promise, stop: () => { clearTimeout(timer); unsubscribe?.(); } };
+  };
+  const messages = waitFor(query(collection(b, `conversations/${chatId}/messages`), orderBy("sentAt")), snapshot => snapshot.size === 2);
+  const previews = waitFor(query(collection(b, "conversations"), where("participantIds", "array-contains", "supplier-1")), snapshot => snapshot.docs[0]?.data().lastMessage === "Second message");
+  try {
+    await assertSucceeds(sendChat(a, "message-2", "farmer-1", "Second message", false));
+    const rows = (await messages.promise).docs.map(d => d.data());
+    await previews.promise;
+    assert.equal(rows[0].text, "Hello"); assert.equal(rows[1].text, "Second message");
+    assert.ok(rows[0].sentAt.toMillis() <= rows[1].sentAt.toMillis());
+  } finally { messages.stop(); previews.stop(); }
+});
+test("chat: client timestamps and extra message fields are rejected", async () => {
+  const a = chatDb("farmer-1");
+  await sendChat(a);
+  const batch = writeBatch(a);
+  batch.set(doc(a, `conversations/${chatId}/messages/injected`), { senderId: "farmer-1", text: "Injected", sentAt: new Date(0), privateMetadata: "no" });
+  batch.update(doc(a, `conversations/${chatId}`), { lastMessageId: "injected", lastMessage: "Injected", lastSenderId: "farmer-1", updatedAt: serverTimestamp() });
+  await assertFails(batch.commit());
+});

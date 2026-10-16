@@ -284,7 +284,7 @@ internal fun supplierTitle(route: String): String = when {
     route == Screen.SupplierOrders.route -> "Orders"
     route == Screen.SupplierBids.route -> "My Bids"
     route == Screen.SupplierProfile.route -> "Profile"
-    route == Screen.SupplierLeaderboard.route -> "Supplier Leaderboard"
+    route == Screen.SupplierLeaderboard.route -> "Leaderboard"
     route == Screen.HelpSupport.route -> "Help & Support"
     route == Screen.About.route -> "About"
     route == Screen.Privacy.route -> "Privacy & Terms"

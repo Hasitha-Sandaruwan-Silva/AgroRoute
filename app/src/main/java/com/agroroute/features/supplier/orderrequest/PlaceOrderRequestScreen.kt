@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -128,7 +129,8 @@ fun PlaceOrderRequestScreen(
                 is Result.Loading -> ListSkeleton(count = 1)
                 is Result.Success -> {
                     if (result.data != null) {
-                        ListingSummaryCard(listing = result.data)
+                        ListingSummaryCard(listing = result.data, onProfile = { navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(result.data.farmerId)) })
+                        com.agroroute.features.participants.ParticipantProfileLink(result.data.farmerId, navController, "View Farmer profile")
                         if (result.data.harvestStatus == HarvestStatus.EXPECTED) {
                             PreHarvestInfoBanner()
                         }
@@ -284,7 +286,7 @@ private fun PreHarvestInfoBannerPreview() {
 }
 
 @Composable
-internal fun ListingSummaryCard(listing: HarvestListing) {
+internal fun ListingSummaryCard(listing: HarvestListing, onProfile: () -> Unit = {}) {
     val isExpected = listing.harvestStatus == HarvestStatus.EXPECTED
     com.agroroute.features.supplier.components.SupplierCard {
         com.agroroute.features.supplier.components.SupplierListingGallery(listing.imageUrls)
@@ -321,6 +323,7 @@ internal fun ListingSummaryCard(listing: HarvestListing) {
             Spacer(Modifier.width(5.dp))
             Text(
                 text = "by ${listing.farmerName}",
+                modifier = Modifier.clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

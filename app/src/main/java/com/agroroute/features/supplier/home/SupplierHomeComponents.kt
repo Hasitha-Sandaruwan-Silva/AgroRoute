@@ -76,8 +76,10 @@ internal fun SupplierHomeContent(
     onMarketplace: () -> Unit, onOrders: () -> Unit, onBids: () -> Unit, onProfile: () -> Unit,
     onCommunity: () -> Unit, onListing: (HarvestListing) -> Unit, notification: @Composable () -> Unit,
     onSearch: () -> Unit = onMarketplace,
-    heroStatusBar: Boolean = false
+    heroStatusBar: Boolean = false,
+    communityLeaders: (@Composable () -> Unit)? = null
 ) {
+    val profileDiscoveryAllowed = com.agroroute.core.runtime.LocalMutationAllowed.current
     var category by rememberSaveable { mutableStateOf("All") }
     val active = remember(listings, now) { homeActiveListings(listings, now) }
     val selected = remember(active, category) { active.filter { category == "All" || supplierProduceGroup(it.cropName) == category } }
@@ -93,6 +95,7 @@ internal fun SupplierHomeContent(
             SupplierStatistics(active.size, bids.count { it.status == BidStatus.PENDING }, orders.size,
                 orders.count { it.status == OrderStatus.IN_TRANSIT }, onMarketplace, onBids, onOrders)
         }
+        if (communityLeaders != null && profileDiscoveryAllowed) item(key = "community-leaders") { Column(Modifier.padding(horizontal = 16.dp)) { communityLeaders() } }
         item(key = "featured-heading") { HomeSectionHeading("Featured Produce", onMarketplace) }
         item(key = "featured") {
             when {
