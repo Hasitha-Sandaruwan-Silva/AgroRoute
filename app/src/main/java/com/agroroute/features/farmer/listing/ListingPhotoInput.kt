@@ -39,8 +39,10 @@ internal fun ListingPhotoInput(
     val latestBusy by rememberUpdatedState(onBusyChanged)
     val busy = pendingCapture != null
     SideEffect { latestBusy(busy) }
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && pendingCapture != null) captureReady = true
+    var permissionPending by rememberSaveable { mutableStateOf(false) }
+    var permanentlyDenied by rememberSaveable { mutableStateOf(false) }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && pendingCapture != null) captureReady = true
         else {
             pendingCapture?.let { ListingCameraPhoto.discard(context, it) }
             pendingCapture = null
@@ -69,18 +71,48 @@ internal fun ListingPhotoInput(
         pendingCapture = null
         captureReady = false
     }
-    fun takePhoto() {
+    fun openCamera() {
         if (!enabled || pendingCapture != null) return
-        sheet = false
+        permanentlyDenied = false
+        message = null
         try {
             val name = ListingCameraPhoto.create(context)
             pendingCapture = name
             captureReady = false
-            camera.launch(ListingCameraPhoto.uri(context, name))
+            camera.launch(android.content.Intent(context, ListingCameraActivity::class.java)
+                .putExtra(ListingCameraActivity.CAPTURE_NAME, name))
         } catch (_: Exception) {
             pendingCapture?.let { ListingCameraPhoto.discard(context, it) }
             pendingCapture = null
-            message = "Couldn’t open the camera. Please try again or choose from Gallery."
+            message = "Couldn't open the camera. Please try again or choose from Gallery."
+        }
+    }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        permissionPending = false
+        if (granted) {
+            permanentlyDenied = false
+            message = null
+            openCamera()
+        } else {
+            val activity = context.findCameraActivity()
+            permanentlyDenied = activity != null &&
+                !androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(activity, android.Manifest.permission.CAMERA)
+            message = if (permanentlyDenied) "Camera access is disabled. Enable it from App Settings."
+                else "Camera permission is required to take a harvest photo."
+        }
+    }
+    fun takePhoto() {
+        if (!enabled || pendingCapture != null || permissionPending) return
+        sheet = false
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA)
+            == android.content.pm.PackageManager.PERMISSION_GRANTED) openCamera()
+        else {
+            permissionPending = true
+            try { permission.launch(android.Manifest.permission.CAMERA) }
+            catch (_: Exception) {
+                permissionPending = false
+                message = "Camera permission is required to take a harvest photo."
+            }
         }
     }
     fun chooseGallery() {
@@ -99,6 +131,12 @@ internal fun ListingPhotoInput(
         modifier = Modifier.padding(top = 8.dp))
     message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
         modifier = Modifier.padding(top = 8.dp)) }
+    if (permanentlyDenied) TextButton(onClick = {
+        try {
+            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:${context.packageName}")))
+        } catch (_: Exception) { message = "Open Android Settings > Apps > AgroRoute > Permissions to enable Camera." }
+    }) { Text("Open Settings") }
     if (sheet) ModalBottomSheet(onDismissRequest = { sheet = false }, containerColor = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -162,4 +200,57 @@ internal fun ListingPhotoCard(
             TextButton(onClick = onRemove, enabled = enabled, modifier = Modifier.weight(1f)) { Text("Remove Photo") }
         }
     }
+}
+
+
+/** Reuses the existing capture and persistent-document picker without changing either pipeline. */
+@Composable
+internal fun ListingPhotosInput(
+    photos: List<String>, isLoading: Boolean, isEditing: Boolean, enabled: Boolean,
+    onPhotosChanged: (List<String>) -> Unit, onBusyChanged: (Boolean) -> Unit
+) {
+    val latestPhotos by rememberUpdatedState(photos)
+    var replacing by rememberSaveable { mutableStateOf<Int?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    Text("Add up to 5 clear photos", style = MaterialTheme.typography.bodySmall)
+    photos.forEachIndexed { index, photo ->
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            AsyncImage(photo, "Harvest photo ${index + 1}", Modifier.size(72.dp), contentScale = ContentScale.Crop)
+            Column(Modifier.weight(1f)) {
+                TextButton(enabled = enabled && !busy, onClick = {
+                    onPhotosChanged(primaryListingPhoto(latestPhotos, index))
+                    replacing = null
+                }) { Text(if (index == 0) "Primary" else "Make primary") }
+                TextButton(enabled = enabled && !busy, onClick = { replacing = index }) { Text("Replace") }
+            }
+            TextButton(enabled = enabled && !busy, onClick = {
+                onPhotosChanged(latestPhotos.filterIndexed { i, _ -> i != index })
+                replacing = null
+            }) { Text("Remove") }
+        }
+    }
+    if (photos.size >= MAX_LISTING_PHOTOS && replacing == null) Text("Maximum 5 photos")
+    // Keep the launcher mounted even at the limit so in-flight callbacks are handled safely.
+    ListingPhotoInput(
+        selectedUri = replacing?.let { photos.getOrNull(it)?.let(Uri::parse) },
+        isLoading = isLoading, isEditing = isEditing,
+        enabled = enabled && (photos.size < MAX_LISTING_PHOTOS || replacing != null),
+        onImageSelected = { uri ->
+            val current = latestPhotos
+            val index = replacing
+            onPhotosChanged(if (index != null && index in current.indices)
+                current.mapIndexed { i, old -> if (i == index) uri.toString() else old }
+                else appendListingPhoto(current, uri.toString()))
+            replacing = null
+        },
+        onRemove = { replacing = null },
+        onBusyChanged = { busy = it; onBusyChanged(it) }
+    )
+}
+
+
+internal tailrec fun android.content.Context.findCameraActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findCameraActivity()
+    else -> null
 }

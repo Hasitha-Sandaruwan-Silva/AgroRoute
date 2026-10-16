@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <activity android:name=".demo.DemoActivity" android:exported="false" android:label="AgroRoute Local Demo" />
     </application>

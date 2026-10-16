@@ -41,18 +41,13 @@ class CreateListingUseCase @Inject constructor(
                 return Result.Error("Estimated quantity must be greater than zero")
             }
         }
-        val localUri = listing.imageUrls.firstOrNull()?.takeIf {
-            it.startsWith("content://") || it.startsWith("file://")
-        }
-        val publishedListing = if (localUri == null) {
-            listing
-        } else {
-            val remoteUrl = try {
-                listingPhotoStorage.uploadListingPhoto(localUri, listing.farmerId, listing.listingId)
-            } catch (error: Exception) {
-                return Result.Error(error.message ?: "Photo upload failed. Check your connection and retry.", error)
-            }
-            listing.copy(imageUrls = listOf(remoteUrl))
+        if (listing.imageUrls.size > MAX_LISTING_PHOTOS) return Result.Error("Maximum 5 photos")
+        val publishedListing = try {
+            listing.copy(imageUrls = uploadListingPhotos(listing, listingPhotoStorage))
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            return Result.Error("Photo upload failed. Check your connection and retry.", error)
         }
         return repository.saveListing(publishedListing)
     }

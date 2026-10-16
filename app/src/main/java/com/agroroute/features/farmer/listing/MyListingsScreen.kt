@@ -85,7 +85,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
         AlertDialog(
             onDismissRequest = { listingPendingClosure = null },
             title = { Text("Close listing?", fontWeight = FontWeight.Bold) },
-            text = { Text("Suppliers will no longer be able to bid. Existing bids and orders will be preserved.") },
+            text = { Text("Closing removes this listing from the active marketplace while preserving bids, requests, orders and reviews. Permanent deletion is unavailable because history must remain valid.") },
             confirmButton = {
                 Button(onClick = { listingPendingClosure = null; viewModel.closeListing(l) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                     Text("Close")
@@ -380,7 +380,7 @@ private fun SuperbListingCard(
                         Text(if (SelectedLocation.fromStoredText(listing.location) == null) "Add pickup pin" else "Edit listing")
                     }
                     if (listing.status == ListingStatus.OPEN) {
-                        TextButton(onClick = onCloseClick, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current) { Text("Close", color = if (com.agroroute.core.runtime.LocalMutationAllowed.current) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)) }
+                        TextButton(onClick = onCloseClick, enabled = com.agroroute.core.runtime.LocalMutationAllowed.current) { Text("Remove", color = if (com.agroroute.core.runtime.LocalMutationAllowed.current) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)) }
                     }
                 }
                 if (listing.harvestStatus == HarvestStatus.EXPECTED) {

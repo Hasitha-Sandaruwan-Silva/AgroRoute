@@ -78,18 +78,13 @@ class UpdateListingUseCase @Inject constructor(
             return Result.Error("This listing has order history. It cannot be edited without changing agreed order terms.")
         }
 
-        val localUri = listing.imageUrls.firstOrNull()?.takeIf {
-            it.startsWith("content://") || it.startsWith("file://")
-        }
-        val updatedListing = if (localUri == null) {
-            listing
-        } else {
-            val secureUrl = try {
-                listingPhotoStorage.uploadListingPhoto(localUri, farmerId, listing.listingId)
-            } catch (error: Exception) {
-                return Result.Error(error.message ?: "Photo upload failed. Check your connection and retry.", error)
-            }
-            listing.copy(imageUrls = listOf(secureUrl))
+        if (listing.imageUrls.size > MAX_LISTING_PHOTOS) return Result.Error("Maximum 5 photos")
+        val updatedListing = try {
+            listing.copy(imageUrls = uploadListingPhotos(listing, listingPhotoStorage))
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            return Result.Error("Photo upload failed. Check your connection and retry.", error)
         }
         return listingRepository.updateListing(updatedListing)
     }

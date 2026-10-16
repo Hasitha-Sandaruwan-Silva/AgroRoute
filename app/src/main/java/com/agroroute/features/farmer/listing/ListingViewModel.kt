@@ -114,6 +114,7 @@ class ListingViewModel @Inject constructor(
     fun clearDraftSaved() = _uiState.update { it.copy(draftSaved = false) }
 
     fun createListing(listing: HarvestListing) {
+        if (_uiState.value.isLoading || _uiState.value.actionSuccess) return
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, error = null, photoUploadError = null, actionSuccess = false)
@@ -178,6 +179,7 @@ class ListingViewModel @Inject constructor(
     }
 
     fun updateListing(listing: HarvestListing) {
+        if (_uiState.value.isLoading || _uiState.value.actionSuccess) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, photoUploadError = null, actionSuccess = false) }
             when (val result = updateListingUseCase(listing)) {

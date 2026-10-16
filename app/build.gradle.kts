@@ -85,6 +85,13 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    // Required on the compile classpath for CameraProvider's ListenableFuture API.
+    implementation("com.google.guava:guava:33.3.1-android")
+    val cameraXVersion = "1.5.3"
+    implementation("androidx.camera:camera-core:$cameraXVersion")
+    implementation("androidx.camera:camera-camera2:$cameraXVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
+    implementation("androidx.camera:camera-view:$cameraXVersion")
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // ── Navigation Compose ─────────────────────────────────────────────────────
@@ -138,4 +145,5 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }

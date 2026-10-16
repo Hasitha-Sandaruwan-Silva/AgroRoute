@@ -70,7 +70,7 @@ fun ViewBidsScreen(
                         ) {
                             Column {
                                 Box(Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
-                                    ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 200.dp)
+                                    com.agroroute.features.supplier.components.SupplierListingGallery(listing.imageUrls)
                                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.5f)))))
                                     Surface(
                                         Modifier.align(Alignment.BottomStart).padding(12.dp),

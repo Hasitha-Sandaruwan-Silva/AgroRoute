@@ -229,6 +229,27 @@ class HarvestListingRepositoryImpl @Inject constructor(
         dao.upsertListing(listing.copy(isDraft = true))
     }
 
+    override suspend fun closeListing(listingId: String): Result<Unit> {
+        return try {
+            val farmerId = authRepository.currentUserId ?: error("Sign in as a Farmer")
+            val profile = authRepository.getCurrentUserProfile().first().getOrNull()
+            check(profile?.role == UserRole.FARMER && profile.userId == farmerId)
+            val ref = firestoreService.firestore.collection(Constants.COLLECTION_LISTINGS).document(listingId)
+            val closed = firestoreService.runTransaction<HarvestListing> { tx ->
+                val current = tx.get(ref).toObject(HarvestListing::class.java) ?: error("Listing not found")
+                check(current.farmerId == farmerId && !current.isDraft && current.status == ListingStatus.OPEN)
+                tx.update(ref, mapOf("status" to ListingStatus.CLOSED.name, "biddingEnabled" to false))
+                current.copy(status = ListingStatus.CLOSED, biddingEnabled = false)
+            }
+            dao.upsertListing(closed)
+            Result.Success(Unit)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Result.Error("Couldn't remove listing. Check your connection and try again. Only the owner can close an open listing.", error)
+        }
+    }
+
     override suspend fun deleteListing(listingId: String): Result<Unit> = safeCall {
         val farmerId = authRepository.currentUserId ?: error("Sign in to delete listings")
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()
@@ -238,8 +259,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
         val listing = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
             ?: error("Listing not found")
         check(listing.farmerId == farmerId) { "You cannot delete another Farmer's listing" }
-        firestoreService.delete(Constants.COLLECTION_LISTINGS, listingId)
-        dao.deleteListing(listingId)
+        error("Permanent removal is unavailable because listing history must be preserved. Close the listing instead.")
     }
 
     // ── Sync (Firestore → Room cache refresh) ──────────────────────────────────

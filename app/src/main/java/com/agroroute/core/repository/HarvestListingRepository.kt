@@ -34,7 +34,11 @@ interface HarvestListingRepository {
     /** Saves an incomplete listing locally without publishing it to Firestore. */
     suspend fun saveDraft(listing: HarvestListing): Result<Unit>
 
-    /** Deletes a listing from both Firestore and Room. */
+    /** Closes using current remote state; never replaces stock or historical fields. */
+    suspend fun closeListing(listingId: String): Result<Unit> =
+        Result.Error("Closing listings is unavailable here")
+
+    /** Permanent removal is disabled until history can be securely verified server-side. */
     suspend fun deleteListing(listingId: String): Result<Unit>
 
     /** Fetches all listings from Firestore and refreshes the Room cache. */

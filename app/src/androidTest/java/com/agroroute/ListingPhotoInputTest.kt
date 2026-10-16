@@ -57,11 +57,17 @@ class ListingPhotoInputTest(private val dark: Boolean) {
         var launches = 0
         override fun <I, O> onLaunch(requestCode: Int, contract: ActivityResultContract<I, O>, input: I,
             options: ActivityOptionsCompat?) {
+            if (contract is ActivityResultContracts.RequestPermission) {
+                dispatchResult(requestCode, true)
+                return
+            }
             launches++
             if (unavailable) throw ActivityNotFoundException()
-            if (contract is ActivityResultContracts.TakePicture) {
-                if (!cancelled && !invalid) writePhoto(input as Uri)
-                dispatchResult(requestCode, !cancelled)
+            if (contract is ActivityResultContracts.StartActivityForResult) {
+                val name = (input as Intent).getStringExtra(ListingCameraActivity.CAPTURE_NAME)!!
+                if (!cancelled && !invalid) writePhoto(ListingCameraPhoto.uri(context, name))
+                dispatchResult(requestCode, androidx.activity.result.ActivityResult(
+                    if (cancelled) Activity.RESULT_CANCELED else Activity.RESULT_OK, null))
             } else dispatchResult(requestCode, galleryUri)
         }
     }
@@ -173,7 +179,7 @@ class ListingPhotoInputTest(private val dark: Boolean) {
     @Test fun unavailableCameraIsHandledAndDisabledInputCannotLaunch() {
         registry.unavailable = true; content()
         compose.onNodeWithText("Take Photo").performScrollTo().performClick()
-        compose.onNodeWithText("Couldn’t open the camera. Please try again or choose from Gallery.").assertExists()
+        compose.onNodeWithText("Couldn't open the camera. Please try again or choose from Gallery.").assertExists()
         compose.runOnIdle { assertFalse(busy); assertNull(lastUri) }
     }
 
@@ -210,4 +216,42 @@ class ListingPhotoInputTest(private val dark: Boolean) {
         assertTrue(file.length() in 1..com.agroroute.core.util.CloudinaryConfig.MAX_PHOTO_BYTES)
         bitmap.recycle(); ListingCameraPhoto.discard(context, name)
     }
+    @Test fun multiplePhotosCombineSourcesAndKeepLimitAndPrimary() {
+        var selected = emptyList<String>()
+        compose.setContent {
+            CompositionLocalProvider(LocalActivityResultRegistryOwner provides object : ActivityResultRegistryOwner {
+                override val activityResultRegistry = registry
+            }) {
+                AgroRouteTheme(darkTheme = dark) {
+                    var photos by remember { mutableStateOf(emptyList<String>()) }
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                        ListingPhotosInput(photos, false, false, true, {
+                            photos = it; selected = it
+                        }, { busy = it })
+                    }
+                }
+            }
+        }
+        repeat(2) { count ->
+            compose.onNodeWithText("Take Photo").performScrollTo().performClick()
+            compose.waitUntil(10_000) { selected.size == count + 1 && !busy }
+        }
+        repeat(3) { count ->
+            registry.galleryUri = galleryPhoto()
+            compose.onNodeWithText("Choose from Gallery").performScrollTo().performClick()
+            compose.waitUntil(10_000) { selected.size == count + 3 }
+        }
+        compose.onNodeWithText("Maximum 5 photos").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Take Photo").performScrollTo().assertIsNotEnabled()
+        val nextPrimary = selected[1]
+        compose.onAllNodesWithText("Make primary").onFirst().performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(nextPrimary, selected.first()) }
+        compose.onAllNodesWithText("Remove").onFirst().performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(4, selected.size) }
+        repeat(4) {
+            compose.onAllNodesWithText("Remove").onFirst().performScrollTo().performClick()
+        }
+        compose.runOnIdle { assertTrue(selected.isEmpty()) }
+    }
+
 }

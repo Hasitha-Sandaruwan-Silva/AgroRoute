@@ -114,6 +114,7 @@ internal data class ListingDraftFormValues(
     val description: String,
     val location: String,
     val photoUri: String?,
+    val photos: List<String> = emptyList(),
     val category: ListingCategory?,
     val expectedHarvestAt: Long?,
     val qualityGrade: String,
@@ -131,6 +132,7 @@ internal fun HarvestListing.toDraftFormValues() = ListingDraftFormValues(
     description = description,
     location = location,
     photoUri = imageUrls.firstOrNull(),
+    photos = imageUrls,
     category = category,
     expectedHarvestAt = expectedHarvestAt,
     qualityGrade = qualityGrade.orEmpty(),
@@ -173,11 +175,12 @@ fun CreateListingScreen(
             onConfirm = { location = it; showLocationPicker = false }
         )
     }
-    var selectedPhotoUri by rememberSaveable(editListingId, stateSaver = ListingPhotoUriSaver) { mutableStateOf<Uri?>(null) }
-    var photoRemoved by rememberSaveable(editListingId) { mutableStateOf(false) }
+    var selectedPhotos by rememberSaveable(editListingId) { mutableStateOf(arrayListOf<String>()) }
+    val selectedPhotoUri = selectedPhotos.firstOrNull()?.let(Uri::parse)
+    val hasLocalPhotos = selectedPhotos.any { hasLocalPhotoUri(Uri.parse(it)) }
     var photoEdited by rememberSaveable(editListingId) { mutableStateOf(false) }
     var photoInputBusy by remember { mutableStateOf(false) }
-    var listingId by remember { mutableStateOf(UUID.randomUUID().toString()) }
+    var listingId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
     var selectedCategory by remember { mutableStateOf<ListingCategory?>(null) }
     var categorySelectionError by remember { mutableStateOf(false) }
     var expectedHarvestAt by remember { mutableStateOf<Long?>(null) }
@@ -214,7 +217,7 @@ fun CreateListingScreen(
             price = listing.reservePrice.toString()
             description = listing.description
             location = listing.location
-            if (!photoEdited) selectedPhotoUri = listing.imageUrls.firstOrNull()?.let(Uri::parse)
+            if (!photoEdited) selectedPhotos = ArrayList(listing.imageUrls)
             selectedCategory = listing.category
             expectedHarvestAt = listing.expectedHarvestAt
             qualityGrade = listing.qualityGrade.orEmpty()
@@ -309,8 +312,7 @@ fun CreateListingScreen(
             quantity = if (isExpected) parsedEstimate else parsedQuantity,
             quantityUnit = selectedUnit,
             reservePrice = price.toDoubleOrNull() ?: 0.0,
-            imageUrls = if (photoRemoved) emptyList() else selectedPhotoUri?.toString()?.let(::listOf)
-                ?: existing?.imageUrls.orEmpty(),
+            imageUrls = selectedPhotos.toList(),
             location = location,
             status = existing?.status ?: ListingStatus.OPEN,
             biddingEnabled = existing?.biddingEnabled ?: true,
@@ -359,8 +361,7 @@ fun CreateListingScreen(
         price = values.price
         description = values.description
         location = values.location
-        selectedPhotoUri = values.photoUri?.let(Uri::parse)
-        photoRemoved = false
+        selectedPhotos = ArrayList(values.photos)
         photoEdited = true
         selectedCategory = values.category
         expectedHarvestAt = values.expectedHarvestAt
@@ -396,7 +397,7 @@ fun CreateListingScreen(
             CreateListingBottomBar(
                 isLoading = uiState.isLoading,
                 isPreparingPhoto = photoInputBusy,
-                isPhotoUploadRequired = hasLocalPhotoUri(selectedPhotoUri),
+                isPhotoUploadRequired = hasLocalPhotos,
                 isEditing = editListingId != null,
                 canSubmit = (expiryHours.isBlank() || expiryHours.toDoubleOrNull()?.let { it.isFinite() && it > 0 && it <= 8760 } == true) && cropName.isNotBlank() && quantity.isNotBlank() && price.isNotBlank() &&
                     (harvestStatus != HarvestStatus.EXPECTED || expectedHarvestAt != null) &&
@@ -724,27 +725,20 @@ fun CreateListingScreen(
 
             // ── Section: Photo ────────────────────────────────────────────────
             FormSection(
-                title = "Harvest photo",
+                title = "Harvest photos",
                 icon = Lucide.Camera,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 // Photo preview / picker — always visible
-                ListingPhotoInput(
-                    selectedUri = selectedPhotoUri,
-                    isLoading = uiState.isLoading && hasLocalPhotoUri(selectedPhotoUri),
+                ListingPhotosInput(
+                    photos = selectedPhotos,
+                    isLoading = uiState.isLoading,
                     isEditing = editListingId != null,
                     enabled = !uiState.isLoading && (editListingId == null ||
                         (uiState.editingListing?.listingId == editListingId &&
                             uiState.editingListing?.harvestStatus != HarvestStatus.FAILED)),
-                    onImageSelected = {
-                        selectedPhotoUri = it
-                        photoRemoved = false
-                        photoEdited = true
-                        viewModel.clearPhotoUploadError()
-                    },
-                    onRemove = {
-                        selectedPhotoUri = null
-                        photoRemoved = true
+                    onPhotosChanged = {
+                        selectedPhotos = ArrayList(it)
                         photoEdited = true
                         viewModel.clearPhotoUploadError()
                     },
@@ -752,7 +746,7 @@ fun CreateListingScreen(
                 )
                 // Upload progress indicator
                 AnimatedVisibility(
-                    visible = uiState.isLoading && hasLocalPhotoUri(selectedPhotoUri),
+                    visible = uiState.isLoading && hasLocalPhotos,
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {

@@ -2258,3 +2258,24 @@ test("pickup codes and reward flags cannot be read or written by any client", as
   const db = testEnvironment.unauthenticatedContext().firestore();
   await assertFails(getDoc(doc(db, "order_pickup_verifications/order-1")));
 });
+
+
+for (const uid of ["farmer-1", "farmer-2", "supplier-1"]) {
+  test(`listing hard deletion preserves history even for ${uid}`, async () => {
+    const db = testEnvironment.authenticatedContext(uid).firestore();
+    await assertFails(deleteDoc(doc(db, "listings/listing-1")));
+  });
+}
+test("owner removal only changes visibility and preserves stock", async () => {
+  const db = testEnvironment.authenticatedContext("farmer-1").firestore();
+  await assertSucceeds(updateDoc(doc(db, "listings/listing-1"), {status: "CLOSED", biddingEnabled: false}));
+  const listing = (await getDoc(doc(db, "listings/listing-1"))).data();
+  assert.equal(listing.availableQuantity, 10);
+  assert.equal(listing.soldQuantity, 0);
+});
+for (const uid of ["farmer-2", "supplier-1"]) {
+  test(`non-owner ${uid} cannot remove listing`, async () => {
+    const db = testEnvironment.authenticatedContext(uid).firestore();
+    await assertFails(updateDoc(doc(db, "listings/listing-1"), {status: "CLOSED", biddingEnabled: false}));
+  });
+}

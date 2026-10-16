@@ -368,7 +368,15 @@ service cloud.firestore {
             && request.resource.data.get('harvestStatus', 'READY') == 'FAILED')
         );
 
-      allow delete: if farmer() && resource.data.farmerId == request.auth.uid && listingNotExpired(resource.data) && resource.data.get('soldQuantity', 0) == 0;
+      // Owner removal changes only visibility. Stock and every historical reference stay intact.
+      allow update: if farmer() && resource.data.farmerId == request.auth.uid
+        && resource.data.status == 'OPEN'
+        && request.resource.data.status == 'CLOSED'
+        && request.resource.data.biddingEnabled == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'biddingEnabled']);
+
+      // Historical references cannot be proven absent by client-side queries. Use owner close.
+      allow delete: if false;
     }
 
     match /bids/{bidId} {

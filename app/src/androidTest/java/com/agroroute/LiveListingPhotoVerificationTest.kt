@@ -21,8 +21,8 @@ class LiveListingPhotoVerificationTest {
         assertTrue("The QA listing must exist on the server", listing.exists())
         assertEquals(user.uid, listing.getString("farmerId"))
         val images = listing.get("imageUrls") as? List<*>
-        assertEquals(1, images?.size)
+        assertTrue("Listing must contain one to five photos", images != null && images.size in 1..5)
         assertTrue("Listing must store the existing Cloudinary HTTPS URL, never a local capture URI",
-            (images?.singleOrNull() as? String)?.startsWith("https://res.cloudinary.com/") == true)
+            images?.all { (it as? String)?.startsWith("https://res.cloudinary.com/") == true } == true)
     }
 }
