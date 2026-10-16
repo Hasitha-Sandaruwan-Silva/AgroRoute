@@ -30,12 +30,12 @@ class ReviewRepositoryImpl @Inject constructor(
     override fun getReviewsForUser(userId: String): Flow<Result<List<Review>>> =
         dao.getReviewsForUser(userId)
             .map<List<Review>, Result<List<Review>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load reviews", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load reviews. Check your connection and try again.", e)) }
 
     override fun getReviewsForOrder(orderId: String): Flow<Result<List<Review>>> =
         dao.getReviewsByOrderId(orderId)
             .map<List<Review>, Result<List<Review>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load reviews", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load reviews. Check your connection and try again.", e)) }
 
     override suspend fun hasUserReviewedOrder(orderId: String, reviewerId: String): Result<Boolean> = safeCall {
         val existing = dao.getReviewByOrderAndReviewer(orderId, reviewerId)
@@ -108,7 +108,7 @@ class ReviewRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncReviewsForUser(userId: String): Result<Unit> = safeCall {
-        check(authRepository.currentUserId == userId) { "Cannot sync another user's reviews" }
+        check(authRepository.currentUserId == userId) { "You can only refresh your own reviews" }
         val reviews = firestoreService.queryFlow<Review>(
             Constants.COLLECTION_REVIEWS,
             "revieweeId",

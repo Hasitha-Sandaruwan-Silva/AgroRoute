@@ -155,7 +155,7 @@ fun FarmerProfileScreen(
                     color = MaterialTheme.colorScheme.errorContainer
                 ) {
                     Text(
-                        text = error,
+                        text = com.agroroute.core.components.presentationError(error),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)

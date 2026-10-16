@@ -490,7 +490,8 @@ class HarvestListingRulesTest {
 
         assertEquals(ListingPhotoStorageException.Stage.DOWNLOAD_URL, failure.stage)
         assertEquals(cause, failure.cause)
-        assertTrue(failure.message.orEmpty().contains("Object does not exist at location"))
+        assertEquals("Couldn't process the photo. Please try again.", failure.message)
+        assertFalse(failure.message.orEmpty().contains("Object does not exist at location"))
     }
 
     @Test

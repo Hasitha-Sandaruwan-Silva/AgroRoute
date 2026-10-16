@@ -38,7 +38,7 @@ class NotificationInboxViewModel @Inject constructor(
                 .onSuccess { items -> _uiState.update { it.copy(items = items, isLoading = false) } }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(isLoading = false, error = error.message ?: "Could not load notifications.")
+                        it.copy(isLoading = false, error = "Couldn't load notifications.")
                     }
                 }
         }
@@ -56,7 +56,7 @@ class NotificationInboxViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(error = error.message ?: "Could not mark notification as read.") }
+                    _uiState.update { it.copy(error = "Couldn't mark notification as read.") }
                 }
         }
     }
@@ -80,7 +80,7 @@ class NotificationInboxViewModel @Inject constructor(
                         }
                     }
                     .onFailure { error ->
-                        _uiState.update { it.copy(error = error.message ?: "Could not mark notification as read.") }
+                        _uiState.update { it.copy(error = "Couldn't mark notification as read.") }
                     }
             }
             onOpen(item.route)

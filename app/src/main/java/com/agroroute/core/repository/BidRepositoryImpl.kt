@@ -42,17 +42,17 @@ class BidRepositoryImpl @Inject constructor(
     override fun getBidsForListing(listingId: String): Flow<Result<List<Bid>>> =
         dao.getBidsForListing(listingId)
             .map<List<Bid>, Result<List<Bid>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load bids", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load bids. Check your connection and try again.", e)) }
 
     override fun getBidsBySupplier(supplierId: String): Flow<Result<List<Bid>>> =
         dao.getBidsBySupplier(supplierId)
             .map<List<Bid>, Result<List<Bid>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load bids", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load bids. Check your connection and try again.", e)) }
 
     override fun getBidById(bidId: String): Flow<Result<Bid?>> =
         dao.getBidById(bidId)
             .map<Bid?, Result<Bid?>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load bid", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load bid. Check your connection and try again.", e)) }
 
     override suspend fun placeBid(bid: Bid): Result<Unit> = safeCall {
         val supplierId = authRepository.currentUserId ?: error("Sign in as a Supplier to place bids")
@@ -68,7 +68,7 @@ class BidRepositoryImpl @Inject constructor(
         val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(pendingBid.bidId)
         val listing = firestoreService.runTransaction<HarvestListing> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
-                ?: error("Listing ${pendingBid.listingId} not found")
+                ?: error("Listing not found")
             check(!listing.isExpired()) { "Listing expired" }
             check(listing.acceptsNewBids()) { "This listing is not accepting bids" }
             requirePickupLocation(listing.location)
@@ -105,7 +105,7 @@ class BidRepositoryImpl @Inject constructor(
         val bidRef = firestore.collection(Constants.COLLECTION_BIDS).document(bidId)
         val (updated, listing) = firestoreService.runTransaction<Pair<Bid, HarvestListing>> { transaction ->
             val existing = transaction.get(bidRef).toObject(Bid::class.java)
-                ?: error("Bid $bidId not found")
+                ?: error("Bid not found")
             check(existing.status == BidStatus.PENDING) { "Only pending bids can change status" }
             val listingRef = firestore.collection(Constants.COLLECTION_LISTINGS)
                 .document(existing.listingId)

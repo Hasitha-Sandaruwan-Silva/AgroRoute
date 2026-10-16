@@ -44,22 +44,22 @@ class OrderRequestRepositoryImpl @Inject constructor(
     override fun getRequestsForFarmer(farmerId: String): Flow<Result<List<OrderRequest>>> =
         dao.getRequestsForFarmer(farmerId)
             .map<List<OrderRequest>, Result<List<OrderRequest>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load order requests", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load order requests. Check your connection and try again.", e)) }
 
     override fun getRequestsForSupplier(supplierId: String): Flow<Result<List<OrderRequest>>> =
         dao.getRequestsForSupplier(supplierId)
             .map<List<OrderRequest>, Result<List<OrderRequest>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load order requests", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load order requests. Check your connection and try again.", e)) }
 
     override fun getRequestsForListing(listingId: String): Flow<Result<List<OrderRequest>>> =
         dao.getRequestsForListing(listingId)
             .map<List<OrderRequest>, Result<List<OrderRequest>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load order requests", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load order requests. Check your connection and try again.", e)) }
 
     override fun getRequestById(requestId: String): Flow<Result<OrderRequest?>> =
         dao.getRequestById(requestId)
             .map<OrderRequest?, Result<OrderRequest?>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load order request", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load order request. Check your connection and try again.", e)) }
 
     override suspend fun placeOrderRequest(request: OrderRequest): Result<Unit> = safeCall {
         val supplierId = authRepository.currentUserId ?: error("Sign in as a Supplier to place order requests")
@@ -75,7 +75,7 @@ class OrderRequestRepositoryImpl @Inject constructor(
         val requestRef = firestore.collection(Constants.COLLECTION_ORDER_REQUESTS).document(pendingRequest.requestId)
         firestoreService.runTransaction<Unit> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
-                ?: error("Listing ${pendingRequest.listingId} not found")
+                ?: error("Listing not found")
             check(!listing.isExpired()) { "Listing expired" }
             check(listing.status == ListingStatus.OPEN && !listing.isDraft) {
                 "This listing is not available"
@@ -127,7 +127,7 @@ class OrderRequestRepositoryImpl @Inject constructor(
         val requestRef = firestore.collection(Constants.COLLECTION_ORDER_REQUESTS).document(requestId)
         val updated = firestoreService.runTransaction { transaction ->
             val existing = transaction.get(requestRef).toObject(OrderRequest::class.java)
-                ?: error("Order request $requestId not found")
+                ?: error("Order request not found")
             check(existing.status == OrderRequestStatus.PENDING) { "Only pending requests can change status" }
             when (status) {
                 OrderRequestStatus.REJECTED -> {
@@ -189,7 +189,7 @@ class OrderRequestRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncRequestsForUser(userId: String): Result<Unit> = safeCall {
-        check(authRepository.currentUserId == userId) { "Cannot sync another account's order requests" }
+        check(authRepository.currentUserId == userId) { "You can only view your own order requests" }
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()
             ?: error("Account profile is unavailable")
         check(profile.userId == userId) { "Account profile does not match the signed-in user" }

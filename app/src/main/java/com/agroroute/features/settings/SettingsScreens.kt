@@ -301,8 +301,8 @@ fun PrivacyScreen() {
         }
         PrivacyCard(icon = Lucide.Image, heading = "Photos") {
             Text(
-                text = "Listing photos are uploaded to Cloudinary. Profile photos use Firebase Storage, " +
-                    "or Cloudinary when a profile upload preset is configured. Your chosen address and coordinates are saved with your profile or order.",
+                text = "Your listing and profile photos are stored online so they can be shown in the app. " +
+                    "Your chosen address and coordinates are saved with your profile or order.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -310,7 +310,7 @@ fun PrivacyScreen() {
         PrivacyCard(icon = Lucide.Lock, heading = "How it is shared") {
             Text(
                 text = "Signed-in users can read profiles, including saved phone numbers, locations and leaderboard points. " +
-                    "Orders are restricted to their participants by database security rules. " +
+                    "Only the people involved in an order can access it. " +
                     "No payment details are collected because the app never processes payments.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

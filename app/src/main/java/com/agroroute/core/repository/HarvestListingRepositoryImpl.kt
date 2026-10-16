@@ -55,7 +55,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
     override fun getAllListings(): Flow<Result<List<HarvestListing>>> =
         dao.getAllListings()
             .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load listings", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load listings. Check your connection and try again.", e)) }
 
     override fun getListingsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> = channelFlow {
         launch {
@@ -70,7 +70,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
     override fun getDraftsByFarmer(farmerId: String): Flow<Result<List<HarvestListing>>> =
         dao.getDraftsByFarmer(farmerId)
             .map<List<HarvestListing>, Result<List<HarvestListing>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load listing drafts", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load listing drafts. Check your connection and try again.", e)) }
 
     override fun getListingsByStatus(status: ListingStatus): Flow<Result<List<HarvestListing>>> = channelFlow {
         launch {
@@ -267,7 +267,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
 
 
     override suspend fun syncListings(): Result<Unit> = safeCall {
-        val userId = authRepository.currentUserId ?: error("Sign in to sync listings")
+        val userId = authRepository.currentUserId ?: error("Sign in to refresh listings")
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()
             ?: error("Account profile is unavailable")
         check(profile.userId == userId) { "Account profile does not match the signed-in user" }
@@ -296,7 +296,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
             "Only Farmers can change bidding"
         }
         val snapshot = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
-            ?: error("Listing $listingId not found")
+            ?: error("Listing not found")
         check(snapshot.farmerId == farmerId) { "Only the listing's Farmer can change bidding" }
         val updated = snapshot.setBiddingEnabled(enabled)
         firestoreService.set(Constants.COLLECTION_LISTINGS, listingId, updated)
@@ -310,7 +310,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
             "Only Farmers can update harvest status"
         }
         val snapshot = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
-            ?: error("Listing $listingId not found")
+            ?: error("Listing not found")
         check(snapshot.farmerId == farmerId) { "Only the listing's Farmer can update this harvest" }
         val updated = snapshot.markHarvestReady(actualQuantity)
         firestoreService.updateFields(
@@ -337,7 +337,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
             "Only Farmers can update harvest status"
         }
         val snapshot = firestoreService.getOnce<HarvestListing>(Constants.COLLECTION_LISTINGS, listingId)
-            ?: error("Listing $listingId not found")
+            ?: error("Listing not found")
         check(snapshot.farmerId == farmerId) { "Only the listing's Farmer can update this harvest" }
         val pending = firestoreService.queryFlow<OrderRequest>(
             Constants.COLLECTION_ORDER_REQUESTS,
@@ -354,7 +354,7 @@ class HarvestListingRepositoryImpl @Inject constructor(
         val now = System.currentTimeMillis()
         val updatedRecords = firestoreService.runTransaction<Pair<HarvestListing, List<OrderRequest>>> { transaction ->
             val currentListing = transaction.get(listingRef).toObject(HarvestListing::class.java)
-                ?: error("Listing $listingId not found")
+                ?: error("Listing not found")
             check(currentListing.farmerId == farmerId) { "Only the listing's Farmer can update this harvest" }
             val currentRequests = requestRefs.map { ref ->
                 ref to transaction.get(ref).toObject(OrderRequest::class.java)

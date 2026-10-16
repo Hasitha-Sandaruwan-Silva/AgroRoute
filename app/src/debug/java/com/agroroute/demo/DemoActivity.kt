@@ -82,7 +82,7 @@ private suspend fun readRows(db: AppDatabase): DemoRows {
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Text("AgroRoute local demo", style = MaterialTheme.typography.headlineSmall)
-                Text("Fictional records ? Read-only browsing ? Separate local cache", style = MaterialTheme.typography.bodySmall)
+                Text("Fictional records ? Read-only browsing ? Stored separately on this device", style = MaterialTheme.typography.bodySmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { action(false) }, enabled = !busy) { Text("Load Demo Data") }
                     OutlinedButton(onClick = { action(true) }, enabled = !busy) { Text("Clear Demo Data") }

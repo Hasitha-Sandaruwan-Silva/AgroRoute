@@ -83,17 +83,17 @@ class OrderRepositoryImpl @Inject constructor(
     override fun getOrdersForFarmer(farmerId: String): Flow<Result<List<Order>>> =
         dao.getOrdersForFarmer(farmerId)
             .map<List<Order>, Result<List<Order>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load orders", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load orders. Check your connection and try again.", e)) }
 
     override fun getOrdersForSupplier(supplierId: String): Flow<Result<List<Order>>> =
         dao.getOrdersForSupplier(supplierId)
             .map<List<Order>, Result<List<Order>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load orders", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load orders. Check your connection and try again.", e)) }
 
     override fun getOrderById(orderId: String): Flow<Result<Order?>> =
         dao.getOrderById(orderId)
             .map<Order?, Result<Order?>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load order", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load order. Check your connection and try again.", e)) }
 
     override suspend fun createOrder(order: Order): Result<Unit> = safeCall {
         order.withLocationSnapshots(order.pickupLocation, order.deliveryLocation)
@@ -115,9 +115,9 @@ class OrderRepositoryImpl @Inject constructor(
 
         val updatedRecords = firestoreService.runTransaction<Triple<HarvestListing, Bid, Order>> { transaction ->
             val listing = transaction.get(listingRef).toObject(HarvestListing::class.java)
-                ?: error("Listing ${order.listingId} not found")
+                ?: error("Listing not found")
             val bid = transaction.get(bidRef).toObject(Bid::class.java)
-                ?: error("Bid ${order.bidId} not found")
+                ?: error("Bid not found")
             check(!listing.isExpired()) { "Listing expired" }
             check(listing.status == ListingStatus.OPEN && listing.biddingEnabled && !listing.isDraft) {
                 "This listing is not accepting bids"
@@ -191,13 +191,13 @@ class OrderRepositoryImpl @Inject constructor(
 
         val updatedRecords = firestoreService.runTransaction<Triple<HarvestListing, Order, OrderRequest>> { transaction ->
             val request = transaction.get(requestRef).toObject(OrderRequest::class.java)
-                ?: error("Order request $requestId not found")
+                ?: error("Order request not found")
             check(request.farmerId == userId) { "Only the listing's Farmer can accept this order request" }
             check(request.status == OrderRequestStatus.PENDING) { "This order request is no longer pending" }
 
             val listingDoc = listingRef.document(request.listingId)
             val listing = transaction.get(listingDoc).toObject(HarvestListing::class.java)
-                ?: error("Listing ${request.listingId} not found")
+                ?: error("Listing not found")
             check(listing.farmerId == userId) { "Only the listing's Farmer can accept this order request" }
             check(!listing.isExpired()) { "Listing expired" }
             check(listing.status == ListingStatus.OPEN && !listing.isDraft && !listing.biddingEnabled) {
@@ -344,7 +344,7 @@ class OrderRepositoryImpl @Inject constructor(
         dao.upsertOrder(updated)
     }
     override suspend fun syncOrders(userId: String): Result<Unit> = safeCall {
-        check(authRepository.currentUserId == userId) { "Cannot sync another account's orders" }
+        check(authRepository.currentUserId == userId) { "You can only view your own orders" }
         val profile = authRepository.getCurrentUserProfile().first().getOrNull()
             ?: error("Account profile is unavailable")
         check(profile.userId == userId) { "Account profile does not match the signed-in user" }

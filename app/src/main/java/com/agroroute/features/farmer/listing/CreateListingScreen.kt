@@ -768,7 +768,7 @@ fun CreateListingScreen(
                             )
                             Spacer(Modifier.width(10.dp))
                             Text(
-                                "Uploading to Cloudinary…",
+                                androidx.compose.ui.res.stringResource(com.agroroute.R.string.photo_uploading),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -794,7 +794,7 @@ fun CreateListingScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = photoError,
+                                    text = com.agroroute.core.components.presentationError(photoError),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -1097,7 +1097,7 @@ private fun ErrorBanner(message: String, modifier: Modifier = Modifier) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Lucide.AlertCircle, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
-            Text(text = message, style = MaterialTheme.typography.bodyMedium)
+            Text(text = com.agroroute.core.components.presentationError(message), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

@@ -21,8 +21,8 @@ class PlaceBidUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(bid: Bid): Result<Unit> {
         if (bid.offerPrice <= 0) return Result.Error("Offer price must be greater than zero")
-        if (bid.supplierId.isBlank()) return Result.Error("Supplier ID is required")
-        if (bid.listingId.isBlank()) return Result.Error("Listing ID is required")
+        if (bid.supplierId.isBlank()) return Result.Error("Sign in as a Supplier to continue")
+        if (bid.listingId.isBlank()) return Result.Error("Choose a listing to continue")
         val supplierId = authRepository.currentUserId
             ?: return Result.Error("Sign in as a Supplier to place bids")
 

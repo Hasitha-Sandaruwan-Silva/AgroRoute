@@ -31,10 +31,8 @@ class ListingPhotoStorageException(
     cause: Throwable
 ) : Exception(
     when (stage) {
-        Stage.UPLOAD ->
-            "Photo upload failed: ${cause.message ?: "The photo could not be uploaded. Check your connection and try again."}"
-        Stage.DOWNLOAD_URL ->
-            "Photo uploaded, but its URL could not be confirmed: ${cause.message ?: "The upload service did not return a photo URL."}"
+        Stage.UPLOAD -> com.agroroute.core.util.photoUploadMessage(cause)
+        Stage.DOWNLOAD_URL -> "Couldn't process the photo. Please try again."
     },
     cause
 ) {
@@ -46,7 +44,7 @@ class ListingPhotoStorageException(
  * Used by [ListingPhotoStorage] implementations and in tests to assert path correctness.
  */
 fun listingPhotoStoragePath(farmerId: String, listingId: String): String {
-    require(farmerId.isNotBlank() && '/' !in farmerId) { "A valid Farmer UID is required" }
-    require(listingId.isNotBlank() && '/' !in listingId) { "A valid listing ID is required" }
+    require(farmerId.isNotBlank() && '/' !in farmerId) { "Sign in as a Farmer to upload photos" }
+    require(listingId.isNotBlank() && '/' !in listingId) { "Choose a listing before adding photos" }
     return "listing_images/$farmerId/$listingId/photo"
 }

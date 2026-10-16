@@ -246,7 +246,7 @@ fun SupplierTopBar(
         AlertDialog(
             onDismissRequest = authViewModel::clearError,
             title = { Text("Could not sign out") },
-            text = { Text(error) },
+            text = { Text(com.agroroute.core.components.presentationError(error)) },
             confirmButton = {
                 TextButton(onClick = authViewModel::clearError) {
                     Text("OK")

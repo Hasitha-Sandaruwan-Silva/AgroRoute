@@ -146,9 +146,9 @@ class SparkOrderLifecycle @Inject constructor(
             if (order.status == OrderStatus.CANCELLED) return@runTransaction
             check(order.status == OrderStatus.AWAITING_PICKUP) { "Orders cannot be cancelled after pickup" }
             val listingRef = db.collection("listings").document(order.listingId)
-            val listing = tx.get(listingRef).toObject(HarvestListing::class.java) ?: error("Reserved listing is unavailable. Cancellation requires its original stock record.")
+            val listing = tx.get(listingRef).toObject(HarvestListing::class.java) ?: error("The listing for this order is unavailable. Please try cancelling again later.")
             val profile = tx.get(db.collection("users").document(actor))
-            check(listing.soldQuantity >= order.quantity) { "Reserved stock record needs attention before cancellation" }
+            check(listing.soldQuantity >= order.quantity) { "Reserved stock needs attention before cancellation. Please try again later." }
             val restored = listing.releaseSale(order.quantity, restoredBiddingMode = order.bidId.isNotBlank())
             tx.update(listingRef, mapOf("availableQuantity" to restored.availableQuantity,
                 "soldQuantity" to restored.soldQuantity, "status" to restored.status.name,

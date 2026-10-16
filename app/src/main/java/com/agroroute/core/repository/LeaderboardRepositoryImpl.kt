@@ -27,12 +27,12 @@ class LeaderboardRepositoryImpl @Inject constructor(
     override fun getFarmerLeaderboard(): Flow<Result<List<UserProfile>>> =
         userProfileDao.getUsersByRoleSortedByPoints(Constants.ROLE_FARMER)
             .map<List<UserProfile>, Result<List<UserProfile>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load farmer leaderboard", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load farmer leaderboard. Check your connection and try again.", e)) }
 
     override fun getSupplierLeaderboard(): Flow<Result<List<UserProfile>>> =
         userProfileDao.getUsersByRoleSortedByPoints(Constants.ROLE_SUPPLIER)
             .map<List<UserProfile>, Result<List<UserProfile>>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load supplier leaderboard", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load supplier leaderboard. Check your connection and try again.", e)) }
 
     override suspend fun getFarmerRank(userId: String): Result<Int?> = safeCall {
         val leaderboard = getFarmerLeaderboard().first()
@@ -59,7 +59,7 @@ class LeaderboardRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncLeaderboard(): Result<Unit> = safeCall {
-        val userId = authRepository.currentUserId ?: error("Sign in to sync leaderboard")
+        val userId = authRepository.currentUserId ?: error("Sign in to refresh the leaderboard")
         // Sync all users to get updated points
         val allUsers = firestoreService.queryOnceFromServer(
             Constants.COLLECTION_USERS,

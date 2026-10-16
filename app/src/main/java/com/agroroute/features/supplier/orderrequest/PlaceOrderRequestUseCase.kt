@@ -25,8 +25,8 @@ class PlaceOrderRequestUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(request: OrderRequest): Result<Unit> {
         if (request.requestedQuantity <= 0) return Result.Error("Requested quantity must be greater than zero")
-        if (request.supplierId.isBlank()) return Result.Error("Supplier ID is required")
-        if (request.listingId.isBlank()) return Result.Error("Listing ID is required")
+        if (request.supplierId.isBlank()) return Result.Error("Sign in as a Supplier to continue")
+        if (request.listingId.isBlank()) return Result.Error("Choose a listing to continue")
         val supplierId = authRepository.currentUserId
             ?: return Result.Error("Sign in as a Supplier to place order requests")
 

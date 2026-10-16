@@ -78,7 +78,7 @@ class OrderFlowPresentationTest(private val dark: Boolean, private val compact: 
             OrderSummarySection(order, false)
             OrderPickupSection("fixture", OrderStatus.IN_TRANSIT, false, OrderPickupVerification(), false, null, {})
         }
-        compose.onNodeWithText("Acceptance reward: +1 once, confirmed by the server.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Acceptance reward: 1 point, awarded once. Your profile shows your confirmed points.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Verify physical handover to earn +3 once. This does not confirm Supplier collection.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Enter pickup code").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Confirm Pickup").assertDoesNotExist()
@@ -87,7 +87,7 @@ class OrderFlowPresentationTest(private val dark: Boolean, private val compact: 
         content { OrderPickupSection("fixture", OrderStatus.AWAITING_PICKUP, true,
             OrderPickupVerification(code = "123456", expiresAt = 1), false, "Please refresh the expired code", {}) }
         compose.onNodeWithText("Confirm Pickup").performScrollTo().assertIsNotEnabled()
-        compose.onNodeWithText("Confirming collection awards +4 once and starts transport. The server confirms your points.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Confirming pickup earns 4 points once and starts transport.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Pickup code expired. Refresh to get a valid code.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Generate new code").performScrollTo().assertIsDisplayed()
     }

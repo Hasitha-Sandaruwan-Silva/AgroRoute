@@ -203,7 +203,7 @@ class AuthViewModel @Inject constructor(
                 throw error
             } catch (error: Exception) {
                 android.util.Log.e("ProfilePhoto", "Profile photo upload failed", error)
-                _uiState.update { it.copy(error = error.cause?.message ?: error.message ?: "Could not upload the profile photo. Check your connection and retry.") }
+                _uiState.update { it.copy(error = com.agroroute.core.util.userFacingThrowable(error, "Couldn't upload your profile photo. Check your connection and try again.")) }
             } finally {
                 _uiState.update { it.copy(photoUploading = false) }
             }

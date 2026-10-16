@@ -137,7 +137,7 @@ fun FarmerTopBar(
         AlertDialog(
             onDismissRequest = authViewModel::clearError,
             title = { Text("Could not sign out") },
-            text = { Text(error) },
+            text = { Text(com.agroroute.core.components.presentationError(error)) },
             confirmButton = { TextButton(onClick = authViewModel::clearError) { Text("OK") } }
         )
     }
@@ -183,6 +183,6 @@ private fun farmerSubtitle(route: String): String? = when {
     route.startsWith(Screen.EditListing.route.substringBefore("{")) -> "Update listing details"
     route.startsWith(Screen.ViewBids.route.substringBefore("{")) -> "Best offer"
     route.startsWith(Screen.FarmerOrderDetail.route.substringBefore("{")) -> "Order progress"
-    route.startsWith(Screen.SubmitReview.route.substringBefore("{")) -> "Rate transaction"
+    route.startsWith(Screen.SubmitReview.route.substringBefore("{")) -> "Review order"
     else -> null
 }

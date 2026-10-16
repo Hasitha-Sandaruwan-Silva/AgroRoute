@@ -43,7 +43,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (userId.isNullOrBlank()) flowOf(null) else userProfileDao.getUserProfile(userId)
             }
             .map<UserProfile?, Result<UserProfile?>> { Result.Success(it) }
-            .catch { e -> emit(Result.Error(e.message ?: "Failed to load profile", e)) }
+            .catch { e -> emit(Result.Error("Couldn't load profile. Check your connection and try again.", e)) }
 
     override suspend fun restoreSession(): Result<UserProfile?> {
         val userId = authService.currentUserId ?: return Result.Success(null)
@@ -64,7 +64,7 @@ class AuthRepositoryImpl @Inject constructor(
         mapFirebaseFailure(safeCall {
             val firebaseUser = authService.signIn(email, password)
             val restored = restoreSession().getOrThrow()
-            restored ?: error("No account profile is associated with this sign-in (${firebaseUser.uid})")
+            restored ?: error("No account profile is associated with this sign-in")
         })
 
     override suspend fun signInWithGoogle(idToken: String): Result<GoogleSignInOutcome> =
@@ -198,13 +198,13 @@ class AuthRepositoryImpl @Inject constructor(
         "ERROR_WEAK_PASSWORD" -> "Choose a stronger password with at least 6 characters."
         "ERROR_USER_DISABLED" -> "This account has been disabled. Contact support."
         "ERROR_TOO_MANY_REQUESTS" -> "Too many attempts. Wait a little and try again."
-        "ERROR_OPERATION_NOT_ALLOWED" -> "Email and password sign-in is not enabled for this Firebase project."
+        "ERROR_OPERATION_NOT_ALLOWED" -> "Email and password sign-in is currently unavailable. Please try again later."
         "ERROR_NETWORK_REQUEST_FAILED" -> "Network unavailable. Check your connection and try again."
         else -> when {
             isNetworkFailure() -> "Network unavailable. Check your connection and try again."
             this is FirebaseFirestoreException && code == FirebaseFirestoreException.Code.PERMISSION_DENIED ->
                 "This account is not permitted to access that data."
-            else -> message ?: "Firebase request failed. Please try again."
+            else -> com.agroroute.core.util.userFacingThrowable(this, "Unable to complete your account request. Please try again.")
         }
     }
 }

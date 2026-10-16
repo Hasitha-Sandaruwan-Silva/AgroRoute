@@ -17,7 +17,7 @@ class OrderCompletionService @Inject constructor() : OrderLifecycle {
         val arguments = mutableMapOf<String, Any>("orderId" to orderId, "action" to action)
         if (code != null) arguments["code"] = code
         val data = FirebaseFunctions.getInstance().getHttpsCallable("orderPickup")
-            .call(arguments).await().data as? Map<*, *> ?: error("Invalid pickup response")
+            .call(arguments).await().data as? Map<*, *> ?: error("Couldn't load pickup details. Please try again.")
         return OrderPickupVerification(
             farmerConfirmed = data["farmerConfirmed"] == true,
             supplierConfirmed = data["supplierConfirmed"] == true,

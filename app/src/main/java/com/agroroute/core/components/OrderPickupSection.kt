@@ -73,7 +73,7 @@ fun OrderPickupSection(
                     }
                 }
                 if (status == OrderStatus.AWAITING_PICKUP) {
-                    Text("Confirming collection awards +4 once and starts transport. The server confirms your points.",
+                    Text("Confirming pickup earns 4 points once and starts transport.",
                         style = MaterialTheme.typography.bodySmall)
                     LoadingButton(text = "Confirm Pickup", isLoading = loading,
                         onClick = onCollect, enabled = verification != null &&

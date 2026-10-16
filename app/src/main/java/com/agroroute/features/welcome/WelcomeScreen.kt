@@ -46,7 +46,7 @@ private val onboardingPages = listOf(
     OnboardingPage(
         imageUrl = "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=90",
         title = "TRACK YOUR\nORDERS.",
-        body = "Follow every transaction seamlessly from farm pickup to final buyer delivery."
+        body = "Follow every order from farm pickup to final buyer delivery."
     )
 )
 

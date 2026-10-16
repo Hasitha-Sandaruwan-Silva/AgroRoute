@@ -49,7 +49,7 @@ fun FarmerOrderDetailScreen(orderId: String, navController: NavController,
                     AppCard { ProfilePhoneContact(userId = order.supplierId, personLabel = "Supplier", onNameLoaded = { counterpartName = it }) }
                     AppCard {
                         Text("Order details", style = MaterialTheme.typography.titleMedium)
-                        Text("Order ID: ${order.orderId}", style = MaterialTheme.typography.bodySmall)
+                        Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.bodySmall)
                         if (order.notes.isNotBlank()) Text(order.notes)
                         Text("Created: ${DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(order.createdAt))}",
                             style = MaterialTheme.typography.bodySmall)

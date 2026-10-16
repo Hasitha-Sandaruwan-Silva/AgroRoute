@@ -45,10 +45,10 @@ suspend fun <T> safeCall(block: suspend () -> T): Result<T> = try {
         com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED ->
             "This action is no longer allowed. The listing may have expired or changed. Refresh and try again."
         com.google.firebase.firestore.FirebaseFirestoreException.Code.UNAVAILABLE ->
-            "Could not reach the server. Check your connection and try again."
+            "Could not connect. Check your connection and try again."
         com.google.firebase.firestore.FirebaseFirestoreException.Code.ABORTED ->
             "Stock changed while saving. Refresh and try again."
         else -> "Could not save this change. Refresh and try again."
-    } else e.message ?: "An unexpected error occurred"
+    } else userFacingThrowable(e)
     Result.Error(message, e)
 }

@@ -36,7 +36,7 @@ fun OrderSummarySection(order: Order, forSupplier: Boolean, counterpartName: Str
         } else OrderProgressStrip(order.status)
         Text(orderNextStep(order.status, forSupplier), style = MaterialTheme.typography.bodySmall)
         if (order.status == OrderStatus.AWAITING_PICKUP && !forSupplier) {
-            Text("Acceptance reward: +1 once, confirmed by the server.", style = MaterialTheme.typography.bodySmall,
+            Text("Acceptance reward: 1 point, awarded once. Your profile shows your confirmed points.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (order.status == OrderStatus.DELIVERED) {
