@@ -2,6 +2,8 @@ package com.agroroute
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.view.WindowManager
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -11,7 +13,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.navigation.compose.*
 import androidx.test.platform.app.InstrumentationRegistry
 import com.agroroute.core.model.*
@@ -34,7 +36,7 @@ import java.io.File
 /** Exercises real auth screens, validation, ViewModel and navigation with no Firebase writes. */
 @RunWith(Parameterized::class)
 class AuthPresentationTest(private val dark: Boolean) {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     companion object {
         @JvmStatic @Parameterized.Parameters(name = "dark={0}")
         fun themes() = listOf(arrayOf(false), arrayOf(true))
@@ -44,7 +46,13 @@ class AuthPresentationTest(private val dark: Boolean) {
     private var completedRole: UserRole? = null
     private val role get() = if (dark) UserRole.SUPPLIER else UserRole.FARMER
 
-    private fun content(compact: Boolean = false) {
+    private fun content(compact: Boolean = false, startWelcome: Boolean = false) {
+        // Keep the fixture activity visible during physical-device runs; no device settings change.
+        compose.runOnUiThread {
+            compose.activity.setShowWhenLocked(true)
+            compose.activity.setTurnScreenOn(true)
+            compose.activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         compose.setContent {
             AgroRouteTheme(darkTheme = dark) {
                 val vm = remember {
@@ -58,7 +66,7 @@ class AuthPresentationTest(private val dark: Boolean) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, if (compact) 1.3f else density.fontScale)) {
                 Box(if (compact) Modifier.size(320.dp, 480.dp) else Modifier.fillMaxSize()) {
-                NavHost(nav, startDestination = if (compact) Screen.Register.route else Screen.Welcome.route) {
+                NavHost(nav, startDestination = if (compact && !startWelcome) Screen.Register.route else Screen.Welcome.route) {
                     composable(Screen.Welcome.route) { WelcomeScreen(nav) }
                     composable(Screen.Login.route) { LoginScreen(nav, onLoginSuccess = { completedRole = it }, viewModel = vm) }
                     composable(Screen.Register.route) { RegisterScreen(nav, onRegisterSuccess = { completedRole = it }, viewModel = vm) }
@@ -86,6 +94,71 @@ class AuthPresentationTest(private val dark: Boolean) {
             "auth-${if (dark) "dark" else "light"}-$name.png").outputStream().use {
             image.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
+    }
+
+    @Test fun welcomeFinalStateKeepsBothRoutesAndBackActions() {
+        content()
+        compose.onNodeWithText("From harvest to market, connected.").assertIsDisplayed()
+        compose.onNodeWithContentDescription("AgroRoute logo").assertIsDisplayed()
+        capture("welcome")
+        compose.onNodeWithText("I already have an account").performScrollTo().performClick()
+        compose.onNodeWithText("Welcome back").assertExists()
+        compose.onNodeWithContentDescription("Back").performScrollTo().performClick()
+        compose.onNodeWithText("Get Started").performScrollTo().performClick()
+        compose.onNodeWithText("Choose your role").assertExists()
+        roleNode("Farmer").assertIsSelected()
+        compose.onNodeWithContentDescription("Back").performScrollTo().performClick()
+        compose.onNodeWithText("Get Started").assertExists()
+        compose.runOnIdle { assertEquals(0, repository.loginCalls); assertEquals(0, repository.registerCalls) }
+    }
+
+    @Test fun restoredWelcomeKeepsAllThreePhotographicPages() {
+        content()
+        compose.onNodeWithText("YOUR FARM,\nSMARTER.").assertIsDisplayed()
+        compose.onNodeWithTag("welcomeScreen").performTouchInput { swipeLeft() }
+        compose.onNodeWithText("GET THE BEST\nBIDS.").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Page 2 of 3").assertExists()
+        compose.onNodeWithTag("welcomeScreen").performTouchInput { swipeLeft() }
+        compose.onNodeWithText("TRACK YOUR\nORDERS.").assertIsDisplayed()
+        compose.onNodeWithTag("welcomeScreen").performTouchInput { swipeRight() }
+        compose.onNodeWithText("GET THE BEST\nBIDS.").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, repository.loginCalls); assertEquals(0, repository.registerCalls) }
+    }
+
+    @Test fun compactWelcomeKeepsBothActionsReachableWithLargeText() {
+        content(compact = true, startWelcome = true)
+        compose.onNodeWithText("Get Started").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("I already have an account").performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText("Welcome back").assertExists()
+    }
+
+    @Test fun roleCardsKeepFinalSelectionAndActualRegistrationFields() {
+        register()
+        roleNode("Supplier").performScrollTo().performClick().assertIsSelected()
+        roleNode("Farmer").assertIsNotSelected()
+        capture("register-supplier")
+        roleNode("Farmer").performScrollTo().performClick().assertIsSelected()
+        roleNode("Supplier").assertIsNotSelected()
+        listOf("Full Name", "Email", "Password", "Confirm Password").forEach { field(it).assertExists() }
+        compose.runOnIdle { assertEquals(0, repository.registerCalls) }
+    }
+
+    @Test fun keyboardNextAndDoneKeepTheExistingFieldSequence() {
+        login()
+        fill("Email", "test@example.com")
+        field("Email").performImeAction()
+        field("Password").assertIsFocused()
+        field("Password").performTextInput("secret123")
+        field("Password").performImeAction()
+        field("Password").assertIsNotFocused()
+        compose.onNodeWithText("Create account").performScrollTo().performClick()
+        fill("Full Name", "Test Grower")
+        field("Full Name").performImeAction()
+        field("Email").assertIsFocused().performImeAction()
+        field("Password").assertIsFocused().performImeAction()
+        field("Confirm Password").assertIsFocused().performImeAction()
+        field("Confirm Password").assertIsNotFocused()
+        compose.runOnIdle { assertEquals(0, repository.loginCalls); assertEquals(0, repository.registerCalls) }
     }
 
     @Test fun loginPreservesValidationPasswordToggleAndKeyboardReachability() {

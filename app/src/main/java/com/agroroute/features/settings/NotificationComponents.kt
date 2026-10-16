@@ -1,5 +1,7 @@
 package com.agroroute.features.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import android.content.ContextWrapper
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
@@ -11,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -197,30 +200,37 @@ internal fun NotificationRow(
     markRead: (() -> Unit)? = null
 ) {
     val dateFormat = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
+    val rowColor by animateColorAsState(
+        if (item.isRead) MaterialTheme.colorScheme.surface else lerp(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.primaryContainer, 0.28f),
+        animationSpec = tween(200), label = "notificationRead")
+    val request = item.eventType.startsWith("ORDER_REQUEST") || item.eventType.startsWith("BID_")
+    val iconContainer = if (request) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer
+    val iconColor = if (request) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
     Column(
         Modifier.fillMaxWidth()
-            .background(if (item.isRead) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
+            .background(rowColor)
             .clickable(onClick = onClick)
             .padding(16.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-            Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.primaryContainer) {
-                Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-                    Icon(notificationIcon(item.eventType), null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Surface(shape = MaterialTheme.shapes.small, color = iconContainer) {
+                Box(Modifier.size(42.dp), contentAlignment = Alignment.Center) {
+                    Icon(notificationIcon(item.eventType), null, Modifier.size(20.dp), tint = iconColor)
                 }
             }
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(item.title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (item.isRead) FontWeight.Medium else FontWeight.Bold,
-                        maxLines = if (compact) 2 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis)
+                        maxLines = if (compact) 2 else 3, overflow = TextOverflow.Ellipsis)
                     if (!item.isRead) Box(Modifier.size(7.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary)
                         .semantics { contentDescription = "Unread" })
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(item.body, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (compact) 2 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis)
+                    maxLines = if (compact) 2 else 3, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
                 Text(dateFormat.format(Date(item.createdAt)), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -244,17 +254,15 @@ internal fun NotificationLoading() {
 
 @Composable
 internal fun NotificationEmpty(unreadOnly: Boolean = false) {
-    if (com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
-        com.agroroute.features.supplier.components.SupplierEmptyState(Lucide.Bell,
-            if (unreadOnly) "No unread notifications" else "No notifications yet",
-            "Updates for your account will appear here.")
-        return
-    }
     Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(Lucide.Bell, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
-        Text(if (unreadOnly) "No unread notifications" else "No notifications yet", style = MaterialTheme.typography.titleSmall)
-        Text("Updates for your account will appear here.", style = MaterialTheme.typography.bodySmall,
+        Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
+            Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                Icon(Lucide.Bell, null, Modifier.size(30.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+        }
+        Text(if (unreadOnly) "No unread notifications" else "You’re all caught up", style = MaterialTheme.typography.titleSmall)
+        Text("New order, request and message updates will appear here.", style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }

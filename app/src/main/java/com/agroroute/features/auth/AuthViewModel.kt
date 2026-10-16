@@ -196,7 +196,10 @@ class AuthViewModel @Inject constructor(
                 val updated = (_uiState.value.user ?: current).copy(profileImageUrl = url)
                 when (val result = authRepository.updateProfile(updated)) {
                     is Result.Success -> _uiState.update { it.copy(user = updated, photoPreviewUri = null, photoUploadSucceeded = true) }
-                    is Result.Error -> _uiState.update { it.copy(error = result.message ?: "Photo uploaded, but your profile could not be saved. Try again.") }
+                    is Result.Error -> {
+                        android.util.Log.e("ProfilePhoto", "Cloudinary upload succeeded; Firestore/Room profile save failed", result.cause)
+                        _uiState.update { it.copy(error = "Photo uploaded, but your profile could not be saved. Try again.") }
+                    }
                     Result.Loading -> Unit
                 }
             } catch (error: kotlinx.coroutines.CancellationException) {

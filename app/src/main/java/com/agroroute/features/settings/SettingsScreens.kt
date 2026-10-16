@@ -246,6 +246,11 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
         intro = "Receive messages, order updates, bids, order requests and harvest reminders."
     ) {
         AppCard(modifier = Modifier.fillMaxWidth()) {
+            com.agroroute.core.components.PremiumHero {
+                Icon(Lucide.Bell, null, Modifier.size(28.dp))
+                Text("Stay in the loop", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Order requests, pickup and delivery updates, and new messages", style = MaterialTheme.typography.bodyMedium)
+            }
             Text(
                 text = if (notificationsEnabled) "Notifications are enabled" else "Notifications are off",
                 style = MaterialTheme.typography.titleMedium,
@@ -278,7 +283,7 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
                     onClick = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Allow notifications")
+                    Text("Enable notifications")
                 }
             }
             OutlinedButton(

@@ -46,7 +46,12 @@ fun NotificationInboxScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item(key = "filters") {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        com.agroroute.core.components.PremiumHero {
+                            Icon(Lucide.Bell, null, Modifier.size(28.dp))
+                            Text("Your field updates", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text("Stay updated on orders, requests and messages.", style = MaterialTheme.typography.bodyMedium)
+                        }
                         Text(when {
                             state.isLoading && state.items.isEmpty() -> "Checking for updates"
                             state.error != null && state.items.isEmpty() -> "Updates unavailable"
@@ -78,7 +83,8 @@ fun NotificationInboxScreen(navController: NavController) {
                     items(notifications, key = { "notification:${it.id}" }) { item ->
                         Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
                             color = MaterialTheme.colorScheme.surface,
-                            shadowElevation = 2.dp) {
+                            shadowElevation = 1.dp,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))) {
                             NotificationRow(item, onClick = { open(item) }, markRead = { markRead(item) })
                         }
                     }

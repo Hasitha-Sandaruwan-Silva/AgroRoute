@@ -27,10 +27,12 @@ fun LoadingButton(
     isLoading: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    interactionSource: androidx.compose.foundation.interaction.MutableInteractionSource? = null
 ) {
     Button(
         onClick = onClick,
+        interactionSource = interactionSource,
         enabled = enabled && !isLoading && com.agroroute.core.runtime.LocalMutationAllowed.current,
         // Keep every primary action at the 48dp minimum touch target.
         modifier = modifier.heightIn(min = 48.dp),

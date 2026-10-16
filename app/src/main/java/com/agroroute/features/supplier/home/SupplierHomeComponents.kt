@@ -1,5 +1,8 @@
 package com.agroroute.features.supplier.home
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -346,20 +349,29 @@ fun SupplierHomeBottomNavigation(onNavigate: (String) -> Unit, modifier: Modifie
         Triple(com.agroroute.core.navigation.Screen.SupplierOrders.route, "Orders", Lucide.Receipt),
         Triple(com.agroroute.core.navigation.Screen.SupplierProfile.route, "Profile", Lucide.User)
     )
-    Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp), shadowElevation = 3.dp) {
-        Row(Modifier.navigationBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp)) {
-            tabs.forEachIndexed { index, (route, label, icon) ->
-                val selected = route == selectedRoute
-                val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onNavigate(route) }
-                    .heightIn(min = 56.dp).padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(icon, label, Modifier.size(24.dp), tint = tint)
-                    Text(label, fontSize = 11.sp, lineHeight = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        color = tint, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+    Box(modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center) {
+        Surface(Modifier.widthIn(max = 520.dp).fillMaxWidth(), color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp), shadowElevation = 3.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))) {
+            Row(Modifier.padding(horizontal = 6.dp, vertical = 6.dp)) {
+                tabs.forEachIndexed { index, (route, label, icon) ->
+                    val selected = route == selectedRoute
+                    val tint by animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tween(180), label = "supplierNavTint")
+                    val capsule by animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        tween(180), label = "supplierNavCapsule")
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(capsule).clickable { onNavigate(route) }
+                        .heightIn(min = 56.dp).padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(icon, label, Modifier.size(24.dp), tint = tint)
+                        Text(label, fontSize = 11.sp, lineHeight = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = tint, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+                    }
                 }
             }
         }
-    }
+}
 }

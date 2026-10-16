@@ -37,7 +37,7 @@ class ProfilePersistenceTest {
                 it["phone"] == edited.phone && it["location"] == location && it["profileImageUrl"] == edited.profileImageUrl &&
                     it.keys == setOf("displayName", "phone", "location", "profileImageUrl")
             }) }
-            coVerify { dao.upsertUserProfile(match { it.phone == edited.phone && it.location == location && it.points == 8 && it.role == role }) }
+            coVerify { dao.upsertUserProfile(match { it.phone == edited.phone && it.location == location && it.points == 8 && it.role == role && it.profileImageUrl == edited.profileImageUrl }) }
         }
     }
     @Test fun `editing another users profile is rejected before network writes`() = runTest {
@@ -48,4 +48,21 @@ class ProfilePersistenceTest {
         assertTrue(repository.updateProfile(UserProfile(userId = "stranger")) is Result.Error)
         coVerify(exactly = 0) { remote.updateFields(any(), any(), any()) }
     }
+    @Test fun `failed profile document update preserves cached avatar`() = runTest {
+        val auth = mockk<AuthService>()
+        every { auth.currentUserId } returns "owner"
+        val firestore = mockk<FirebaseFirestore>(relaxed = true)
+        val snapshot = mockk<DocumentSnapshot>()
+        val original = UserProfile(userId = "owner", profileImageUrl = "https://example.invalid/old.jpg")
+        every { snapshot.toObject(UserProfile::class.java) } returns original
+        every { firestore.collection("users").document("owner").get() } returns Tasks.forResult(snapshot)
+        every { firestore.collection("users").document("owner").update(any<Map<String, Any?>>()) } returns
+            Tasks.forException(IllegalStateException("profile save rejected"))
+        val dao = mockk<UserProfileDao>(relaxed = true)
+        val repository = AuthRepositoryImpl(auth, FirestoreService(firestore), dao, mockk(relaxed = true))
+        val result = repository.updateProfile(original.copy(profileImageUrl = "https://example.invalid/new.jpg"))
+        assertTrue(result is Result.Error && result.cause?.message == "profile save rejected")
+        coVerify(exactly = 0) { dao.upsertUserProfile(any()) }
+    }
+
 }

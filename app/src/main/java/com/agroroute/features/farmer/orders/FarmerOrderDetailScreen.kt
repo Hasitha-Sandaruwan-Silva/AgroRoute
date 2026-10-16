@@ -33,7 +33,7 @@ fun FarmerOrderDetailScreen(orderId: String, navController: NavController,
             state.isLoading && order == null -> ListSkeleton(count = 2)
             order != null -> {
                 Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())
-                    .padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OrderSummarySection(order, forSupplier = false, counterpartName = counterpartName)
                     if (com.agroroute.core.runtime.LocalMutationAllowed.current) {
                         com.agroroute.features.participants.OrderParticipantCard(order.supplierId, "Supplier", navController,

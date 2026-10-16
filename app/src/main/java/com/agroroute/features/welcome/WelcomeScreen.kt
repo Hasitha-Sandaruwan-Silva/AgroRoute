@@ -1,128 +1,161 @@
-package com.agroroute.features.welcome
+﻿package com.agroroute.features.welcome
 
-import com.github.thelacspace.icons.Lucide
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.agroroute.R
 import com.agroroute.core.navigation.Screen
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.ui.draw.shadow
+import com.agroroute.core.theme.ForestDeep
+import com.agroroute.features.auth.AgroAuthBrand
+import com.agroroute.features.auth.AuthReveal
+import com.github.thelacspace.icons.Lucide
+import kotlinx.coroutines.launch
 
-private data class OnboardingPage(val imageUrl: String, val title: String, val body: String)
+private data class OnboardingPage(val image: Int, val title: String, val body: String)
 
-// HIGH QUALITY images - w=1920 q=90
+// Restore the original photographic pages; local assets avoid network/loading delays.
 private val onboardingPages = listOf(
-    OnboardingPage(
-        imageUrl = "https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=90",
-        title = "YOUR FARM,\nSMARTER.",
-        body = "Monitor crop health, optimize resources, and increase yield with data driven insights."
-    ),
-    OnboardingPage(
-        imageUrl = "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=90",
-        title = "GET THE BEST\nBIDS.",
-        body = "Showcase your harvest and let verified suppliers compete for the best market price."
-    ),
-    OnboardingPage(
-        imageUrl = "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=90",
-        title = "TRACK YOUR\nORDERS.",
-        body = "Follow every order from farm pickup to final buyer delivery."
-    )
+    OnboardingPage(R.drawable.onboarding_farm, "YOUR FARM,\nSMARTER.",
+        "From harvest to market, connected."),
+    OnboardingPage(R.drawable.onboarding_harvest, "GET THE BEST\nBIDS.",
+        "Showcase your harvest and connect with suppliers through competitive bids."),
+    OnboardingPage(R.drawable.onboarding_orders, "TRACK YOUR\nORDERS.",
+        "Follow your orders from harvest to pickup, all in one place.")
 )
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WelcomeScreen(navController: NavController) {
-    val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
-    val context = LocalContext.current
-
-    Box(Modifier.fillMaxSize()) {
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-            Box(Modifier.fillMaxSize()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(onboardingPages[page].imageUrl).crossfade(true).build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.05f), Color.Black.copy(0.15f), Color.Black.copy(0.8f)))))
-            }
-        }
-
-        Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(420.dp).blur(28.dp).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.4f), Color.Black.copy(0.95f)))))
-
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp)) {
-            // LOGO ලොකුයි + TEXT එක ලං කරලා ලොකුයි
-            Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.foundation.Image(
-                    painter = painterResource(id = R.drawable.agroroute),
-                    contentDescription = "Logo",
-                    modifier = Modifier.size(68.dp).clip(CircleShape)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("AgroRoute", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, letterSpacing = 0.3.sp)
-            }
-
-            Spacer(Modifier.weight(1f))
-            val currentPage = onboardingPages[pagerState.currentPage]
-            Column(Modifier.fillMaxWidth()) {
-                Text(currentPage.title, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 38.sp, lineHeight = 40.sp, letterSpacing = (-0.5).sp), color = Color.White)
-                Spacer(Modifier.height(10.dp))
-                Text(currentPage.body, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.5.sp, lineHeight = 21.sp), color = Color.White.copy(0.85f))
-            }
-            Spacer(Modifier.height(28.dp))
-
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(56.dp).shadow(2.dp, RoundedCornerShape(50.dp)),
-                shape = RoundedCornerShape(50.dp),
-                color = Color(0xFF8BC34A),
-                onClick = { navController.navigate(Screen.Register.route) { launchSingleTop = true } }
-            ) {
-                Row(Modifier.fillMaxSize().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(modifier = Modifier.size(44.dp), shape = CircleShape, color = Color.Black) {
-                        Box(contentAlignment = Alignment.Center) { Icon(Lucide.ArrowRight, null, tint = Color.White, modifier = Modifier.size(18.dp)) }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Text("Get Started", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(Modifier.weight(1f))
-                    Text(">>>", color = Color.Black.copy(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 12.dp))
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Row {
-                    repeat(onboardingPages.size) { index ->
-                        val selected = index == pagerState.currentPage
-                        Box(Modifier.padding(end = 6.dp).height(6.dp).width(if (selected) 24.dp else 6.dp).clip(CircleShape).background(if (selected) Color.White else Color.White.copy(0.4f)))
+    val pager = rememberPagerState(pageCount = { onboardingPages.size })
+    val scope = rememberCoroutineScope()
+    fun movePage(delta: Int) {
+        scope.launch { pager.animateScrollToPage((pager.currentPage + delta).coerceIn(0, onboardingPages.lastIndex)) }
+    }
+    val background = MaterialTheme.colorScheme.background
+    Surface(Modifier.fillMaxSize(), color = background) {
+        BoxWithConstraints(Modifier.fillMaxSize().testTag("welcomeScreen")
+            .semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction("Next welcome page") { movePage(1); true },
+                    CustomAccessibilityAction("Previous welcome page") { movePage(-1); true })
+            }.pointerInput(pager) {
+                var travel = 0f
+                detectHorizontalDragGestures(onDragStart = { travel = 0f },
+                    onHorizontalDrag = { change, amount -> change.consume(); travel += amount },
+                    onDragEnd = { if (kotlin.math.abs(travel) > 48.dp.toPx()) movePage(if (travel < 0) 1 else -1) })
+            }) {
+            val viewportHeight = maxHeight
+            val safePadding = WindowInsets.safeDrawing.asPaddingValues()
+            val contentHeight = viewportHeight - safePadding.calculateTopPadding() - safePadding.calculateBottomPadding()
+            AuthReveal(delayMillis = 70, modifier = Modifier.fillMaxSize()) {
+                HorizontalPager(pager, Modifier.fillMaxSize(), userScrollEnabled = false) { index ->
+                    Box(Modifier.fillMaxSize()) {
+                        Image(painterResource(onboardingPages[index].image), null,
+                            Modifier.fillMaxWidth().fillMaxHeight(.66f), contentScale = ContentScale.Crop)
                     }
                 }
-                TextButton(onClick = { navController.navigate(Screen.Login.route) { launchSingleTop = true } }) {
-                    Text("I already have an account", color = Color.White.copy(0.9f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+            // Continuous photo-to-surface fade: no enclosing hero card or illustration.
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
+                0f to ForestDeep.copy(alpha = .24f),
+                .28f to background.copy(alpha = .02f),
+                .61f to background.copy(alpha = .97f),
+                .76f to background,
+                1f to background)))
+            Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+                Column(Modifier.widthIn(max = 520.dp).fillMaxWidth()
+                    .verticalScroll(rememberScrollState()).heightIn(min = contentHeight)
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.SpaceBetween) {
+                    AuthReveal { AgroAuthBrand(onPhoto = true) }
+                    Column(Modifier.fillMaxWidth().padding(top = 150.dp)) {
+                        AuthReveal(delayMillis = 160) {
+                            AnimatedContent(pager.currentPage, transitionSpec = {
+                                fadeIn(tween(220)) togetherWith fadeOut(tween(160))
+                            }, label = "welcomePage") { page ->
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Text(onboardingPages[page].title,
+                                        style = MaterialTheme.typography.headlineLarge.copy(
+                                            fontSize = 38.sp, lineHeight = 41.sp, letterSpacing = (-1).sp),
+                                        fontWeight = FontWeight.ExtraBold)
+                                    Text(onboardingPages[page].body,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(24.dp))
+                        AuthReveal(delayMillis = 260, modifier = Modifier.fillMaxWidth()) {
+                            Button(onClick = { navController.navigate(Screen.Register.route) { launchSingleTop = true } },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)) {
+                                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = .14f),
+                                    contentColor = MaterialTheme.colorScheme.onPrimary) {
+                                    Icon(Lucide.ArrowRight, null, Modifier.padding(12.dp).size(20.dp))
+                                }
+                                Text("Get Started", Modifier.weight(1f), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                                Spacer(Modifier.width(44.dp))
+                            }
+                        }
+                        AuthReveal(delayMillis = 340, modifier = Modifier.fillMaxWidth()) {
+                            Row(Modifier.fillMaxWidth().padding(top = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(Modifier.semantics {
+                                    contentDescription = "Page ${pager.currentPage + 1} of ${onboardingPages.size}"
+                                }, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    repeat(onboardingPages.size) { index ->
+                                        val selected = index == pager.currentPage
+                                        val width by animateDpAsState(if (selected) 22.dp else 6.dp,
+                                            tween(220), label = "pageWidth")
+                                        val color by animateColorAsState(if (selected) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.outlineVariant, tween(220), label = "pageColor")
+                                        Box(Modifier.size(width, 6.dp).clip(CircleShape).background(color))
+                                    }
+                                }
+                                Spacer(Modifier.weight(1f))
+                                TextButton(onClick = { navController.navigate(Screen.Login.route) { launchSingleTop = true } },
+                                    modifier = Modifier.weight(3f)) {
+                                    Text("I already have an account", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                        com.agroroute.core.runtime.AppEntryAction(tint = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
-            com.agroroute.core.runtime.AppEntryAction()
-            Spacer(Modifier.height(16.dp))
         }
     }
 }

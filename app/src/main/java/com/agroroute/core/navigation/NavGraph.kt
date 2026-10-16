@@ -1,5 +1,10 @@
 package com.agroroute.core.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import android.app.Activity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -58,6 +63,8 @@ import com.agroroute.features.supplier.shell.supplierRoutes
 import com.agroroute.features.leaderboard.LeaderboardScreen
 import com.agroroute.features.reviews.SubmitReviewScreen
 
+private val authMotionRoutes = setOf(Screen.Welcome.route, Screen.Login.route, Screen.Register.route)
+
 private val authRoutes = setOf(
     Screen.Welcome.route,
     Screen.Login.route,
@@ -104,10 +111,22 @@ fun NavGraph(
     }
     val mutationAllowed = com.agroroute.core.runtime.LocalMutationAllowed.current
 
+    var showNotificationRationale by remember(authState.user?.userId) { mutableStateOf(false) }
     LaunchedEffect(authState.sessionResolved, authState.user?.userId) {
         if (mutationAllowed && authState.sessionResolved && authState.user != null) {
-            (context as? Activity)?.let { activity -> NotificationPermission.requestIfNeeded(activity) }
+            (context as? Activity)?.let { activity ->
+                showNotificationRationale = !NotificationPermission.isGranted(activity)
+            }
         }
+    }
+    if (showNotificationRationale && mutationAllowed && authState.sessionResolved && authState.user != null) {
+        com.agroroute.features.settings.NotificationRationale(
+            onEnable = {
+                showNotificationRationale = false
+                (context as? Activity)?.let { activity -> NotificationPermission.requestIfNeeded(activity) }
+            },
+            onDismiss = { showNotificationRationale = false }
+        )
     }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -188,11 +207,29 @@ fun NavGraph(
                     ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.MessagesScreen(navController) }
                 }
 
-                composable(Screen.Welcome.route) {
+                composable(Screen.Welcome.route,
+                    enterTransition = { if (initialState.destination.route in authMotionRoutes)
+                        fadeIn(tween(260)) + slideInHorizontally(tween(260)) { it / 14 } else null },
+                    exitTransition = { if (targetState.destination.route in authMotionRoutes)
+                        fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { -it / 18 } else null },
+                    popEnterTransition = { if (initialState.destination.route in authMotionRoutes)
+                        fadeIn(tween(260)) + slideInHorizontally(tween(260)) { -it / 14 } else null },
+                    popExitTransition = { if (targetState.destination.route in authMotionRoutes)
+                        fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { it / 18 } else null }
+                ) {
                     WelcomeScreen(navController = navController)
                 }
 
-                composable(Screen.Login.route) {
+                composable(Screen.Login.route,
+                    enterTransition = { if (initialState.destination.route in authMotionRoutes)
+                        fadeIn(tween(260)) + slideInHorizontally(tween(260)) { it / 14 } else null },
+                    exitTransition = { if (targetState.destination.route in authMotionRoutes)
+                        fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { -it / 18 } else null },
+                    popEnterTransition = { if (initialState.destination.route in authMotionRoutes)
+                        fadeIn(tween(260)) + slideInHorizontally(tween(260)) { -it / 14 } else null },
+                    popExitTransition = { if (targetState.destination.route in authMotionRoutes)
+                        fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { it / 18 } else null }
+                ) {
                     LoginScreen(
                         navController = navController,
                         onLoginSuccess = { role -> currentUserRole = role },
@@ -211,7 +248,16 @@ fun NavGraph(
                     )
                 }
 
-                composable(Screen.Register.route) {
+                composable(Screen.Register.route,
+                    enterTransition = { if (initialState.destination.route in authMotionRoutes)
+                        fadeIn(tween(260)) + slideInHorizontally(tween(260)) { it / 14 } else null },
+                    exitTransition = { if (targetState.destination.route in authMotionRoutes)
+                        fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { -it / 18 } else null },
+                    popEnterTransition = { if (initialState.destination.route in authMotionRoutes)
+                        fadeIn(tween(260)) + slideInHorizontally(tween(260)) { -it / 14 } else null },
+                    popExitTransition = { if (targetState.destination.route in authMotionRoutes)
+                        fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { it / 18 } else null }
+                ) {
                     RegisterScreen(
                         navController = navController,
                         onRegisterSuccess = { role -> currentUserRole = role }

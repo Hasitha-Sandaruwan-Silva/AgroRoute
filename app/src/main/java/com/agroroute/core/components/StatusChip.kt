@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,16 +35,18 @@ fun StatusChip(
     modifier: Modifier = Modifier
 ) {
     val (container, content) = chipColors(tone)
+    val animatedContainer by animateColorAsState(container, tween(180), label = "statusContainer")
+    val animatedContent by animateColorAsState(content, tween(180), label = "statusContent")
     Surface(
         modifier = modifier,
-        color = container,
+        color = animatedContainer,
         shape = PillShape
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = content,
+            color = animatedContent,
             maxLines = 1,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         )
@@ -72,8 +77,8 @@ fun BidStatusChip(status: BidStatus, modifier: Modifier = Modifier) {
 @Composable
 fun OrderStatusChip(status: OrderStatus, modifier: Modifier = Modifier) {
     val (label, tone) = when (status) {
-        OrderStatus.AWAITING_PICKUP -> "Awaiting Pickup" to ChipTone.Primary
-        OrderStatus.IN_TRANSIT -> "In Transit" to ChipTone.Warning
+        OrderStatus.AWAITING_PICKUP -> "Awaiting Pickup" to ChipTone.Warning
+        OrderStatus.IN_TRANSIT -> "In Transit" to ChipTone.Primary
         OrderStatus.DELIVERED -> "Delivered" to ChipTone.Success
         OrderStatus.CANCELLED -> "Cancelled" to ChipTone.Error
     }

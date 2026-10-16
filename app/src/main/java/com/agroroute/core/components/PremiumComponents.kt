@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,7 +51,9 @@ fun PremiumHero(
         }
 
         androidx.compose.runtime.CompositionLocalProvider(
-            LocalContentColor provides CreamInk
+            LocalContentColor provides if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+                MaterialTheme.colorScheme.onSurface
+            } else CreamInk
         ) {
             Column(
                 Modifier.padding(24.dp),

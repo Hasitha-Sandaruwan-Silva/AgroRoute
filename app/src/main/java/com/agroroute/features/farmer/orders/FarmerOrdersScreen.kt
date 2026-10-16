@@ -186,7 +186,7 @@ fun FarmerOrdersScreen(
     // SCREEN
     // =========================================================
 
-    Box(Modifier.fillMaxSize().background(com.agroroute.features.farmer.components.FarmerForest)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item(key = "controls") {
@@ -230,17 +230,7 @@ fun FarmerOrdersScreen(
 
 @Composable
 private fun FarmerOrdersControls(content: @Composable () -> Unit) {
-    val colors = MaterialTheme.colorScheme.copy(
-        background = com.agroroute.features.farmer.components.FarmerForest,
-        onBackground = com.agroroute.features.farmer.components.FarmerCream,
-        surface = Color(0xFF153D2E), onSurface = com.agroroute.features.farmer.components.FarmerCream,
-        surfaceVariant = Color(0xFF244A39), onSurfaceVariant = Color(0xFFCBDCCB),
-        primary = Color(0xFFBEF477), onPrimary = Color(0xFF153D2E),
-        primaryContainer = Color(0xFF38642D), onPrimaryContainer = Color(0xFFECFFD9),
-        outlineVariant = Color(0xFF3D604B))
-    MaterialTheme(colorScheme = colors) {
-        CompositionLocalProvider(LocalContentColor provides colors.onSurface, content = content)
-    }
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface, content = content)
 }
 
 @Composable
@@ -249,75 +239,11 @@ private fun OrdersHeader(
     selectedRange: OrderRange
 ) {
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = 20.dp,
-                end = 20.dp,
-                top = 22.dp,
-                bottom = 14.dp
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-
-            Text(
-                text = "My orders",
-                style =
-                    MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color =
-                    MaterialTheme.colorScheme.onBackground
-            )
-
-
-            Spacer(Modifier.height(3.dp))
-
-
-            Text(
-                text = when {
-                    totalOrders == 0 ->
-                        "No orders in ${selectedRange.label.lowercase()}"
-
-                    totalOrders == 1 ->
-                        "1 order • ${selectedRange.label}"
-
-                    else ->
-                        "$totalOrders orders • ${selectedRange.label}"
-                },
-                style =
-                    MaterialTheme.typography.bodySmall,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = RoundedCornerShape(16.dp),
-            color =
-                MaterialTheme.colorScheme.primaryContainer
-        ) {
-
-            Box(
-                contentAlignment = Alignment.Center
-            ) {
-
-                Icon(
-                    imageVector = Lucide.Receipt,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp),
-                    tint =
-                        MaterialTheme.colorScheme
-                            .onPrimaryContainer
-                )
-            }
-        }
+    com.agroroute.core.components.PremiumHero(Modifier.padding(16.dp)) {
+        Icon(Lucide.Receipt, null, Modifier.size(28.dp))
+        Text("Orders", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("Manage pickups, deliveries and completed harvest orders.", style = MaterialTheme.typography.bodyMedium)
+        Text("$totalOrders orders | ${selectedRange.label}", style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -728,273 +654,67 @@ private fun StatusFilterChip(
 // =============================================================
 
 @Composable
-private fun ModernOrderCard(
+internal fun ModernOrderCard(
     order: Order,
     supplierName: String?,
     onCardClick: () -> Unit
 ) {
-
-    Surface(
-        onClick = onCardClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant
-                .copy(alpha = 0.50f)
-        )
-    ) {
-
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-
-            // Unique little accent instead of
-            // making the whole card colourful.
-            Box(
-                modifier = Modifier
-                    .width(0.dp)
-                    .heightIn(min = 0.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primary
-                    )
-            )
-
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(16.dp),
-                verticalArrangement =
-                    Arrangement.spacedBy(11.dp)
-            ) {
-
-                // ---------------------------------------------
-                // TITLE
-                // ---------------------------------------------
-
-                Row(
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Surface(
-                        modifier = Modifier.size(38.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        color =
-                            MaterialTheme.colorScheme
-                                .primaryContainer
-                    ) {
-
-                        Box(
-                            contentAlignment =
-                                Alignment.Center
-                        ) {
-
-                            Icon(
-                                imageVector =
-                                    Lucide.Sprout,
-                                contentDescription = null,
-                                modifier =
-                                    Modifier.size(18.dp),
-                                tint =
-                                    MaterialTheme.colorScheme
-                                        .onPrimaryContainer
-                            )
-                        }
-                    }
-
-
-                    Spacer(Modifier.width(11.dp))
-
-
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-
-                        Text(
-                            text = order.cropName,
-                            style =
-                                MaterialTheme.typography
-                                    .titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color =
-                                MaterialTheme.colorScheme
-                                    .onSurface,
-                            maxLines = 1,
-                            overflow =
-                                TextOverflow.Ellipsis
-                        )
-
-
-                        if (!supplierName.isNullOrBlank()) {
-
-                            Spacer(Modifier.height(2.dp))
-
-                            Text(
-                                text = "Supplier: $supplierName",
-                                style =
-                                    MaterialTheme.typography
-                                        .bodySmall,
-                                color =
-                                    MaterialTheme.colorScheme
-                                        .onSurfaceVariant,
-                                maxLines = 1,
-                                overflow =
-                                    TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
-
-                    Spacer(Modifier.width(8.dp))
-
-
-                    OrderStatusChip(
-                        order.status
-                    )
-                }
-
-
-                // ---------------------------------------------
-                // QUANTITY + PRICE
-                // ---------------------------------------------
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    OrderMetric(
-                        icon = Lucide.Package,
-                        label = "Quantity",
-                        value =
-                            "${order.quantity} ${order.quantityUnit.name}",
-                        modifier = Modifier.weight(1f)
-                    )
-
-
-                    Spacer(Modifier.width(10.dp))
-
-
-                    OrderMetric(
-                        icon = Lucide.BadgeDollarSign,
-                        label = "Price",
-                        value =
-                            "Rs. ${order.agreedPrice}/${order.quantityUnit.name}",
-                        modifier = Modifier.weight(1.2f)
-                    )
-                }
-
-
-                // ---------------------------------------------
-                // PICKUP
-                // ---------------------------------------------
-
-                if (order.pickupLocation.isNotBlank()) {
-
-                    Row(
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-                            imageVector = Lucide.MapPin,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            tint =
-                                MaterialTheme.colorScheme
-                                    .onSurfaceVariant
-                        )
-
-
-                        Spacer(Modifier.width(7.dp))
-
-
-                        Text(
-                            text = com.agroroute.core.components.profileLocationLabel(order.pickupLocation),
-                            style =
-                                MaterialTheme.typography.bodySmall,
-                            color =
-                                MaterialTheme.colorScheme
-                                    .onSurfaceVariant,
-                            maxLines = 1,
-                            overflow =
-                                TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
+    Surface(onClick = onCardClick, modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OrderStatusChip(order.status)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                    Box(Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+                        Icon(Lucide.Sprout, null, Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
-
-
-                HorizontalDivider(
-                    color =
-                        MaterialTheme.colorScheme
-                            .outlineVariant.copy(alpha = 0.55f)
-                )
-
-
-                Text("Total agreed: Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.bodySmall)
-                Text(com.agroroute.core.components.orderNextStep(order.status, false), style = MaterialTheme.typography.bodySmall)
-                com.agroroute.features.farmer.components.FarmerOrderProgress(order.status)
-
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Icon(
-                        imageVector = Lucide.Calendar,
-                        contentDescription = null,
-                        modifier = Modifier.size(13.dp),
-                        tint =
-                            MaterialTheme.colorScheme
-                                .onSurfaceVariant
-                    )
-
-
-                    Spacer(Modifier.width(6.dp))
-
-
-                    Text(
-                        text = formatDate(order.createdAt),
-                        style =
-                            MaterialTheme.typography.labelSmall,
-                        color =
-                            MaterialTheme.colorScheme
-                                .onSurfaceVariant
-                    )
-
-
-                    Spacer(Modifier.weight(1f))
-
-
-                    Text(
-                        text = "View details",
-                        style =
-                            MaterialTheme.typography.labelMedium,
-                        color =
-                            MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-
-                    Spacer(Modifier.width(3.dp))
-
-
-                    Icon(
-                        imageVector = Lucide.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint =
-                            MaterialTheme.colorScheme.primary
-                    )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(order.cropName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text("${order.quantity} ${order.quantityUnit.name}", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Total agreed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Rs. ${order.agreedPrice}/${order.quantityUnit.name}", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            if (!supplierName.isNullOrBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    com.agroroute.core.components.UserProfileAvatar(supplierName, null, size = 36.dp)
+                    Column(Modifier.weight(1f)) {
+                        Text("Supplier", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(supplierName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            if (order.pickupLocation.isNotBlank()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Lucide.MapPin, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(com.agroroute.core.components.profileLocationLabel(order.pickupLocation),
+                        style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f))
+                }
+            }
+            OrderProgressStrip(order.status)
+            Text(com.agroroute.core.components.orderNextStep(order.status, false),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(formatDate(order.createdAt), Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("View order", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary)
+                Icon(Lucide.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
             }
         }
     }

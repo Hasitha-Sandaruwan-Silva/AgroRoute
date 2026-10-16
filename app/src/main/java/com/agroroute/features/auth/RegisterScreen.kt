@@ -51,7 +51,15 @@ fun RegisterScreen(
         viewModel.clearError()
     }
 
-    AuthLayout("Create account", "Join the fair harvest marketplace.", snackbarHostState) {
+    AuthLayout("Create account", "Join the fair harvest marketplace.", snackbarHostState, onBack = { navController.popBackStack() }) {
+        Text("Choose your role", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(12.dp))
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            UserRole.entries.forEach { role ->
+                AuthRoleOption(role, selectedRole == role, onClick = { selectedRole = role })
+            }
+        }
+        Spacer(Modifier.height(24.dp))
         Text("YOUR DETAILS", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
@@ -72,21 +80,13 @@ fun RegisterScreen(
                 { Text("Passwords do not match") }
             } else null)
         Spacer(Modifier.height(24.dp))
-        Text("I am a…", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(12.dp))
-        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            UserRole.entries.forEach { role ->
-                AuthRoleOption(role, selectedRole == role, onClick = { selectedRole = role })
-            }
-        }
-        Spacer(Modifier.height(24.dp))
-        LoadingButton(
+        AuthPrimaryButton(
             text = "Create Account",
             isLoading = uiState.isLoading,
             onClick = {
                 if (password != confirmPass) {
                     localError = "Passwords do not match"
-                    return@LoadingButton
+                    return@AuthPrimaryButton
                 }
                 localError = null
                 viewModel.register(email, password, displayName, selectedRole)

@@ -132,6 +132,13 @@ fun MessagesScreen(navController: NavController, viewModel: MessagesViewModel = 
     LaunchedEffect(Unit) { viewModel.load() }
     ParticipantPage("Messages", navController) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item(key = "messages-header") {
+                com.agroroute.core.components.PremiumHero {
+                    Icon(Lucide.MessageCircle, null, Modifier.size(28.dp))
+                    Text("Connected through harvest", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("Your conversations with farmers and suppliers.", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             if (state.loading) item { CircularProgressIndicator() }
             state.error?.let { error -> item { RetryCard(error, viewModel::load) } }
             if (!state.loading && state.error == null && state.conversations.isEmpty()) item {
@@ -142,7 +149,7 @@ fun MessagesScreen(navController: NavController, viewModel: MessagesViewModel = 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         UserProfileAvatar(conversation.other.name, conversation.other.imageUrl, size = 48.dp)
                         Column(Modifier.weight(1f)) {
-                            Text(conversation.other.name, fontWeight = FontWeight.Bold)
+                            Text(conversation.other.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text(roleLabel(conversation.other), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(conversation.lastMessage, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             conversation.updatedAt?.let { Text(dateLabel(it), style = MaterialTheme.typography.labelSmall) }

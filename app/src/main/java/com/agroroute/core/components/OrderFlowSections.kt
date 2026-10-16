@@ -21,27 +21,26 @@ fun orderNextStep(status: OrderStatus, forSupplier: Boolean): String = when (sta
 
 @Composable
 fun OrderSummarySection(order: Order, forSupplier: Boolean, counterpartName: String? = null) {
-    AppCard {
+    PremiumHero {
+        Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.labelLarge)
         Text(order.cropName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         OrderStatusChip(order.status)
         Text("${if (forSupplier) "Farmer" else "Supplier"}: ${counterpartName ?: "Name unavailable"}",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            style = MaterialTheme.typography.bodySmall, color = LocalContentColor.current.copy(alpha = 0.8f))
         Text("${order.quantity} ${order.quantityUnit.name} · Rs. ${order.agreedPrice}/${order.quantityUnit.name}")
         Text("Total agreed: Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(8.dp))
-        if (forSupplier && com.agroroute.features.supplier.components.LocalSupplierPresentation.current) {
-            com.agroroute.features.supplier.components.SupplierOrderProgress(order.status)
-        } else if (!forSupplier && com.agroroute.features.farmer.components.LocalFarmerPresentation.current) {
-            com.agroroute.features.farmer.components.FarmerOrderProgress(order.status)
-        } else OrderProgressStrip(order.status)
+        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+            Box(Modifier.padding(16.dp)) { OrderProgressStrip(order.status) }
+        }
         Text(orderNextStep(order.status, forSupplier), style = MaterialTheme.typography.bodySmall)
         if (order.status == OrderStatus.AWAITING_PICKUP && !forSupplier) {
             Text("Acceptance reward: 1 point, awarded once. Your profile shows your confirmed points.", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                color = LocalContentColor.current.copy(alpha = 0.8f))
         }
         if (order.status == OrderStatus.DELIVERED) {
             Text("Delivery reward: +6 each, once for eligible orders. Your profile shows the confirmed total.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                style = MaterialTheme.typography.bodySmall, color = LocalContentColor.current.copy(alpha = 0.8f))
         }
     }
 }

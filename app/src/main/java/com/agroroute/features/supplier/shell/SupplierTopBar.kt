@@ -75,7 +75,7 @@ fun SupplierTopBar(
 
     Surface(
         modifier = modifier.fillMaxWidth().testTag("supplier-shared-top-bar"),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 0.dp
     ) {
@@ -108,7 +108,7 @@ fun SupplierTopBar(
                                 imageVector = Lucide.ArrowLeft,
                                 contentDescription = "Back",
                                 tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                         Spacer(Modifier.width(12.dp))
@@ -116,7 +116,7 @@ fun SupplierTopBar(
                         Image(
                             painter = painterResource(id = R.drawable.logo),
                             contentDescription = "AgroRoute logo",
-                            modifier = Modifier.size(38.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.width(12.dp))
                     }
@@ -147,7 +147,7 @@ fun SupplierTopBar(
                 Box {
                     Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                         UserProfileAvatar(authState.user?.displayName ?: "Supplier", authState.user?.profileImageUrl,
-                            size = 40.dp, onClick = { showAvatarMenu = true })
+                            size = 36.dp, onClick = { showAvatarMenu = true })
                     }
 
                     DropdownMenu(

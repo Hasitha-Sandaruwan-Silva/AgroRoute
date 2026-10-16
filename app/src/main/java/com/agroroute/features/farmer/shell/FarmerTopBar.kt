@@ -42,7 +42,7 @@ fun FarmerTopBar(
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
 
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
 
     var showAvatarMenu by remember { mutableStateOf(false) }
 
@@ -50,7 +50,7 @@ fun FarmerTopBar(
         Column(modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars).background(surfaceColor))
             Row(
-                modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 12.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -83,7 +83,7 @@ fun FarmerTopBar(
                     Box {
                         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                             UserProfileAvatar(authState.user?.displayName ?: "Farmer", authState.user?.profileImageUrl,
-                                size = 40.dp, onClick = { showAvatarMenu = true })
+                                size = 36.dp, onClick = { showAvatarMenu = true })
                         }
                         DropdownMenu(expanded = showAvatarMenu, onDismissRequest = { showAvatarMenu = false }) {
                             DropdownMenuItem(

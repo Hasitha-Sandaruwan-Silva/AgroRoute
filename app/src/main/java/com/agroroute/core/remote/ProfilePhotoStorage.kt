@@ -21,10 +21,9 @@ interface ProfilePhotoUploader {
 @Singleton
 class ProfilePhotoStorage @Inject constructor(
     private val cloudinary: CloudinaryPhotoStorage,
-    private val firebase: StorageService,
     @ApplicationContext private val context: Context
 ) : ProfilePhotoUploader {
-    /** Decode a bounded avatar off the main thread; Firebase rules require less than 5 MB. */
+    /** Decode a bounded avatar off the main thread; Keep prepared avatars below 5 MB. */
     override suspend fun upload(uri: Uri, userId: String): String = withContext(Dispatchers.IO) {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -55,11 +54,9 @@ class ProfilePhotoStorage @Inject constructor(
             file.outputStream().use { check(oriented.compress(Bitmap.CompressFormat.JPEG, 88, it)) { "Could not prepare your photo." } }
             require(file.length() in 1 until 5L * 1024 * 1024) { "Photo is too large. Please choose a smaller image." }
             val preparedUri = Uri.fromFile(file)
-            if (CloudinaryConfig.PROFILE_UNSIGNED_PRESET.isNotBlank()) {
-                cloudinary.uploadPhoto(preparedUri, "profile_photos/$userId", CloudinaryConfig.PROFILE_UNSIGNED_PRESET)
-            } else {
-                firebase.uploadImage(preparedUri, "profile_images/$userId/avatar")
-            }
+            // Reuse the deployed unsigned upload backend; never silently fall back to Firebase.
+            cloudinary.uploadPhoto(preparedUri, "profile_photos/$userId", CloudinaryConfig.UNSIGNED_PRESET)
+                .also { require(it.startsWith("https://")) { "Photo service returned an insecure URL" } }
         } finally {
             if (oriented !== bitmap) oriented.recycle()
             bitmap.recycle()

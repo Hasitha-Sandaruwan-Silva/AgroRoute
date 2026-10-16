@@ -60,12 +60,14 @@ internal fun ParticipantIdentityCard(state: ParticipantCardState, roleLabel: Str
     onProfile: () -> Unit, onMessage: () -> Unit, onRetry: () -> Unit = {},
     contact: @Composable () -> Unit = {}) {
     AppCard {
+        Text("Your $roleLabel", style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         ParticipantIdentityRow(
             displayName = if (state.loading) "Loading participant..." else state.identity?.name ?: "Participant unavailable",
             roleLabel = roleLabel, imageUrl = state.identity?.imageUrl, points = state.identity?.points,
             onProfile = onProfile, nameMaxLines = 2, modifier = Modifier.testTag("order-participant-identity"))
         if (!state.loading && state.identity == null) TextButton(onClick = onRetry) { Text("Retry participant") }
-        OutlinedButton(onClick = onMessage, enabled = state.identity != null) { Text("Message") }
+        OutlinedButton(onClick = onMessage, enabled = state.identity != null, modifier = Modifier.fillMaxWidth()) { Text("Message") }
         contact()
     }
 }

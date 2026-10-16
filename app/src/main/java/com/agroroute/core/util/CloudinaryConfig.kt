@@ -26,9 +26,6 @@ object CloudinaryConfig {
      */
     const val UNSIGNED_PRESET = "agroroute_listing_photos"
 
-    /** Optional non-secret preset copied from your Cloudinary Console; blank keeps Firebase avatar storage. */
-    const val PROFILE_UNSIGNED_PRESET = ""
-
     /** Cloudinary unsigned upload endpoint. */
     val UPLOAD_URL get() = "https://api.cloudinary.com/v1_1/$CLOUD_NAME/image/upload"
 

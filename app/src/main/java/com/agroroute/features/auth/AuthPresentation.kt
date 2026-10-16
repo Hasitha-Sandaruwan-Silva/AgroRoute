@@ -1,5 +1,12 @@
 package com.agroroute.features.auth
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -26,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import com.agroroute.R
-import com.agroroute.core.components.AgroSnackbarHost
 import com.agroroute.core.model.UserRole
 import com.github.thelacspace.icons.Lucide
 
@@ -36,34 +42,41 @@ internal fun AuthLayout(
     title: String,
     subtitle: String,
     snackbar: SnackbarHostState,
+    onBack: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     var snackbarHeight by remember { mutableIntStateOf(0) }
     val snackbarInset = with(LocalDensity.current) { snackbarHeight.toDp() }
     Scaffold(containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing.union(WindowInsets.ime),
-        snackbarHost = { AgroSnackbarHost(snackbar, Modifier.onSizeChanged { snackbarHeight = it.height }) }) { padding ->
+        snackbarHost = { AuthMessageHost(snackbar, Modifier.onSizeChanged { snackbarHeight = it.height }) }) { padding ->
+        AgroAuthBackground(Modifier.fillMaxSize())
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).padding(bottom = snackbarInset),
             contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 480.dp).fillMaxSize().verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 24.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Image(painterResource(R.drawable.agroroute), "AgroRoute logo", Modifier.size(52.dp).clip(CircleShape))
-                    Column {
-                        Text("AgroRoute", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                        Text("From farm to market", style = MaterialTheme.typography.labelMedium,
+                if (onBack != null) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                        Icon(Lucide.ArrowLeft, "Back", Modifier.size(22.dp))
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+                AuthReveal {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        AgroAuthPhotoHeader()
+                        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                        Text(subtitle, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Spacer(Modifier.height(28.dp))
-                Surface(Modifier.size(width = 36.dp, height = 4.dp), shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary) {}
-                Spacer(Modifier.height(16.dp))
-                Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(28.dp))
-                content()
+                Spacer(Modifier.height(24.dp))
+                AuthReveal(delayMillis = 90) {
+                    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f)),
+                        shadowElevation = 1.dp) {
+                        Column(Modifier.fillMaxWidth().padding(20.dp), content = content)
+                    }
+                }
                 Spacer(Modifier.height(16.dp))
             }
         }
@@ -84,12 +97,18 @@ internal fun AuthField(
 ) {
     var visible by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
+    var focused by remember { mutableStateOf(false) }
+    val iconColor by animateColorAsState(
+        if (isError) MaterialTheme.colorScheme.error else if (focused) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurfaceVariant, tween(180), label = "authFieldFocus")
     OutlinedTextField(value, onValueChange, label = { Text(label) }, singleLine = true,
-        leadingIcon = { Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) },
+        leadingIcon = { Icon(icon, null, Modifier.size(20.dp), tint = iconColor) },
         trailingIcon = if (password) ({
             IconButton(onClick = { visible = !visible }) {
-                Icon(if (visible) Lucide.EyeOff else Lucide.Eye,
-                    "${if (visible) "Hide" else "Show"} ${label.lowercase()}", Modifier.size(20.dp))
+                Crossfade(visible, animationSpec = tween(150), label = "passwordVisibility") { shown ->
+                    Icon(if (shown) Lucide.EyeOff else Lucide.Eye,
+                        "${if (shown) "Hide" else "Show"} ${label.lowercase()}", Modifier.size(20.dp))
+                }
             }
         }) else null,
         visualTransformation = if (password && !visible) PasswordVisualTransformation() else VisualTransformation.None,
@@ -100,25 +119,31 @@ internal fun AuthField(
         shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth())
+        modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.hasFocus })
 }
 
 @Composable
 internal fun AuthRoleOption(role: UserRole, selected: Boolean, onClick: () -> Unit) {
     val farmer = role == UserRole.FARMER
+    val container by animateColorAsState(if (selected) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surface, tween(180), label = "roleContainer")
+    val border by animateColorAsState(if (selected) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.outlineVariant, tween(180), label = "roleBorder")
+    val stroke by animateDpAsState(if (selected) 1.5.dp else 1.dp, tween(180), label = "roleStroke")
+    val scale by animateFloatAsState(if (selected) 1.06f else 1f, tween(180), label = "roleIcon")
     Surface(shape = RoundedCornerShape(18.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+        color = container,
+        border = BorderStroke(stroke, border),
         modifier = Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton, onClick = onClick)) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(if (farmer) Lucide.Sprout else Lucide.Store, null, tint = MaterialTheme.colorScheme.primary)
+            Icon(if (farmer) Lucide.Sprout else Lucide.Store, null, Modifier.size(24.dp).scale(scale),
+                tint = MaterialTheme.colorScheme.primary)
             Column(Modifier.weight(1f)) {
                 Text(if (farmer) "Farmer" else "Supplier", style = MaterialTheme.typography.titleSmall)
-                Text(if (farmer) "Sell your harvest" else "Buy from farms", style = MaterialTheme.typography.bodySmall,
+                Text(if (farmer) "Sell and manage your harvest" else "Discover and source produce", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             RadioButton(selected, onClick = null)

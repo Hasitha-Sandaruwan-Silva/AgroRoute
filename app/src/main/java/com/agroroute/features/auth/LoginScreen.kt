@@ -78,7 +78,7 @@ fun LoginScreen(
         }
     }
 
-    AuthLayout("Welcome back", "Sign in to continue to AgroRoute.", snackbarHostState) {
+    AuthLayout("Welcome back", "Sign in to continue to AgroRoute.", snackbarHostState, onBack = { navController.popBackStack() }) {
         AuthField(email, { email = it }, "Email", Lucide.Mail,
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Email)
         Spacer(Modifier.height(14.dp))
@@ -87,7 +87,7 @@ fun LoginScreen(
             Text("Forgot password?", style = MaterialTheme.typography.labelLarge)
         }
         Spacer(Modifier.height(12.dp))
-        LoadingButton(text = "Sign In", isLoading = uiState.isLoading,
+        AuthPrimaryButton(text = "Sign In", isLoading = uiState.isLoading,
             onClick = { viewModel.login(email, password) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
         Spacer(Modifier.height(24.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
