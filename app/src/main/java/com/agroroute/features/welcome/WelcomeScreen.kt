@@ -45,14 +45,14 @@ import kotlinx.coroutines.launch
 
 private data class OnboardingPage(val image: Int, val title: String, val body: String)
 
-// Restore the original photographic pages; local assets avoid network/loading delays.
+// Welcome-only photographs; local assets avoid network/loading delays.
 private val onboardingPages = listOf(
-    OnboardingPage(R.drawable.onboarding_farm, "YOUR FARM,\nSMARTER.",
-        "From harvest to market, connected."),
-    OnboardingPage(R.drawable.onboarding_harvest, "GET THE BEST\nBIDS.",
-        "Showcase your harvest and connect with suppliers through competitive bids."),
-    OnboardingPage(R.drawable.onboarding_orders, "TRACK YOUR\nORDERS.",
-        "Follow your orders from harvest to pickup, all in one place.")
+    OnboardingPage(R.drawable.welcome_harvest, "Grow with Confidence",
+        "Manage your harvests with a smarter farming experience."),
+    OnboardingPage(R.drawable.welcome_marketplace, "Trade Made Simple",
+        "Connect farmers and suppliers in one trusted marketplace."),
+    OnboardingPage(R.drawable.welcome_delivery, "From Farm to Destination",
+        "Track orders, deliveries, and every step in between.")
 )
 
 @Composable

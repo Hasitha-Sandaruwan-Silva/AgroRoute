@@ -16,6 +16,7 @@ import com.agroroute.core.navigation.Screen
 import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.LoadingButton
 import com.github.thelacspace.icons.Lucide
+import com.agroroute.R
 
 @Composable
 fun RegisterScreen(
@@ -51,7 +52,8 @@ fun RegisterScreen(
         viewModel.clearError()
     }
 
-    AuthLayout("Create account", "Join the fair harvest marketplace.", snackbarHostState, onBack = { navController.popBackStack() }) {
+    AuthLayout("Join AgroRoute", "Create your account and connect to a smarter agricultural marketplace.", snackbarHostState,
+        heroImage = R.drawable.auth_register, onBack = { navController.popBackStack() }) {
         Text("Choose your role", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {

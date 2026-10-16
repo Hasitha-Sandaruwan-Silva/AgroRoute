@@ -78,7 +78,8 @@ fun LoginScreen(
         }
     }
 
-    AuthLayout("Welcome back", "Sign in to continue to AgroRoute.", snackbarHostState, onBack = { navController.popBackStack() }) {
+    AuthLayout("Welcome Back", "Sign in to continue your AgroRoute journey.", snackbarHostState,
+        heroImage = R.drawable.auth_login, onBack = { navController.popBackStack() }) {
         AuthField(email, { email = it }, "Email", Lucide.Mail,
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Email)
         Spacer(Modifier.height(14.dp))

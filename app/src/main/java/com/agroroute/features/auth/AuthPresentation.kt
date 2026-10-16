@@ -1,5 +1,6 @@
 package com.agroroute.features.auth
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -42,6 +43,7 @@ internal fun AuthLayout(
     title: String,
     subtitle: String,
     snackbar: SnackbarHostState,
+    @DrawableRes heroImage: Int,
     onBack: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -62,15 +64,18 @@ internal fun AuthLayout(
                     Spacer(Modifier.height(12.dp))
                 }
                 AuthReveal {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        AgroAuthPhotoHeader()
-                        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                        Text(subtitle, style = MaterialTheme.typography.bodyMedium,
+                    AgroAuthPhotoHeader(heroImage)
+                }
+                Spacer(Modifier.height(20.dp))
+                AuthReveal(delayMillis = 70) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+                        Text(subtitle, style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 Spacer(Modifier.height(24.dp))
-                AuthReveal(delayMillis = 90) {
+                AuthReveal(delayMillis = 110) {
                     Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f)),
                         shadowElevation = 1.dp) {

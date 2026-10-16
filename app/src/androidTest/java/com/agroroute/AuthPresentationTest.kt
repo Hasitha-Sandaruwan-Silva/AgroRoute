@@ -98,14 +98,17 @@ class AuthPresentationTest(private val dark: Boolean) {
 
     @Test fun welcomeFinalStateKeepsBothRoutesAndBackActions() {
         content()
-        compose.onNodeWithText("From harvest to market, connected.").assertIsDisplayed()
+        compose.onNodeWithText("Manage your harvests with a smarter farming experience.").assertIsDisplayed()
         compose.onNodeWithContentDescription("AgroRoute logo").assertIsDisplayed()
         capture("welcome")
         compose.onNodeWithText("I already have an account").performScrollTo().performClick()
-        compose.onNodeWithText("Welcome back").assertExists()
+        compose.onNodeWithText("Welcome Back").assertExists()
+        compose.onNodeWithText("Sign in to continue your AgroRoute journey.").assertExists()
         compose.onNodeWithContentDescription("Back").performScrollTo().performClick()
         compose.onNodeWithText("Get Started").performScrollTo().performClick()
         compose.onNodeWithText("Choose your role").assertExists()
+        compose.onNodeWithText("Join AgroRoute").assertExists()
+        compose.onNodeWithText("Create your account and connect to a smarter agricultural marketplace.").assertExists()
         roleNode("Farmer").assertIsSelected()
         compose.onNodeWithContentDescription("Back").performScrollTo().performClick()
         compose.onNodeWithText("Get Started").assertExists()
@@ -114,14 +117,18 @@ class AuthPresentationTest(private val dark: Boolean) {
 
     @Test fun restoredWelcomeKeepsAllThreePhotographicPages() {
         content()
-        compose.onNodeWithText("YOUR FARM,\nSMARTER.").assertIsDisplayed()
+        compose.onNodeWithText("Grow with Confidence").assertIsDisplayed()
         compose.onNodeWithTag("welcomeScreen").performTouchInput { swipeLeft() }
-        compose.onNodeWithText("GET THE BEST\nBIDS.").assertIsDisplayed()
+        compose.onNodeWithText("Trade Made Simple").assertIsDisplayed()
+        compose.onNodeWithText("Connect farmers and suppliers in one trusted marketplace.").assertIsDisplayed()
         compose.onNodeWithContentDescription("Page 2 of 3").assertExists()
+        capture("welcome-trade")
         compose.onNodeWithTag("welcomeScreen").performTouchInput { swipeLeft() }
-        compose.onNodeWithText("TRACK YOUR\nORDERS.").assertIsDisplayed()
+        compose.onNodeWithText("From Farm to Destination").assertIsDisplayed()
+        compose.onNodeWithText("Track orders, deliveries, and every step in between.").assertIsDisplayed()
+        capture("welcome-delivery")
         compose.onNodeWithTag("welcomeScreen").performTouchInput { swipeRight() }
-        compose.onNodeWithText("GET THE BEST\nBIDS.").assertIsDisplayed()
+        compose.onNodeWithText("Trade Made Simple").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, repository.loginCalls); assertEquals(0, repository.registerCalls) }
     }
 
@@ -129,7 +136,7 @@ class AuthPresentationTest(private val dark: Boolean) {
         content(compact = true, startWelcome = true)
         compose.onNodeWithText("Get Started").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("I already have an account").performScrollTo().assertIsDisplayed().performClick()
-        compose.onNodeWithText("Welcome back").assertExists()
+        compose.onNodeWithText("Welcome Back").assertExists()
     }
 
     @Test fun roleCardsKeepFinalSelectionAndActualRegistrationFields() {
@@ -248,7 +255,7 @@ class AuthPresentationTest(private val dark: Boolean) {
         assertTrue("Error snackbar must leave the footer clear",
             footer.fetchSemanticsNode().boundsInRoot.bottom <= error.fetchSemanticsNode().boundsInRoot.top)
         footer.performClick()
-        await("Welcome back")
+        await("Welcome Back")
     }
 
     @Test fun passwordResetPreservesValidationAndSuccessMessage() {

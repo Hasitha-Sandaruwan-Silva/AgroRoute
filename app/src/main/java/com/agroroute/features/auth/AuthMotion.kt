@@ -1,5 +1,11 @@
 package com.agroroute.features.auth
 
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -41,7 +47,10 @@ internal fun AgroAuthBackground(modifier: Modifier = Modifier) {
 /** Keep the existing snackbar queue/dismissal contract and friendly message mapping. */
 @Composable
 internal fun AuthMessageHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
-    SnackbarHost(state, modifier) { data ->
+    AnimatedVisibility(state.currentSnackbarData != null, modifier,
+        enter = fadeIn(tween(180)) + expandVertically(tween(180)),
+        exit = fadeOut(tween(160)) + shrinkVertically(tween(160))) {
+      SnackbarHost(state) { data ->
         Snackbar(
             modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite },
             shape = RoundedCornerShape(20.dp),
@@ -56,6 +65,7 @@ internal fun AuthMessageHost(state: SnackbarHostState, modifier: Modifier = Modi
                     style = MaterialTheme.typography.bodyMedium)
             }
         }
+      }
     }
 }
 
@@ -89,15 +99,15 @@ internal fun AgroAuthBrand(onPhoto: Boolean = false) {
     }
 }
 
-/** The same original farm photograph and logo treatment as Welcome. */
+/** Matching local auth photography with Welcome's forest scrim and logo treatment. */
 @Composable
-internal fun AgroAuthPhotoHeader() {
-    Box(Modifier.fillMaxWidth().height(128.dp).clip(RoundedCornerShape(28.dp))) {
-        Image(painterResource(R.drawable.onboarding_farm), null,
+internal fun AgroAuthPhotoHeader(@DrawableRes image: Int) {
+    Box(Modifier.fillMaxWidth().aspectRatio(1.65f).clip(RoundedCornerShape(28.dp))) {
+        Image(painterResource(image), null,
             Modifier.matchParentSize(), contentScale = ContentScale.Crop)
         Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
             listOf(ForestDeep.copy(alpha = .84f), ForestDeep.copy(alpha = .22f)))))
-        Box(Modifier.align(Alignment.CenterStart).padding(20.dp)) {
+        Box(Modifier.align(Alignment.TopStart).padding(20.dp)) {
             AgroAuthBrand(onPhoto = true)
         }
     }
@@ -110,6 +120,6 @@ internal fun AuthPrimaryButton(text: String, isLoading: Boolean, onClick: () -> 
     val scale by animateFloatAsState(if (pressed) .985f else 1f, tween(120), label = "authPress")
     AuthReveal(delayMillis = 160) {
         LoadingButton(text, isLoading, onClick,
-            modifier.graphicsLayer { scaleX = scale; scaleY = scale }, interactionSource = interaction)
+            modifier.heightIn(min = 60.dp).graphicsLayer { scaleX = scale; scaleY = scale }, interactionSource = interaction)
     }
 }
