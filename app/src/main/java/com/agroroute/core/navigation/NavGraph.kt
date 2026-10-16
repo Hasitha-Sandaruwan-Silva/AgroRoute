@@ -99,6 +99,9 @@ fun NavGraph(
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        com.agroroute.core.notification.NotificationDeliveryRefresh.refresh()
+    }
     val mutationAllowed = com.agroroute.core.runtime.LocalMutationAllowed.current
 
     LaunchedEffect(authState.sessionResolved, authState.user?.userId) {
@@ -145,7 +148,15 @@ fun NavGraph(
         val role = authState.user?.role
         val allowed = role != null && NotificationRoute.isAllowed(requestedRoute, role)
         if (allowed) {
-            navController.navigate(requestedRoute) {
+            if (NotificationRoute.isChatRoute(requestedRoute) && role != null) {
+                roleHomeDestination(role)?.let { home ->
+                    navController.navigate(home) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                navController.navigate(requestedRoute) { launchSingleTop = true }
+            } else navController.navigate(requestedRoute) {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                 launchSingleTop = true
             }
@@ -169,8 +180,9 @@ fun NavGraph(
                     entry.arguments?.getString("participantId")?.let { ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.ParticipantProfileScreen(it, navController) } }
                 }
                 composable(com.agroroute.features.participants.ParticipantRoutes.CHAT,
-                    arguments = listOf(navArgument("participantId") { type = NavType.StringType })) { entry ->
-                    entry.arguments?.getString("participantId")?.let { ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.ChatScreen(it, navController) } }
+                    arguments = listOf(navArgument("participantId") { type = NavType.StringType },
+                        navArgument("orderId") { type = NavType.StringType; defaultValue = "" })) { entry ->
+                    entry.arguments?.getString("participantId")?.let { ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.ChatScreen(it, navController, orderId = entry.arguments?.getString("orderId").orEmpty()) } }
                 }
                 composable(com.agroroute.features.participants.ParticipantRoutes.MESSAGES) {
                     ParticipantPresentation(currentUserRole) { com.agroroute.features.participants.MessagesScreen(navController) }

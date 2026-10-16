@@ -216,17 +216,23 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
     var notificationsEnabled by remember {
         mutableStateOf(NotificationHelper.areNotificationsEnabled(context))
     }
+    var messagesEnabled by remember {
+        mutableStateOf(NotificationHelper.areNotificationsEnabled(context, NotificationHelper.MESSAGES_CHANNEL_ID))
+    }
     var permissionDenied by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         notificationsEnabled = NotificationHelper.areNotificationsEnabled(context)
+        com.agroroute.core.notification.NotificationDeliveryRefresh.refresh()
         permissionDenied = !granted
         if (granted) viewModel.rescheduleHarvestReminders()
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         notificationsEnabled = NotificationHelper.areNotificationsEnabled(context)
+        messagesEnabled = NotificationHelper.areNotificationsEnabled(context, NotificationHelper.MESSAGES_CHANNEL_ID)
+        com.agroroute.core.notification.NotificationDeliveryRefresh.refresh()
         if (notificationsEnabled) viewModel.rescheduleHarvestReminders()
     }
 
@@ -237,7 +243,7 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
 
     SettingsPage(
         title = "Notifications",
-        intro = "Receive updates about orders, bids, order requests and scheduled harvest reminders."
+        intro = "Receive messages, order updates, bids, order requests and harvest reminders."
     ) {
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -281,6 +287,14 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
             ) {
                 Text("Open Android notification settings")
             }
+            Text(if (messagesEnabled) "Messages are enabled" else "Message alerts are off. Check notification permission and channel settings.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedButton(onClick = {
+                context.startActivity(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    .putExtra(Settings.EXTRA_CHANNEL_ID, NotificationHelper.MESSAGES_CHANNEL_ID))
+            }, modifier = Modifier.fillMaxWidth()) { Text("Messages notification settings") }
+
         }
     }
 }

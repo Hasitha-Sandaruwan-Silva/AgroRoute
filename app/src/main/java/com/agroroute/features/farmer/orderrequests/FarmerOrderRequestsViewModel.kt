@@ -83,7 +83,7 @@ class FarmerOrderRequestsViewModel @Inject constructor(
             // new availableQuantity/soldQuantity immediately propagates to the UI.
             combine(
                 listingRepository.getListingsByFarmer(farmerId),
-                orderRequestRepository.getRequestsForFarmer(farmerId)
+                orderRequestRepository.observeRequestsForFarmer(farmerId)
             ) { listingsResult, requestsResult ->
                 listingsResult to requestsResult
             }.collect { (listingsResult, requestsResult) ->
@@ -118,6 +118,8 @@ class FarmerOrderRequestsViewModel @Inject constructor(
             }
         }
     }
+
+    fun stopObservingRequests() { inboxLoaded = false; inboxJob?.cancel() }
 
     fun acceptRequest(request: OrderRequest) {
         if (_uiState.value.isSubmitting) return

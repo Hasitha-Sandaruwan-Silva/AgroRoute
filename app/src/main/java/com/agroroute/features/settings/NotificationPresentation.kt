@@ -33,6 +33,7 @@ internal fun notificationBadge(count: Int): String? = when {
 /** Use the supplied route only. Never synthesize destinations from partial payloads. */
 internal fun notificationDestination(item: NotificationInboxItem, role: UserRole?): String? {
     if (role == null || !NotificationRoute.isAllowed(item.route, role)) return null
+    if (NotificationRoute.isChatRoute(item.route)) return item.route
     val parts = item.route.split('/')
     if (parts.size > 2) return null
     if (parts.any { part ->

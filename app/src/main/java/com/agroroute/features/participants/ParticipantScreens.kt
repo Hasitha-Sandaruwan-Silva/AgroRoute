@@ -29,10 +29,11 @@ import java.util.Locale
 
 object ParticipantRoutes {
     const val PROFILE = "participant/{participantId}"
-    const val CHAT = "chat/{participantId}"
+    const val CHAT = "chat/{participantId}?orderId={orderId}"
     const val MESSAGES = "messages"
     fun profile(id: String) = "participant/${Uri.encode(id)}"
-    fun chat(id: String) = "chat/${Uri.encode(id)}"
+    fun chat(id: String, orderId: String = "") = "chat/${Uri.encode(id)}" +
+        if (orderId.isBlank()) "" else "?orderId=${Uri.encode(orderId)}"
 }
 
 @Composable
@@ -155,10 +156,18 @@ fun MessagesScreen(navController: NavController, viewModel: MessagesViewModel = 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewModel = appViewModel()) {
+fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewModel = appViewModel(), orderId: String = "") {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    LaunchedEffect(id) { viewModel.load(id) }
+    LaunchedEffect(id, orderId) { viewModel.load(id, orderId) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(id, state.other?.id, viewModel.currentUserId) {
+        val visible = viewModel.currentUserId?.let { it to id }
+        if (state.other != null) com.agroroute.core.notification.ChatNotificationVisibility.visible.value = visible
+        onPauseOrDispose {
+            if (com.agroroute.core.notification.ChatNotificationVisibility.visible.value == visible)
+                com.agroroute.core.notification.ChatNotificationVisibility.visible.value = null
+        }
+    }
     LaunchedEffect(state.messages.lastOrNull()?.id) { if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.lastIndex) }
     Scaffold(modifier = Modifier.imePadding(), topBar = {
         TopAppBar(title = {
@@ -172,7 +181,7 @@ fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewMode
     }, bottomBar = {
         Surface(tonalElevation = 2.dp) {
             Column(Modifier.navigationBarsPadding().padding(12.dp)) {
-                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error); if (state.connectionError) TextButton(onClick = { viewModel.load(id) }) { Text("Reconnect") } }
+                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error); if (state.connectionError) TextButton(onClick = { viewModel.load(id, orderId) }) { Text("Reconnect") } }
                 if (state.sending) Text("Sending...", style = MaterialTheme.typography.labelSmall)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = state.draft, onValueChange = viewModel::draft, modifier = Modifier.weight(1f),
@@ -183,6 +192,7 @@ fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewMode
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            if (orderId.isNotBlank()) Text("Regarding Order #${orderId.takeLast(12)}", Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelMedium)
             if (state.loading) CircularProgressIndicator(Modifier.padding(16.dp))
             if (!state.loading && !state.connectionError && state.messages.isEmpty()) Text("Start the conversation", Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
             LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

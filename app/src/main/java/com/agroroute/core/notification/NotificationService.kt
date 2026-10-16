@@ -7,6 +7,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +22,76 @@ class NotificationService @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+
+    private val changes = MutableSharedFlow<Unit>(replay = 1)
+    val inboxChanges = changes.asSharedFlow()
+
+    /** Separate from the message commit: notification failure never makes a sent message retry. */
+    suspend fun recordChatMessage(senderId: String, receiverId: String, conversationId: String, messageId: String) {
+        if (senderId == receiverId || com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != senderId) return
+        val id = ChatNotification.eventId(conversationId, messageId)
+        try {
+            kotlinx.coroutines.withTimeout(5_000) {
+                com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("user_notifications")
+                    .document(receiverId).collection("items").document(id).set(mapOf(
+                        "id" to id, "entityId" to messageId, "conversationId" to conversationId,
+                        "eventType" to NotificationEvent.CHAT_MESSAGE.name, "actorId" to senderId,
+                        "recipientId" to receiverId, "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                        "readAt" to null)).await()
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.w("AgroRouteInbox", "Chat notification timed out after the message committed", e)
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { Log.w("AgroRouteInbox", "Chat notification was not recorded after message commit", e) }
+    }
+
+    /** Uses the existing account-scoped realtime session; no polling or push claims. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    suspend fun watchInbox(profile: com.agroroute.core.model.UserProfile) {
+        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        val rows = kotlinx.coroutines.flow.callbackFlow<com.google.firebase.firestore.QuerySnapshot> {
+            val registration = db.collection("user_notifications").document(profile.userId).collection("items")
+                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING).limit(100)
+                .addSnapshotListener(com.google.firebase.firestore.MetadataChanges.INCLUDE) { snapshot, error ->
+                    if (error != null) close(error) else if (snapshot != null) trySend(snapshot)
+                }
+            awaitClose { registration.remove() }
+        }.filter { !it.metadata.isFromCache }.retryWhen { cause, attempt ->
+            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != profile.userId) false
+            else {
+                Log.w("AgroRouteInbox", "Inbox listener stopped; retrying", cause)
+                kotlinx.coroutines.delay(((attempt + 1).coerceAtMost(6)) * 5_000)
+                true
+            }
+        }
+        val delivered = context.getSharedPreferences("chat-notifications:${profile.userId}", Context.MODE_PRIVATE)
+        combine(rows, ChatNotificationVisibility.visible, NotificationDeliveryRefresh.changes) { snapshot, visible, _ -> snapshot to visible }
+            .collect { (snapshot, visible) ->
+                if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != profile.userId) return@collect
+                changes.emit(Unit)
+                for (row in snapshot.documents) {
+                    if (row.getString("eventType") != NotificationEvent.CHAT_MESSAGE.name || row.get("readAt") != null) continue
+                    val senderId = row.getString("actorId") ?: continue
+                    if (senderId == profile.userId || row.getString("recipientId") != profile.userId) continue
+                    if (visible == (profile.userId to senderId)) {
+                        try { markInboxItemRead(row.id) }
+                        catch (e: CancellationException) { throw e }
+                        catch (e: Exception) { Log.w("AgroRouteInbox", "Could not mark visible chat notification read", e) }
+                        continue
+                    }
+                    if (delivered.getBoolean(row.id, false)) continue
+                    if (!NotificationHelper.areNotificationsEnabled(context, NotificationHelper.MESSAGES_CHANNEL_ID)) continue
+                    try {
+                        val item = SparkNotificationInbox.render(context, db, row, profile.role) ?: continue
+                        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != profile.userId) return@collect
+                        val posted = post(NotificationEvent.CHAT_MESSAGE, NotificationEvent.Payload(orderId = item.orderId),
+                            route = item.route, title = item.title, body = item.body, eventId = item.id)
+                        if (posted) delivered.edit().putBoolean(row.id, true).apply()
+                    } catch (e: CancellationException) { throw e }
+                    catch (e: Exception) { Log.w("AgroRouteInbox", "Could not render chat notification", e) }
+                }
+            }
+    }
 
     /** Returns the event encoded by a Firebase `data` map, or `null` if unknown. */
     fun fromData(data: Map<String, String>): NotificationEvent? = NotificationEvent.from(data)
@@ -35,7 +108,8 @@ class NotificationService @Inject constructor(
                 .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .limit(limit.coerceIn(1, 100).toLong()).get(com.google.firebase.firestore.Source.SERVER).await()
             rows.documents.mapNotNull { row -> SparkNotificationInbox.render(context, db, row, role) }
-        } catch (error: Exception) {
+        } catch (e: CancellationException) { throw e }
+        catch (error: Exception) {
             if (localItems.isNotEmpty()) return localItems
             throw error
         }
@@ -58,6 +132,7 @@ class NotificationService @Inject constructor(
             if (row.exists() && row.get("readAt") == null)
                 tx.update(ref, "readAt", com.google.firebase.firestore.FieldValue.serverTimestamp())
         }.await()
+        cancelLocalNotification(notificationId)
     }
 
     fun postHarvestReminder(farmerId: String, eventId: String, payload: NotificationEvent.Payload) {
@@ -91,9 +166,10 @@ class NotificationService @Inject constructor(
         title: String = event.title,
         body: String = event.content(context, payload),
         eventId: String = ""
-    ) {
-        if (!NotificationHelper.areNotificationsEnabled(context)) return
+    ): Boolean {
+        val channelId = if (event == NotificationEvent.CHAT_MESSAGE) NotificationHelper.MESSAGES_CHANNEL_ID else NotificationHelper.CHANNEL_ID
         NotificationHelper.createOrGetChannel(context)
+        if (!NotificationHelper.areNotificationsEnabled(context, channelId)) return false
 
         val launchIntent = Intent(context, com.agroroute.MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -109,23 +185,26 @@ class NotificationService @Inject constructor(
             launchIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(com.agroroute.R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
+            .setOnlyAlertOnce(event == NotificationEvent.CHAT_MESSAGE)
             .setPriority(
-                if (event.importance == android.app.NotificationManager.IMPORTANCE_HIGH) {
+                if (event == NotificationEvent.CHAT_MESSAGE || event.importance == android.app.NotificationManager.IMPORTANCE_HIGH) {
                     NotificationCompat.PRIORITY_HIGH
                 } else {
                     NotificationCompat.PRIORITY_DEFAULT
                 }
             )
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setCategory(if (event == NotificationEvent.CHAT_MESSAGE) NotificationCompat.CATEGORY_MESSAGE else NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(pendingIntent)
             .build()
 
-        notificationManager?.notify((eventId.ifBlank { payload.key + event.name }).hashCode(), notification)
+        val manager = notificationManager ?: return false
+        manager.notify((eventId.ifBlank { payload.key + event.name }).hashCode(), notification)
+        return true
     }
 
     // Spark has no trusted FCM sender. Preserve bootstrap API without unavailable callables.

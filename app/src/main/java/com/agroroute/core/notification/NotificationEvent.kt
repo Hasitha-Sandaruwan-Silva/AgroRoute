@@ -7,6 +7,10 @@ enum class NotificationEvent(
     val importance: Int,
     val category: String = "other"
 ) {
+    CHAT_MESSAGE(
+        title = "New message", content = { _, _ -> "You have a new message." },
+        importance = android.app.NotificationManager.IMPORTANCE_DEFAULT, category = "chat"
+    ),
     /** Fires once when a farmer schedules an expected harvest on a live listing. */
     HARVEST_REMINDER(
         title = "Harvest reminder",
@@ -220,6 +224,7 @@ enum class NotificationEvent(
             )
 
             return when (eventType) {
+                "CHAT_MESSAGE" -> CHAT_MESSAGE
                 "ORDER_REQUEST_CREATED" -> ORDER_REQUEST_CREATED
                 "ORDER_REQUEST_ACCEPTED" -> ORDER_REQUEST_ACCEPTED
                 "ORDER_REQUEST_REJECTED" -> ORDER_REQUEST_REJECTED

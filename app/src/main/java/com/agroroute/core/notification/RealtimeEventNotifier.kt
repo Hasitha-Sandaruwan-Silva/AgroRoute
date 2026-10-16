@@ -27,7 +27,8 @@ import javax.inject.Singleton
 @Singleton
 class RealtimeEventNotifier @Inject constructor(
     private val firestoreService: FirestoreService,
-    private val publisher: AppNotificationPublisher
+    private val publisher: AppNotificationPublisher,
+    private val notificationService: NotificationService
 ) {
     private var sessionJob: Job? = null
     private val listingBidJobs = mutableMapOf<String, Job>()
@@ -35,6 +36,11 @@ class RealtimeEventNotifier @Inject constructor(
     fun start(scope: CoroutineScope, profile: UserProfile) {
         stop()
         sessionJob = scope.launch {
+            launch {
+                try { notificationService.watchInbox(profile) }
+                catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: Exception) { Log.w(TAG, "Inbox watch failed", e) }
+            }
             when (profile.role) {
                 UserRole.FARMER -> observeFarmer(this, profile.userId)
                 UserRole.SUPPLIER -> observeSupplier(this, profile.userId)

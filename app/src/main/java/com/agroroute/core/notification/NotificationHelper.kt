@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 object NotificationHelper {
 
     const val CHANNEL_ID = "agroroute_notifications"
+    const val MESSAGES_CHANNEL_ID = "agroroute_messages"
 
     /** Whether the app has the `POST_NOTIFICATIONS` run-time permission. */
     fun hasNotificationPermission(context: Context): Boolean {
@@ -33,12 +34,12 @@ object NotificationHelper {
     ): Boolean =
         hasNotificationPermission(apiLevel, permissionGranted) && appNotificationsEnabled && channelEnabled
 
-    fun areNotificationsEnabled(context: Context): Boolean {
+    fun areNotificationsEnabled(context: Context, channelId: String = CHANNEL_ID): Boolean {
         val channelEnabled = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             true
         } else {
             val channel = context.getSystemService(NotificationManager::class.java)
-            ?.getNotificationChannel(CHANNEL_ID)
+            ?.getNotificationChannel(channelId)
             channel?.importance != NotificationManager.IMPORTANCE_NONE
         }
         val runtimePermissionGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -56,6 +57,13 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
         val manager = context.getSystemService(NotificationManager::class.java)
+        if (manager.getNotificationChannel(MESSAGES_CHANNEL_ID) == null) {
+            manager.createNotificationChannel(NotificationChannel(MESSAGES_CHANNEL_ID, "Messages",
+                NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Chat and order communication notifications"
+                setShowBadge(true)
+            })
+        }
         val existing = manager.getNotificationChannel(CHANNEL_ID)
         if (existing != null) return
 

@@ -44,13 +44,13 @@ class OrderParticipantViewModel @Inject constructor(private val people: Particip
 @Composable
 fun OrderParticipantCard(id: String, roleLabel: String, navController: NavController,
     onNameLoaded: (String?) -> Unit = {},
-    viewModel: OrderParticipantViewModel = appViewModel(key = "order-participant-$id")) {
+    viewModel: OrderParticipantViewModel = appViewModel(key = "order-participant-$id"), orderId: String = "") {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(id) { viewModel.load(id) }
     LaunchedEffect(state.identity?.name) { onNameLoaded(state.identity?.name) }
     ParticipantIdentityCard(state, roleLabel,
         onProfile = { if (id.isNotBlank()) navController.navigate(ParticipantRoutes.profile(id)) },
-        onMessage = { if (id.isNotBlank()) navController.navigate(ParticipantRoutes.chat(id)) },
+        onMessage = { if (id.isNotBlank()) navController.navigate(ParticipantRoutes.chat(id, orderId)) },
         onRetry = { viewModel.load(id) },
         contact = { ProfilePhoneContact(userId = id, personLabel = roleLabel) })
 }

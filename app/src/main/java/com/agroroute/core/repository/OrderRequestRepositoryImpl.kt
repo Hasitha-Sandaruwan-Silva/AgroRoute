@@ -21,6 +21,9 @@ import com.agroroute.core.util.Constants
 import com.agroroute.core.util.Result
 import com.agroroute.core.util.safeCall
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -45,6 +48,19 @@ class OrderRequestRepositoryImpl @Inject constructor(
         dao.getRequestsForFarmer(farmerId)
             .map<List<OrderRequest>, Result<List<OrderRequest>>> { Result.Success(it) }
             .catch { e -> emit(Result.Error("Couldn't load order requests. Check your connection and try again.", e)) }
+
+    override fun observeRequestsForFarmer(farmerId: String): Flow<Result<List<OrderRequest>>> = channelFlow {
+        launch {
+            try {
+                firestoreService.queryFlow<OrderRequest>(Constants.COLLECTION_ORDER_REQUESTS, "farmerId", farmerId)
+                    .collect { requests ->
+                        if (authRepository.currentUserId == farmerId) dao.upsertRequests(requests)
+                    }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { send(Result.Error("Couldn't refresh incoming requests. Try again.", e)) }
+        }
+        getRequestsForFarmer(farmerId).collect { send(it) }
+    }
 
     override fun getRequestsForSupplier(supplierId: String): Flow<Result<List<OrderRequest>>> =
         dao.getRequestsForSupplier(supplierId)

@@ -18,11 +18,13 @@ interface ChatRepository {
     suspend fun pair(otherId: String): Pair<String, ParticipantIdentity>
     fun messages(conversationId: String): Flow<List<ChatMessage>>
     suspend fun send(otherId: String, input: String)
+    suspend fun sendWithContext(otherId: String, input: String, orderId: String) = send(otherId, input)
 }
 
 @Singleton
 class ChatRepositoryImpl @Inject constructor(
-    private val db: FirebaseFirestore, private val auth: FirebaseAuth, private val people: ParticipantRepository
+    private val db: FirebaseFirestore, private val auth: FirebaseAuth, private val people: ParticipantRepository,
+    private val notifications: com.agroroute.core.notification.NotificationService
 ) : ChatRepository {
     override val currentUserId get() = auth.currentUser?.uid
     override val authenticatedUserIds: Flow<String?> = callbackFlow {
@@ -61,7 +63,8 @@ class ChatRepositoryImpl @Inject constructor(
             }
         }
     }
-    override suspend fun send(otherId: String, input: String) {
+    override suspend fun send(otherId: String, input: String) = sendWithContext(otherId, input, "")
+    override suspend fun sendWithContext(otherId: String, input: String, orderId: String) {
         val text = messageText(input)
         val userId = uid()
         val (id, other) = pair(otherId)
@@ -74,13 +77,21 @@ class ChatRepositoryImpl @Inject constructor(
         db.runTransaction { tx ->
             check(currentUserId == userId)
             val existing = tx.get(conversation)
+            if (orderId.isNotBlank()) {
+                val order = tx.get(db.collection("orders").document(orderId))
+                require(order.getString("farmerId") == farmerId && order.getString("supplierId") == supplierId)
+            }
             val summary = mutableMapOf<String, Any>("participantIds" to listOf(farmerId, supplierId),
                 "farmerId" to farmerId, "supplierId" to supplierId,
                 "updatedAt" to FieldValue.serverTimestamp(), "lastMessage" to text,
                 "lastSenderId" to userId, "lastMessageId" to message.id)
             if (!existing.exists()) summary["createdAt"] = FieldValue.serverTimestamp()
-            tx.set(message, mapOf("senderId" to userId, "text" to text, "sentAt" to FieldValue.serverTimestamp()))
+            tx.set(message, buildMap<String, Any> {
+                put("senderId", userId); put("text", text); put("sentAt", FieldValue.serverTimestamp())
+                if (orderId.isNotBlank()) put("orderId", orderId)
+            })
             tx.set(conversation, summary, SetOptions.merge())
         }.await()
+        notifications.recordChatMessage(userId, other.id, id, message.id)
     }
 }

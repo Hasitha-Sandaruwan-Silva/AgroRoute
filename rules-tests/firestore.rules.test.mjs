@@ -2397,3 +2397,97 @@ test("chat: missing parent is empty and first-send transaction creates the canon
   const messages = await assertSucceeds(getDocs(collection(chatDb("supplier-1"), `conversations/${chatId}/messages`)));
   assert.equal(messages.size, 1);
 });
+
+
+function chatNotice(db, sender, receiver, mid = "message-1", changes = {}, conversationId = chatId) {
+  const id = `CHAT_MESSAGE_${conversationId}_${mid}`;
+  return setDoc(doc(db, `user_notifications/${receiver}/items/${id}`), {
+    id, entityId: mid, conversationId, eventType: "CHAT_MESSAGE", actorId: sender,
+    recipientId: receiver, createdAt: serverTimestamp(), readAt: null, ...changes
+  });
+}
+test("chat notifications: receiver only, both directions, immutable identity and recipient-only history", async () => {
+  const a = chatDb("farmer-1"), b = chatDb("supplier-1");
+  await assertSucceeds(sendChat(a));
+  await assertSucceeds(chatNotice(a, "farmer-1", "supplier-1"));
+  const path = `user_notifications/supplier-1/items/CHAT_MESSAGE_${chatId}_message-1`;
+  const saved = await assertSucceeds(getDoc(doc(b, path)));
+  assert.equal(saved.data().entityId, "message-1");
+  assert.equal(saved.data().actorId, "farmer-1");
+  assert.equal(Object.hasOwn(saved.data(), "text"), false);
+  await assertFails(getDoc(doc(a, path)));
+  await assertFails(getDoc(doc(chatDb("supplier-2"), path)));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1"));
+  await assertSucceeds(updateDoc(doc(b, path), { readAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(b, path), { actorId: "supplier-2" }));
+  await assertSucceeds(sendChat(b, "reply", "supplier-1", "Is this order ready?", false));
+  await assertSucceeds(chatNotice(b, "supplier-1", "farmer-1", "reply"));
+  const inbox = await assertSucceeds(getDocs(collection(a, "user_notifications/farmer-1/items")));
+  assert.equal(inbox.size, 1);
+  assert.equal(inbox.docs[0].data().actorId, "supplier-1");
+});
+test("chat notifications: missing or failed messages never authorize an inbox event", async () => {
+  const a = chatDb("farmer-1");
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1"));
+  await assertFails(sendChat(a, "message-1", "supplier-1"));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1"));
+  await assertSucceeds(sendChat(a));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1", "missing"));
+});
+test("chat notifications: third-party forgery, self notifications and unrelated receivers are denied", async () => {
+  const a = chatDb("farmer-1");
+  await assertSucceeds(sendChat(a));
+  await assertFails(chatNotice(chatDb("farmer-2"), "farmer-1", "supplier-1"));
+  await assertFails(chatNotice(chatDb("supplier-1"), "supplier-1", "farmer-1"));
+  await assertFails(chatNotice(a, "farmer-1", "farmer-1"));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-2"));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1", "message-1", { actorId: "supplier-1" }));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1", "message-1", { title: "Forged", preview: "Injected" }));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1", "message-1", { orderId: "unrelated" }));
+});
+test("chat notifications: order context is optional, pair-authorized and keeps one conversation", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async context => {
+    for (const [id, supplierId] of [["chat-order", "supplier-1"], ["unrelated-order", "supplier-2"]]) {
+      await setDoc(doc(context.firestore(), `orders/${id}`), { farmerId: "farmer-1", supplierId });
+    }
+  });
+  const a = chatDb("farmer-1");
+  async function sendWithOrder(mid, orderId) {
+    const batch = writeBatch(a);
+    batch.set(doc(a, `conversations/${chatId}/messages/${mid}`), {
+      senderId: "farmer-1", text: "Order update", sentAt: serverTimestamp(), orderId
+    });
+    batch.set(doc(a, `conversations/${chatId}`), {
+      participantIds: ["farmer-1", "supplier-1"], farmerId: "farmer-1", supplierId: "supplier-1",
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastMessage: "Order update",
+      lastSenderId: "farmer-1", lastMessageId: mid
+    });
+    return batch.commit();
+  }
+  await assertFails(sendWithOrder("bad-context", "unrelated-order"));
+  await assertFails(chatNotice(a, "farmer-1", "supplier-1", "bad-context"));
+  await assertSucceeds(sendWithOrder("with-context", "chat-order"));
+  await assertSucceeds(chatNotice(a, "farmer-1", "supplier-1", "with-context"));
+  const snapshot = await getDoc(doc(chatDb("supplier-1"), `conversations/${chatId}/messages/with-context`));
+  assert.equal(snapshot.data().orderId, "chat-order");
+  const conversations = await getDocs(query(collection(a, "conversations"), where("participantIds", "array-contains", "farmer-1")));
+  assert.equal(conversations.size, 1);
+});
+test("chat notifications: receiver realtime listener observes one event despite rejected retries", async () => {
+  const a = chatDb("farmer-1"), b = chatDb("supplier-1");
+  await assertSucceeds(sendChat(a));
+  const seen = new Set();
+  let stop;
+  const received = new Promise((resolve, reject) => {
+    stop = onSnapshot(collection(b, "user_notifications/supplier-1/items"), snapshot => {
+      snapshot.docs.forEach(row => seen.add(row.id));
+      if (snapshot.size === 1) resolve();
+    }, reject);
+  });
+  try {
+    await assertSucceeds(chatNotice(a, "farmer-1", "supplier-1"));
+    await received;
+    await assertFails(chatNotice(a, "farmer-1", "supplier-1"));
+    assert.equal(seen.size, 1);
+  } finally { stop(); }
+});

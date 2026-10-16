@@ -53,7 +53,9 @@ class ChatViewModel @Inject constructor(private val chat: ChatRepository) : View
     val currentUserId get() = chat.currentUserId
     private var job: Job? = null
     private var otherId: String? = null
-    fun load(id: String) {
+    private var orderId: String = ""
+    fun load(id: String, orderContext: String = "") {
+        orderId = orderContext
         if (otherId != id) state.value = ChatState()
         otherId = id; job?.cancel()
         state.update { it.copy(loading = true, error = null, connectionError = false) }
@@ -83,7 +85,7 @@ class ChatViewModel @Inject constructor(private val chat: ChatRepository) : View
         val text = state.value.draft
         state.update { it.copy(sending = true, error = null) }
         viewModelScope.launch {
-            try { chat.send(id, text); state.update { it.copy(sending = false, draft = "") } }
+            try { chat.sendWithContext(id, text, orderId); state.update { it.copy(sending = false, draft = "") } }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 java.util.logging.Logger.getLogger("AgroRouteChat").log(java.util.logging.Level.WARNING, "Message send failed", e)

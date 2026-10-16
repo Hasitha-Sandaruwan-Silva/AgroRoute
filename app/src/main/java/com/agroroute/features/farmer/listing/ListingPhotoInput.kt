@@ -13,6 +13,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -28,7 +29,7 @@ internal val ListingPhotoUriSaver = Saver<Uri?, String>(
 internal fun ListingPhotoInput(
     selectedUri: Uri?, isLoading: Boolean, isEditing: Boolean, enabled: Boolean,
     onImageSelected: (Uri) -> Unit, onRemove: () -> Unit,
-    onBusyChanged: (Boolean) -> Unit = {}
+    onBusyChanged: (Boolean) -> Unit = {}, compact: Boolean = false
 ) {
     val context = LocalContext.current
     var sheet by rememberSaveable { mutableStateOf(false) }
@@ -122,7 +123,7 @@ internal fun ListingPhotoInput(
         catch (_: Exception) { message = "Couldn’t open Gallery. Please try again." }
     }
     ListingPhotoCard(selectedUri, enabled && !busy, isLoading || busy,
-        onChoose = { sheet = true }, onCamera = ::takePhoto, onGallery = ::chooseGallery, onRemove = onRemove)
+        onChoose = { sheet = true }, onCamera = ::takePhoto, onGallery = ::chooseGallery, onRemove = onRemove, compact = compact)
     Text(if (busy) "Preparing your photo…" else if (!enabled && !isLoading)
         "Photo changes are unavailable for this listing." else if (isEditing)
         "Photo changes upload when you save. Keep the current photo or choose a replacement."
@@ -159,11 +160,12 @@ internal fun ListingPhotoInput(
 @Composable
 internal fun ListingPhotoCard(
     selectedUri: Uri?, enabled: Boolean, loading: Boolean,
-    onChoose: () -> Unit, onCamera: () -> Unit, onGallery: () -> Unit, onRemove: () -> Unit
+    onChoose: () -> Unit, onCamera: () -> Unit, onGallery: () -> Unit, onRemove: () -> Unit,
+    compact: Boolean = false
 ) {
     var failed by remember(selectedUri) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
+        if (!compact || selectedUri != null) Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth().height(210.dp).testTag("listing-photo-preview")
                 .clickable(enabled = enabled, onClickLabel = "Choose harvest photo", onClick = onChoose)) {
@@ -213,6 +215,17 @@ internal fun ListingPhotosInput(
     var replacing by rememberSaveable { mutableStateOf<Int?>(null) }
     var busy by remember { mutableStateOf(false) }
     Text("Add up to 5 clear photos", style = MaterialTheme.typography.bodySmall)
+    photos.firstOrNull()?.let { cover ->
+        Box(Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(22.dp))) {
+            AsyncImage(cover, "Primary harvest photo", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Surface(Modifier.align(Alignment.TopStart).padding(12.dp), shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer) {
+                Text("Primary photo", Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+    }
     photos.forEachIndexed { index, photo ->
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(photo, "Harvest photo ${index + 1}", Modifier.size(72.dp), contentScale = ContentScale.Crop)
@@ -233,6 +246,7 @@ internal fun ListingPhotosInput(
     // Keep the launcher mounted even at the limit so in-flight callbacks are handled safely.
     ListingPhotoInput(
         selectedUri = replacing?.let { photos.getOrNull(it)?.let(Uri::parse) },
+        compact = photos.isNotEmpty() && replacing == null,
         isLoading = isLoading, isEditing = isEditing,
         enabled = enabled && (photos.size < MAX_LISTING_PHOTOS || replacing != null),
         onImageSelected = { uri ->

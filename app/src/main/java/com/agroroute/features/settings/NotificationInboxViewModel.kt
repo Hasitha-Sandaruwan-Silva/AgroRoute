@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.collectLatest
 
 data class NotificationInboxUiState(
     val items: List<NotificationInboxItem> = emptyList(),
@@ -30,17 +33,24 @@ class NotificationInboxViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(NotificationInboxUiState())
     val uiState: StateFlow<NotificationInboxUiState> = _uiState.asStateFlow()
 
+    private var inboxJob: Job? = null
     fun loadInbox() {
-        if (_uiState.value.isLoading) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            runCatching { notificationService.getInboxItems() }
-                .onSuccess { items -> _uiState.update { it.copy(items = items, isLoading = false) } }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(isLoading = false, error = "Couldn't load notifications.")
-                    }
+        val ownerId = authRepository.currentUserId ?: return
+        inboxJob?.cancel()
+        inboxJob = viewModelScope.launch {
+            notificationService.inboxChanges.onStart { emit(Unit) }.collectLatest {
+                if (authRepository.currentUserId != ownerId) {
+                    _uiState.value = NotificationInboxUiState()
+                    return@collectLatest
                 }
+                _uiState.update { it.copy(isLoading = true, error = null) }
+                try {
+                    val items = notificationService.getInboxItems()
+                    if (authRepository.currentUserId == ownerId)
+                        _uiState.update { it.copy(items = items, isLoading = false) }
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: Exception) { _uiState.update { it.copy(isLoading = false, error = "Couldn't load notifications.") } }
+            }
         }
     }
 

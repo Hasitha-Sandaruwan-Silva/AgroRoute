@@ -19,6 +19,17 @@ internal object SparkNotificationInbox {
         if (!data.containsKey("entityId")) return NotificationInboxItem.from(data)
         val event = runCatching { NotificationEvent.valueOf(row.getString("eventType").orEmpty()) }.getOrNull() ?: return null
         val id = row.getString("entityId") ?: return null
+        if (event == NotificationEvent.CHAT_MESSAGE) {
+            val conversationId = row.getString("conversationId") ?: return null
+            val message = db.collection("conversations").document(conversationId).collection("messages")
+                .document(id).get(Source.SERVER).await()
+            val senderId = message.getString("senderId") ?: return null
+            if (senderId != row.getString("actorId")) return null
+            val sender = db.collection("users").document(senderId).get(Source.SERVER).await()
+            return ChatNotification.item(row.id, senderId, sender.getString("displayName").orEmpty(),
+                message.getString("text").orEmpty(), row.getTimestamp("createdAt")?.toDate()?.time ?: return null,
+                row.getTimestamp("readAt")?.toDate()?.time, message.getString("orderId").orEmpty())
+        }
         val collection = when {
             event.name.startsWith("BID_") -> "bids"
             event.name.startsWith("ORDER_REQUEST_") || event.name.startsWith("HARVEST_") -> "order_requests"

@@ -13,6 +13,9 @@ interface OrderRequestRepository {
     /** Emits all order requests for a given farmer. */
     fun getRequestsForFarmer(farmerId: String): Flow<Result<List<OrderRequest>>>
 
+    /** Room-backed realtime inbox for operational Farmer screens. */
+    fun observeRequestsForFarmer(farmerId: String): Flow<Result<List<OrderRequest>>> = getRequestsForFarmer(farmerId)
+
     /** Emits all order requests for a given supplier. */
     fun getRequestsForSupplier(supplierId: String): Flow<Result<List<OrderRequest>>>
 

@@ -37,7 +37,7 @@ fun FarmerOrderDetailScreen(orderId: String, navController: NavController,
                     OrderSummarySection(order, forSupplier = false, counterpartName = counterpartName)
                     if (com.agroroute.core.runtime.LocalMutationAllowed.current) {
                         com.agroroute.features.participants.OrderParticipantCard(order.supplierId, "Supplier", navController,
-                            onNameLoaded = { counterpartName = it })
+                            onNameLoaded = { counterpartName = it }, orderId = orderId)
                     }
                     OrderPickupSection(orderId, order.status, forSupplier = false,
                         verification = state.pickup, loading = state.pickupLoading || state.isLoading || state.isSubmitting,

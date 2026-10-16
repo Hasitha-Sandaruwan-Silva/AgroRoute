@@ -156,6 +156,12 @@ service cloud.firestore {
         && get(userProfilePath(d.supplierId)).data.userId == d.supplierId
         && get(userProfilePath(d.supplierId)).data.role == 'SUPPLIER';
     }
+    function validChatOrder(orderId, conversation) {
+      return orderId is string && orderId.size() > 0 && orderId.size() <= 128
+        && !orderId.matches('.*[/].*')
+        && get(orderPath(orderId)).data.farmerId == conversation.farmerId
+        && get(orderPath(orderId)).data.supplierId == conversation.supplierId;
+    }
     function validChatSummary(d, id) {
       let message = getAfter(chatMessagePath(id, d.lastMessageId)).data;
       return d.keys().hasOnly(['participantIds', 'farmerId', 'supplierId', 'createdAt', 'updatedAt',
@@ -181,7 +187,8 @@ service cloud.firestore {
       match /messages/{mid} {
         allow get, list: if chatParticipant(get(chatPath(id)).data);
         allow create: if chatParticipant(getAfter(chatPath(id)).data)
-          && request.resource.data.keys().hasOnly(['senderId', 'text', 'sentAt'])
+          && request.resource.data.keys().hasOnly(['senderId', 'text', 'sentAt', 'orderId'])
+          && (!('orderId' in request.resource.data) || validChatOrder(request.resource.data.orderId, getAfter(chatPath(id)).data))
           && request.resource.data.senderId == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 4000
@@ -242,6 +249,23 @@ service cloud.firestore {
                 == (d.eventType == 'HARVEST_READY' ? 'READY' : (d.eventType == 'HARVEST_FAILED' ? 'FAILED' : 'EXPECTED')))
           : false;
       }
+      function validChatInbox(d) {
+        let conversation = get(chatPath(d.conversationId)).data;
+        let message = get(chatMessagePath(d.conversationId, d.entityId)).data;
+        return d.keys().hasAll(['id', 'entityId', 'eventType', 'actorId', 'recipientId', 'createdAt', 'readAt', 'conversationId'])
+          && d.keys().hasOnly(['id', 'entityId', 'eventType', 'actorId', 'recipientId', 'createdAt', 'readAt', 'conversationId'])
+          && d.eventType == 'CHAT_MESSAGE'
+          && d.entityId is string && d.entityId.size() > 0 && d.entityId.size() <= 128 && !d.entityId.matches('.*[/].*')
+          && d.conversationId is string && d.conversationId.size() > 0 && d.conversationId.size() <= 512
+          && !d.conversationId.matches('.*[/].*')
+          && d.id == id && id == 'CHAT_MESSAGE_' + d.conversationId + '_' + d.entityId
+          && d.actorId == request.auth.uid && d.recipientId == recipient && recipient != request.auth.uid
+          && chatParticipant(conversation) && chatIdentity(conversation, d.conversationId)
+          && recipient in conversation.participantIds && message.senderId == request.auth.uid
+          && d.createdAt == request.time && d.readAt == null;
+      }
+      // Chat references must point to a previously committed immutable message.
+      allow create: if signedIn() && request.resource.data.eventType == 'CHAT_MESSAGE' && validChatInbox(request.resource.data);
       allow get, list: if signedIn() && request.auth.uid == recipient;
       allow create: if signedIn() && request.resource.data.keys().hasOnly(['id', 'entityId', 'eventType', 'actorId', 'recipientId', 'createdAt', 'readAt'])
         && request.resource.data.entityId is string && request.resource.data.entityId.size() > 0

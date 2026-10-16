@@ -65,7 +65,7 @@ class DemoRepositories(val database: AppDatabase, val session: DemoSessionManage
                 else -> error("Unsupported local bid read: $name")
             }
             OrderRequestRepository::class.java -> when (name) {
-                "getRequestsForFarmer" -> database.orderRequestDao().getRequestsForFarmer(id).result()
+                "getRequestsForFarmer", "observeRequestsForFarmer" -> database.orderRequestDao().getRequestsForFarmer(id).result()
                 "getRequestsForSupplier" -> database.orderRequestDao().getRequestsForSupplier(id).result()
                 "getRequestsForListing" -> database.orderRequestDao().getRequestsForListing(id).result()
                 "getRequestById" -> database.orderRequestDao().getRequestById(id).result()

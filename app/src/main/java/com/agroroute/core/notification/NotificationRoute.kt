@@ -10,6 +10,7 @@ object NotificationRoute {
         role: UserRole,
         payload: NotificationEvent.Payload
     ): String? = when (event) {
+        NotificationEvent.CHAT_MESSAGE -> null // Chat routes come only from validated saved message records.
         NotificationEvent.ORDER_REQUEST_CREATED ->
             if (role == UserRole.FARMER) Screen.FarmerOrderRequests.route else null
         NotificationEvent.ORDER_REQUEST_ACCEPTED ->
@@ -36,6 +37,7 @@ object NotificationRoute {
     }
 
     fun isAllowed(route: String, role: UserRole): Boolean {
+        if (isChatRoute(route)) return true
         if (route.isBlank() || route.split('/').any(String::isBlank)) return false
         if (route == Screen.NotificationInbox.route || route == Screen.NotificationSettings.route) return true
         return when (role) {
@@ -50,6 +52,17 @@ object NotificationRoute {
                 route.startsWith("supplier_order_detail/")
         }
     }
+
+    fun isChatRoute(route: String): Boolean = runCatching {
+        val uri = java.net.URI(route)
+        fun validId(id: String) = id.isNotBlank() && id.length <= 128 && id !in listOf(".", "..") &&
+            id.none { it.isISOControl() || it.isWhitespace() || it in "/\\?#{}&=" }
+        val parts = uri.path.orEmpty().split('/')
+        val query = uri.query
+        uri.scheme == null && uri.rawAuthority == null && uri.fragment == null &&
+            parts.size == 2 && parts[0] == "chat" && validId(parts[1]) &&
+            (query == null || query.startsWith("orderId=") && validId(query.removePrefix("orderId=")))
+    }.getOrDefault(false)
 
     private fun String.toRoute(create: (String) -> String): String? =
         takeIf(String::isNotBlank)?.let(create)

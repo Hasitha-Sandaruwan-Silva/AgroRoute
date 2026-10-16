@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -479,255 +480,8 @@ fun CreateListingScreen(
 
             // ── Section: Harvest details ──────────────────────────────────────
             FormSection(
-                title = "Harvest details",
-                icon = Lucide.Wheat,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                AgroTextField(
-                    value = cropName,
-                    onValueChange = { cropName = it },
-                    label = "Crop or harvest name",
-                    supportingText = { Text("Use the name buyers will recognize.") }
-                )
-                Spacer(Modifier.height(12.dp))
-                HarvestStatusChoiceRow(
-                    selected = harvestStatus,
-                    isEditing = editListingId != null,
-                    existingStatus = uiState.editingListing?.harvestStatus,
-                    onSelect = { harvestStatus = it }
-                )
-                Spacer(Modifier.height(8.dp))
-                if (harvestStatus == HarvestStatus.EXPECTED) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        shape = MaterialTheme.shapes.small,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Lucide.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "Expected-harvest listings are estimates. Pre-harvest requests are not confirmed orders until you mark the harvest ready.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = quantity,
-                        onValueChange = {
-                            if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantity = it
-                        },
-                        label = { Text(if (harvestStatus == HarvestStatus.EXPECTED) "Estimated quantity" else "Quantity") },
-                        supportingText = {
-                            Text(if (harvestStatus == HarvestStatus.EXPECTED) "How much do you expect? (estimate)" else "How much is available?")
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-                    var unitExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = unitExpanded,
-                        onExpandedChange = { unitExpanded = it },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            value = selectedUnit.name,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Unit") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
-                            shape = MaterialTheme.shapes.medium,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = unitExpanded,
-                            onDismissRequest = { unitExpanded = false }
-                        ) {
-                            QuantityUnit.entries.forEach { unit ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(unit.name) },
-                                    onClick = {
-                                        selectedUnit = unit
-                                        unitExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                // Harvest date row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Lucide.CalendarDays,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    TextButton(
-                        onClick = ::requestHarvestDatePicker,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.heightIn(min = 48.dp)
-                    ) {
-                        Text(
-                            text = expectedHarvestAt?.let {
-                                if (harvestStatus == HarvestStatus.EXPECTED) {
-                                    "Estimated harvest date: ${HarvestAvailabilityDate.format(it)}"
-                                } else {
-                                    "Availability: ${HarvestAvailabilityDate.format(it)}"
-                                }
-                            } ?: if (harvestStatus == HarvestStatus.EXPECTED) {
-                                "Set estimated harvest date (required)"
-                            } else {
-                                "Set expected availability date (optional)"
-                            }
-                        )
-                    }
-                }
-                if (harvestStatus == HarvestStatus.EXPECTED && expectedHarvestAt == null) {
-                    Text(
-                        text = "An estimated harvest date is required for an expected-harvest listing.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    )
-                }
-                AgroTextField(
-                    value = qualityGrade,
-                    onValueChange = { qualityGrade = it },
-                    label = "Quality grade (optional)",
-                    supportingText = { Text("Add a grade only if it is known.") }
-                )
-            }
-
-            FormDivider()
-
-            // ── Section: Category ─────────────────────────────────────────────
-            FormSection(
-                title = "Harvest category",
-                icon = Lucide.Tag,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = "Select how this harvest was produced. Organic does not indicate third-party certification.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ListingCategory.entries.forEach { category ->
-                        val isSelected = selectedCategory == category
-                        val borderColor by animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline,
-                            label = "categoryBorder"
-                        )
-                        val bgColor by animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface,
-                            label = "categoryBg"
-                        )
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(bgColor)
-                                .border(1.5.dp, borderColor, MaterialTheme.shapes.medium)
-                                .selectable(
-                                    selected = isSelected,
-                                    onClick = {
-                                        selectedCategory = category
-                                        categorySelectionError = false
-                                    },
-                                    role = Role.RadioButton
-                                )
-                                .padding(horizontal = 8.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = null,
-                                colors = RadioButtonDefaults.colors(
-                                    selectedColor = MaterialTheme.colorScheme.primary
-                                )
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = category.displayName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-                AnimatedVisibility(visible = categorySelectionError) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        shape = MaterialTheme.shapes.small,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Lucide.AlertCircle, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "Select Organic or Inorganic before publishing.",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                }
-            }
-
-            FormDivider()
-
-            // ── Section: Photo ────────────────────────────────────────────────
-            FormSection(
-                title = "Harvest photos",
-                icon = Lucide.Camera,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                title = "Harvest photos", icon = Lucide.Camera, step = "01",
+                subtitle = "Let buyers see the quality of your harvest.", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 // Photo preview / picker — always visible
                 ListingPhotosInput(
@@ -823,14 +577,180 @@ fun CreateListingScreen(
                 }
             }
 
-            FormDivider()
-
-            // ── Section: Price & location ─────────────────────────────────────
             FormSection(
-                title = "Price & location",
-                icon = Lucide.MapPin,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                title = "Harvest details", icon = Lucide.Wheat, step = "02",
+                subtitle = "Name, describe and classify your produce.", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
+                AgroTextField(
+                    value = cropName,
+                    onValueChange = { cropName = it },
+                    label = "Crop or harvest name",
+                    supportingText = { Text("Use the name buyers will recognize.") }
+                )
+                Spacer(Modifier.height(12.dp))
+
+                AgroTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = "Tell buyers about this harvest",
+                    singleLine = false,
+                    minLines = 3,
+                    maxLines = 5,
+                    supportingText = { Text("Mention storage conditions, colour, freshness, or any special details.") }
+                )
+                            Spacer(Modifier.height(12.dp))
+                AgroTextField(
+                    value = qualityGrade,
+                    onValueChange = { qualityGrade = it },
+                    label = "Quality grade (optional)",
+                    supportingText = { Text("Add a grade only if it is known.") }
+                )
+                Spacer(Modifier.height(16.dp))
+                Text("Harvest category", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Select how this harvest was produced. Organic does not indicate third-party certification.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ListingCategory.entries.forEach { category ->
+                        val isSelected = selectedCategory == category
+                        val borderColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outline,
+                            label = "categoryBorder"
+                        )
+                        val bgColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            label = "categoryBg"
+                        )
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(bgColor)
+                                .border(1.5.dp, borderColor, MaterialTheme.shapes.medium)
+                                .selectable(
+                                    selected = isSelected,
+                                    onClick = {
+                                        selectedCategory = category
+                                        categorySelectionError = false
+                                    },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = 8.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null,
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = category.displayName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+                AnimatedVisibility(visible = categorySelectionError) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Lucide.AlertCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Select Organic or Inorganic before publishing.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+
+            FormSection(
+                title = "Quantity & price", icon = Lucide.Tag, step = "03",
+                subtitle = "Set the amount and price per selected unit.", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = quantity,
+                        onValueChange = {
+                            if (it.isEmpty() || it.matches(Regex("^\\d*\\.?\\d*$"))) quantity = it
+                        },
+                        label = { Text(if (harvestStatus == HarvestStatus.EXPECTED) "Estimated quantity" else "Quantity") },
+                        supportingText = {
+                            Text(if (harvestStatus == HarvestStatus.EXPECTED) "How much do you expect? (estimate)" else "How much is available?")
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    var unitExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = unitExpanded,
+                        onExpandedChange = { unitExpanded = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedUnit.name,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Unit") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                            shape = MaterialTheme.shapes.medium,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = unitExpanded,
+                            onDismissRequest = { unitExpanded = false }
+                        ) {
+                            QuantityUnit.entries.forEach { unit ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(unit.name) },
+                                    onClick = {
+                                        selectedUnit = unit
+                                        unitExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 PriceInputField(
                     value = price,
                     onValueChange = { price = it },
@@ -838,6 +758,119 @@ fun CreateListingScreen(
                     supportingText = "Your minimum acceptable price for 1 ${selectedUnit.name} (LKR)."
                 )
                 Spacer(Modifier.height(12.dp))
+            }
+
+            FormSection(
+                title = "Availability", icon = Lucide.CalendarDays, step = "04",
+                subtitle = "Ready now or expected later, with your current deadline.", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {                Spacer(Modifier.height(12.dp))
+                HarvestStatusChoiceRow(
+                    selected = harvestStatus,
+                    isEditing = editListingId != null,
+                    existingStatus = uiState.editingListing?.harvestStatus,
+                    onSelect = { harvestStatus = it }
+                )
+                Spacer(Modifier.height(8.dp))
+                if (harvestStatus == HarvestStatus.EXPECTED) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Lucide.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Expected-harvest listings are estimates. Pre-harvest requests are not confirmed orders until you mark the harvest ready.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                // Harvest date row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Lucide.CalendarDays,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    TextButton(
+                        onClick = ::requestHarvestDatePicker,
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.heightIn(min = 48.dp)
+                    ) {
+                        Text(
+                            text = expectedHarvestAt?.let {
+                                if (harvestStatus == HarvestStatus.EXPECTED) {
+                                    "Estimated harvest date: ${HarvestAvailabilityDate.format(it)}"
+                                } else {
+                                    "Availability: ${HarvestAvailabilityDate.format(it)}"
+                                }
+                            } ?: if (harvestStatus == HarvestStatus.EXPECTED) {
+                                "Set estimated harvest date (required)"
+                            } else {
+                                "Set expected availability date (optional)"
+                            }
+                        )
+                    }
+                }
+                if (harvestStatus == HarvestStatus.EXPECTED && expectedHarvestAt == null) {
+                    Text(
+                        text = "An estimated harvest date is required for an expected-harvest listing.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                }
+                if (editListingId == null) {
+                    val expiryInvalid = expiryHours.isNotBlank() && expiryHours.toDoubleOrNull()
+                        ?.let { it.isFinite() && it > 0 && it <= 8760 } != true
+                    AgroTextField(value = expiryHours, onValueChange = { expiryHours = it },
+                        label = "Available for (hours, optional)", isError = expiryInvalid,
+                        supportingText = { Text(if (expiryInvalid) "Enter a duration greater than 0 and up to 8760 hours."
+                            else "Leave blank for no expiry. Deadline is fixed when published.") })
+                } else uiState.editingListing?.expiresAt?.let {
+                    Text("Expires: ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it))}",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            FormSection(
+                title = "Pickup location", icon = Lucide.MapPin, step = "05",
+                subtitle = "Choose the farm or collection point for this harvest.", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                com.agroroute.core.location.SelectedLocation.fromStoredText(location)?.let { selected ->
+                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer) {
+                        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Column(Modifier.weight(1f)) {
+                                Text("Pickup point selected", style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text(selected.address, style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
                 AgroTextField(
                     value = location,
                     onValueChange = { location = it },
@@ -848,33 +881,6 @@ fun CreateListingScreen(
                 TextButton(onClick = { showLocationPicker = true }, enabled = !uiState.isLoading) {
                     Text("Choose pickup location on map")
                 }
-                if (editListingId == null) {
-                    AgroTextField(value = expiryHours, onValueChange = { expiryHours = it },
-                        label = "Available for (hours, optional)",
-                        supportingText = { Text("Leave blank for no expiry. Deadline is fixed when published.") })
-                } else uiState.editingListing?.expiresAt?.let {
-                    Text("Expires: ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it))}",
-                        style = MaterialTheme.typography.bodySmall)
-                }
-            }
-
-            FormDivider()
-
-            // ── Section: Description ──────────────────────────────────────────
-            FormSection(
-                title = "Description",
-                icon = Lucide.FileText,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                AgroTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = "Tell buyers about this harvest",
-                    singleLine = false,
-                    minLines = 3,
-                    maxLines = 5,
-                    supportingText = { Text("Mention storage conditions, colour, freshness, or any special details.") }
-                )
             }
 
             Spacer(Modifier.height(8.dp))
@@ -886,58 +892,24 @@ fun CreateListingScreen(
 
 @Composable
 private fun CreateListingHeroHeader(isEditing: Boolean) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        ForestDeep,
-                        ForestMid,
-                        ForestSoft
-                    )
-                )
-            )
-            .padding(horizontal = 20.dp, vertical = 28.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Icon badge
-            Surface(
-                shape = CircleShape,
-                color = Color.White.copy(alpha = 0.14f),
-                modifier = Modifier.size(52.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Lucide.Sprout,
-                        contentDescription = null,
-                        tint = LeafAccent,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
+    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer) {
+        Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(
+            MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.surfaceContainerHigh)))
+            .padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Lucide.Sprout, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                Text(if (isEditing) "REFINE YOUR HARVEST" else "FROM YOUR FARM TO MARKET",
+                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary)
             }
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (isEditing) "UPDATE HARVEST" else "NEW HARVEST",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = LeafAccent,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp
-                )
-                Text(
-                    text = if (isEditing) "Edit your listing" else "Create a listing",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (isEditing) "Update your harvest details for buyers." else "Share your harvest with potential buyers.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.82f),
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
+            Text(if (isEditing) "Edit your listing" else "Create a listing",
+                style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface)
+            Text("Photos, harvest details and a clear pickup location help buyers trade with confidence.",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("One harvest. Five simple sections.", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -946,6 +918,8 @@ private fun CreateListingHeroHeader(isEditing: Boolean) {
 private fun FormSection(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    step: String,
+    subtitle: String,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
@@ -969,12 +943,12 @@ private fun FormSection(
                 }
             }
             Spacer(Modifier.width(10.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(step, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         }
         Spacer(Modifier.height(12.dp))
         content()
@@ -1122,6 +1096,7 @@ private fun CreateListingBottomBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(4.dp)

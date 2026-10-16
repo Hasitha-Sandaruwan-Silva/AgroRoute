@@ -22,7 +22,7 @@ class RealtimeEventNotifierSessionTest {
         every { query.addSnapshotListener(any<EventListener<QuerySnapshot>>()) } answers {
             mockk<ListenerRegistration>(relaxed=true).also { registrations += it }
         }
-        val notifier=RealtimeEventNotifier(FirestoreService(firestore),mockk(relaxed=true))
+        val notifier=RealtimeEventNotifier(FirestoreService(firestore),mockk(relaxed=true),mockk(relaxed=true))
         notifier.start(this,UserProfile(userId="real-session-test",role=role))
         runCurrent()
         assertTrue("Expected actual callback-flow listeners",registrations.isNotEmpty())

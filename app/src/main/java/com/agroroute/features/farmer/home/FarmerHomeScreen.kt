@@ -51,11 +51,20 @@ fun FarmerHomeScreen(
     navController: NavController,
     listingViewModel: ListingViewModel = hiltViewModel(),
     orderViewModel: FarmerOrderViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    requestsViewModel: com.agroroute.features.farmer.orderrequests.FarmerOrderRequestsViewModel = hiltViewModel()
 ) {
     val listingState by listingViewModel.uiState.collectAsStateWithLifecycle()
     val orderState by orderViewModel.uiState.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val requestState by requestsViewModel.uiState.collectAsStateWithLifecycle()
+    var requestToAccept by remember { mutableStateOf<com.agroroute.core.model.OrderRequest?>(null) }
+    val now = com.agroroute.core.components.listingPresentationTime()
+    val pendingRequests = pendingHomeRequests(requestState, authState.user?.userId.orEmpty(), now)
+    androidx.lifecycle.compose.LifecycleResumeEffect(authState.user?.userId) {
+        if (authState.user != null) requestsViewModel.loadRequests()
+        onPauseOrDispose { requestsViewModel.stopObservingRequests() }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
@@ -63,6 +72,7 @@ fun FarmerHomeScreen(
         orderViewModel.loadOrdersForFarmer(orderViewModel.currentFarmerId)
     }
 
+    ErrorSnackbarEffect(requestState.error, snackbarHostState) { requestsViewModel.clearError() }
     ErrorSnackbarEffect(listingState.error, snackbarHostState) { listingViewModel.clearError() }
     ErrorSnackbarEffect(orderState.error, snackbarHostState) { orderViewModel.clearError() }
 
@@ -87,6 +97,10 @@ fun FarmerHomeScreen(
                     Spacer(Modifier.width(8.dp)); Icon(Lucide.ArrowRight, null, Modifier.size(18.dp))
                 }
             }
+            IncomingOrderRequests(pendingRequests, requestState.listingsById,
+                busy = requestState.isLoading || requestState.isSubmitting,
+                onView = { navController.navigate(Screen.FarmerOrderRequests.route) },
+                onAccept = { requestToAccept = it })
             if (isLoading) ShimmerBox(Modifier.fillMaxWidth().height(84.dp))
             else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FarmMetric("Orders", "$totalOrders", Modifier.weight(1f))
@@ -134,6 +148,12 @@ fun FarmerHomeScreen(
             )
             else com.agroroute.features.leaderboard.HomeLeaderboard("FARMER", onViewAll = { navController.navigate(Screen.FarmerLeaderboard.route) })
             Spacer(Modifier.height(8.dp))
+        }
+        requestToAccept?.let { request ->
+            com.agroroute.features.farmer.orderrequests.AcceptRequestConfirmationDialog(request,
+                requestState.listingsById[request.listingId],
+                onDismiss = { requestToAccept = null },
+                onConfirm = { requestToAccept = null; requestsViewModel.acceptRequest(request) })
         }
         AgroSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }

@@ -33,6 +33,7 @@ class NotificationBootstrap @Inject constructor(
         if (started) return
         started = true
         NotificationChannels.ensureCreated(context)
+        NotificationHelper.createOrGetChannel(context)
         harvestReminderScheduler.rescheduleAllStored()
 
         scope.launch {
@@ -50,6 +51,8 @@ class NotificationBootstrap @Inject constructor(
     }
 
     private suspend fun onSignedIn(profile: UserProfile) {
+        // Firestore inbox/local alerts must not wait for optional FCM registration.
+        realtimeEventNotifier.start(scope, profile)
         fcmTopicManager.syncForUser(profile.userId, profile.role)
         val token = fcmTopicManager.currentTokenOrNull()
         if (token != null) {
@@ -57,7 +60,6 @@ class NotificationBootstrap @Inject constructor(
         } else {
             Log.w(TAG, "FCM token unavailable — push receive not verified on this device")
         }
-        realtimeEventNotifier.start(scope, profile)
     }
 
     companion object {

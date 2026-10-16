@@ -74,8 +74,9 @@ fun FarmerOrderRequestsScreen(
     var selectedStatus by remember { mutableStateOf(OrderRequestStatus.PENDING) }
     var requestToAccept by remember { mutableStateOf<OrderRequest?>(null) }
 
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         viewModel.loadRequests()
+        onPauseOrDispose { viewModel.stopObservingRequests() }
     }
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
@@ -330,7 +331,7 @@ internal fun FarmerOrderRequestCard(
 }
 
 @Composable
-private fun AcceptRequestConfirmationDialog(
+internal fun AcceptRequestConfirmationDialog(
     request: OrderRequest,
     listing: HarvestListing?,
     onDismiss: () -> Unit,

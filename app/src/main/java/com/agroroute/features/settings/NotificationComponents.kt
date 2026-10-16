@@ -178,6 +178,7 @@ fun NotificationBell(
 }
 
 internal fun notificationIcon(event: String): ImageVector = when (event) {
+    "CHAT_MESSAGE" -> Lucide.MessageCircle
     "BID_CREATED", "BID_ACCEPTED", "BID_REJECTED", "BID_WITHDRAWN" -> Lucide.Gavel
     "ORDER_REQUEST_CREATED", "ORDER_REQUEST_ACCEPTED", "ORDER_REQUEST_REJECTED", "ORDER_REQUEST_CANCELLED" -> Lucide.Inbox
     "ORDER_IN_TRANSIT" -> Lucide.Truck
