@@ -85,4 +85,60 @@ class ParticipantChatTest {
             assertEquals("Reply", vm.uiState.value.messages.last().text)
         } finally { store.clear() }
     }
+    @Test fun restoredAuthWaitsThenLoadsEmptyChatWithoutReconnect() = runTest {
+        val auth = MutableStateFlow<String?>(null)
+        var pairs = 0
+        val repo = object : ChatRepository {
+            override val currentUserId get() = auth.value
+            override val authenticatedUserIds = auth
+            override fun conversations() = flowOf(emptyList<Conversation>())
+            override suspend fun pair(otherId: String): Pair<String, ParticipantIdentity> {
+                check(currentUserId != null); pairs++; return "conversation" to farmer
+            }
+            override fun messages(conversationId: String) = flowOf(emptyList<ChatMessage>())
+            override suspend fun send(otherId: String, input: String) = Unit
+        }
+        val vm = ChatViewModel(repo); val store = ViewModelStore().apply { put("chat", vm) }
+        try {
+            vm.load("farmer"); runCurrent()
+            assertTrue(vm.uiState.value.loading); assertNull(vm.uiState.value.error); assertEquals(0, pairs)
+            auth.value = "supplier"; runCurrent()
+            assertFalse(vm.uiState.value.loading); assertFalse(vm.uiState.value.connectionError)
+            assertTrue(vm.uiState.value.messages.isEmpty()); assertNull(vm.uiState.value.error)
+            assertEquals(1, pairs)
+            auth.value = null; runCurrent()
+            assertTrue(vm.uiState.value.loading); assertNull(vm.uiState.value.other)
+        } finally { store.clear() }
+    }
+    @Test fun reconnectRemovesFailedListenerAndKeepsCanonicalConversation() = runTest {
+        var fail = true
+        var active = 0
+        var peak = 0
+        val ids = mutableListOf<String>()
+        val repo = object : ChatRepository {
+            override val currentUserId = "supplier"
+            override fun conversations() = flowOf(emptyList<Conversation>())
+            override suspend fun pair(otherId: String) = "canonical" to farmer
+            override fun messages(conversationId: String) = flow<List<ChatMessage>> {
+                ids += conversationId; active++; peak = maxOf(peak, active)
+                try {
+                    if (fail) error("permission denied")
+                    emit(emptyList()); awaitCancellation()
+                } finally { active-- }
+            }
+            override suspend fun send(otherId: String, input: String) = Unit
+        }
+        val vm = ChatViewModel(repo); val store = ViewModelStore().apply { put("chat", vm) }
+        try {
+            vm.load("farmer"); runCurrent()
+            assertTrue(vm.uiState.value.connectionError)
+            assertEquals("Couldn't connect to chat. Try again.", vm.uiState.value.error)
+            fail = false; vm.load("farmer"); runCurrent()
+            assertFalse(vm.uiState.value.connectionError); assertNull(vm.uiState.value.error)
+            vm.load("farmer"); runCurrent()
+            assertEquals(listOf("canonical", "canonical", "canonical"), ids)
+            assertEquals(1, peak); assertEquals(1, active)
+        } finally { store.clear() }
+    }
+
 }

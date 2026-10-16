@@ -128,7 +128,6 @@ fun PlaceBidScreen(
                 is Result.Success -> {
                     if (result.data != null) {
                         ListingSummaryCard(listing = result.data, onProfile = { navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(result.data.farmerId)) })
-                        com.agroroute.features.participants.ParticipantProfileLink(result.data.farmerId, navController, "View Farmer profile")
                     } else {
                         EmptyState(
                             icon = Lucide.Search,
@@ -250,24 +249,7 @@ internal fun ListingSummaryCard(listing: HarvestListing, onProfile: () -> Unit =
                 StatusChip(label = "Bidding open", tone = ChipTone.Success)
             }
         }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = 4.dp)
-        ) {
-            Icon(
-                imageVector = Lucide.User,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(5.dp))
-            Text(
-                text = "by ${listing.farmerName}",
-                modifier = Modifier.clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        com.agroroute.features.participants.ParticipantIdentityRow(listing.farmerName, "Farmer", onProfile)
         listing.category?.let { category ->
             Spacer(modifier = Modifier.height(12.dp))
             StatusChip(label = category.displayName, tone = ChipTone.Secondary)

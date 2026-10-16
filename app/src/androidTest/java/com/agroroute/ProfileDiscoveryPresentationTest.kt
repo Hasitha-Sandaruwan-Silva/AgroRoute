@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -243,4 +244,19 @@ class ProfileDiscoveryPresentationTest(private val dark: Boolean, private val vi
         compose.onNodeWithText("View All Suppliers").performScrollTo().performClick()
         compose.runOnIdle { assertEquals("SUPPLIER", target) }
     }
+    @Test fun longParticipantNameKeepsAvatarRoleAndProfileActionReadable() {
+        var opened = false
+        val longName = "Nimal Perera Jayawardena Wickramasinghe With An Exceptionally Long Name"
+        compose.setContent { Theme {
+            Box(Modifier.width(300.dp)) {
+                ParticipantIdentityRow(longName, "Farmer", { opened = true })
+            }
+        } }
+        compose.onNodeWithText(longName).assertIsDisplayed()
+        compose.onNodeWithText("Farmer", substring = false).assertIsDisplayed()
+        compose.onNodeWithText("View Profile").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertTrue(opened) }
+        capture("long-name")
+    }
+
 }

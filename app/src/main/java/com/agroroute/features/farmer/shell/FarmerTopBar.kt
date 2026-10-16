@@ -42,26 +42,11 @@ fun FarmerTopBar(
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
 
-    // WIFI/BATTERY/TIME 100% VISIBLE - LIGHT MODE FIX - BASED ON SURFACE LUMINANCE
-    val view = LocalView.current
-    val isDarkTheme = isSystemInDarkTheme()
-    val surfaceColor = if (isTab) com.agroroute.features.farmer.components.FarmerForest else MaterialTheme.colorScheme.surface
-    // Use luminance to decide icon color - light surface = dark icons, dark surface = light icons
-    val isSurfaceLight = surfaceColor.luminance() > 0.5f
-    val navigationSurfaceLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = isSurfaceLight
-                isAppearanceLightNavigationBars = navigationSurfaceLight
-            }
-        }
-    }
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     var showAvatarMenu by remember { mutableStateOf(false) }
 
-    Surface(modifier = modifier.fillMaxWidth(), color = surfaceColor, contentColor = if (isTab) com.agroroute.features.farmer.components.FarmerCream else MaterialTheme.colorScheme.onSurface, shadowElevation = 0.dp) {
+    Surface(modifier = modifier.fillMaxWidth(), color = surfaceColor, contentColor = MaterialTheme.colorScheme.onSurface, shadowElevation = 0.dp) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars).background(surfaceColor))
             Row(
@@ -81,8 +66,8 @@ fun FarmerTopBar(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         if (isTab) {
-                            Text("AgroRoute", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.3).sp, color = com.agroroute.core.theme.LeafAccent)
-                            Text("FARMER", style = MaterialTheme.typography.labelSmall, color = com.agroroute.features.farmer.components.FarmerCream.copy(alpha = .8f))
+                            Text("AgroRoute", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.3).sp, color = MaterialTheme.colorScheme.primary)
+                            Text("FARMER", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (subtitle != null) {
@@ -93,7 +78,7 @@ fun FarmerTopBar(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    NotificationBell(navController = navController, tint = if (isTab) com.agroroute.features.farmer.components.FarmerCream else MaterialTheme.colorScheme.onSurface)
+                    NotificationBell(navController = navController, tint = MaterialTheme.colorScheme.onSurface)
 
                     Box {
                         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {

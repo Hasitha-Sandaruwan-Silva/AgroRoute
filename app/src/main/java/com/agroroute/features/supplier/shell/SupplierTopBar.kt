@@ -71,22 +71,12 @@ fun SupplierTopBar(
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val isTab = currentRoute in supplierTabRoutes
 
-    // ─── STATUS BAR ICONS කළු පැහැයට හැරවීම ───
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            // The forest header uses light system icons in both app themes.
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-        }
-    }
-
     var showAvatarMenu by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier.fillMaxWidth().testTag("supplier-shared-top-bar"),
-        color = Color(0xFF003C29),
-        contentColor = Color.White,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = 0.dp
     ) {
         Column(
@@ -112,12 +102,12 @@ fun SupplierTopBar(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.1f))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         ) {
                             Icon(
                                 imageVector = Lucide.ArrowLeft,
                                 contentDescription = "Back",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -135,7 +125,7 @@ fun SupplierTopBar(
                             text = supplierTitle(currentRoute),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -143,7 +133,7 @@ fun SupplierTopBar(
                             Text(
                                 text = "AgroRoute · Supplier",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -151,7 +141,7 @@ fun SupplierTopBar(
                     }
                 }
 
-                NotificationBell(navController = navController, tint = Color.White)
+                NotificationBell(navController = navController, tint = MaterialTheme.colorScheme.onSurface)
 
                 // ─── Right Section: Profile Avatar + Dropdown ───
                 Box {
@@ -236,7 +226,7 @@ fun SupplierTopBar(
 
             // Subtle divider at the bottom
             HorizontalDivider(
-                color = Color.White.copy(alpha = 0.1f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                 thickness = 1.dp
             )
         }

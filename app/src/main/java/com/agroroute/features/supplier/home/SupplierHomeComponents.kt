@@ -95,7 +95,6 @@ internal fun SupplierHomeContent(
             SupplierStatistics(active.size, bids.count { it.status == BidStatus.PENDING }, orders.size,
                 orders.count { it.status == OrderStatus.IN_TRANSIT }, onMarketplace, onBids, onOrders)
         }
-        if (communityLeaders != null && profileDiscoveryAllowed) item(key = "community-leaders") { Column(Modifier.padding(horizontal = 16.dp)) { communityLeaders() } }
         item(key = "featured-heading") { HomeSectionHeading("Featured Produce", onMarketplace) }
         item(key = "featured") {
             when {
@@ -130,18 +129,14 @@ internal fun SupplierHomeContent(
                 Text("Your community points: ${user?.points ?: 0}")
             }
         }
+        if (communityLeaders != null && profileDiscoveryAllowed) item(key = "community-leaders") { Column(Modifier.padding(horizontal = 16.dp)) { communityLeaders() } }
     }
 }
 
 @Composable
 private fun SupplierHeroHeader(user: UserProfile?, selected: String, onCategory: (String) -> Unit,
     onSearch: () -> Unit, onProfile: () -> Unit, notification: @Composable () -> Unit, heroStatusBar: Boolean) {
-    val view = LocalView.current
-    if (heroStatusBar && !view.isInEditMode) SideEffect {
-        (view.context as? android.app.Activity)?.window?.let { window ->
-            androidx.core.view.WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-        }
-    }
+    if (heroStatusBar) com.agroroute.core.theme.DarkHeaderStatusBar()
     Box(Modifier.fillMaxWidth().testTag("supplier-home-hero").clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))) {
         Image(painterResource(R.drawable.supplier_farm_hero), null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color(0xB8003017), Color(0x4D003017), Color(0xBB064925)))))

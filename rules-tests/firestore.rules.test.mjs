@@ -2375,3 +2375,25 @@ test("chat: client timestamps and extra message fields are rejected", async () =
   batch.update(doc(a, `conversations/${chatId}`), { lastMessageId: "injected", lastMessage: "Injected", lastSenderId: "farmer-1", updatedAt: serverTimestamp() });
   await assertFails(batch.commit());
 });
+
+
+test("chat: missing parent is empty and first-send transaction creates the canonical pair", async () => {
+  const db = chatDb("farmer-1");
+  const parent = doc(db, `conversations/${chatId}`);
+  const missing = await assertSucceeds(getDoc(parent));
+  assert.equal(missing.exists(), false);
+  await assertSucceeds(runTransaction(db, async tx => {
+    const snapshot = await tx.get(parent);
+    assert.equal(snapshot.exists(), false);
+    tx.set(doc(db, `conversations/${chatId}/messages/first-transaction`), {
+      senderId: "farmer-1", text: "First hello", sentAt: serverTimestamp()
+    });
+    tx.set(parent, {
+      participantIds: ["farmer-1", "supplier-1"], farmerId: "farmer-1", supplierId: "supplier-1",
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastMessage: "First hello",
+      lastSenderId: "farmer-1", lastMessageId: "first-transaction"
+    });
+  }));
+  const messages = await assertSucceeds(getDocs(collection(chatDb("supplier-1"), `conversations/${chatId}/messages`)));
+  assert.equal(messages.size, 1);
+});

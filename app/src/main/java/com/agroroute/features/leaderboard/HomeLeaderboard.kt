@@ -33,8 +33,8 @@ fun CommunityLeaderboards(onViewAll: (String) -> Unit, onParticipant: (String) -
 @Composable
 internal fun CommunityLeadersContent(state: CommunityLeadersState, onViewAll: (String) -> Unit,
     onParticipant: (String) -> Unit, onRetry: () -> Unit = {}) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Community Leaders", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Community Leaders", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         LeaderboardPreview("FARMER", state.farmers, state.loading, state.error, { onViewAll("FARMER") }, onParticipant, onRetry)
         LeaderboardPreview("SUPPLIER", state.suppliers, state.loading, state.error, { onViewAll("SUPPLIER") }, onParticipant, onRetry)
     }
@@ -44,59 +44,35 @@ internal fun CommunityLeadersContent(state: CommunityLeadersState, onViewAll: (S
 private fun LeaderboardPreview(role: String, users: List<UserProfile>, loading: Boolean, error: String?,
     onViewAll: () -> Unit, onParticipant: (String) -> Unit, onRetry: () -> Unit) {
     val navigationAllowed = LocalMutationAllowed.current
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(if (role == "FARMER") "Top Farmers" else "Top Suppliers",
-                    style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Community leaderboard", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Lucide.Trophy, null, tint = LocalAgroExtendedColors.current.goldText, modifier = Modifier.size(22.dp))
+            Text(if (role == "FARMER") "Top Farmers" else "Top Suppliers", Modifier.weight(1f),
+                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            TextButton(onClick = onViewAll) { Text(if (role == "FARMER") "View All Farmers" else "View All Suppliers", style = MaterialTheme.typography.labelMedium) }
         }
         when {
-            loading && users.isEmpty() -> ShimmerBox(Modifier.fillMaxWidth().height(130.dp))
-            error != null && users.isEmpty() -> AppCard {
-                Text("Rankings are unavailable right now", style = MaterialTheme.typography.bodyMedium)
-                TextButton(onClick = { onRetry() }) { Text("Try again") }
+            loading && users.isEmpty() -> ShimmerBox(Modifier.fillMaxWidth().height(64.dp))
+            error != null && users.isEmpty() -> {
+                Text("Rankings are unavailable right now", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = onRetry) { Text("Try again") }
             }
-            !loading && users.isEmpty() -> AppCard {
-                Text("No rankings yet", style = MaterialTheme.typography.titleSmall)
-                Text(if (role == "FARMER") "Acceptance +1 · Handover +3 · Delivery +6."
-                    else "Pickup +4 · Delivery +6. Requests earn no points.", style = MaterialTheme.typography.bodySmall)
-            }
-            else -> AnimatedVisibility(visible = users.isNotEmpty(), enter = fadeIn()) {
-                AppCard {
-                    users.take(3).forEachIndexed { index, user ->
-                        val champion = index == 0
-                        Row(
-                            Modifier.fillMaxWidth().clickable(enabled = navigationAllowed && user.userId.isNotBlank()) { onParticipant(user.userId) }.then(if (champion) Modifier.background(
-                                LocalAgroExtendedColors.current.goldSoft, MaterialTheme.shapes.medium) else Modifier)
-                                .padding(horizontal = 10.dp, vertical = if (champion) 14.dp else 10.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text("${index + 1}", style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold, color = if (champion) LocalAgroExtendedColors.current.goldText else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.width(14.dp))
-                            UserProfileAvatar(user.displayName, user.profileImageUrl,
-                                size = if (champion) 50.dp else if (index < 3) 40.dp else 34.dp, selected = champion)
-                            Text(user.displayName.ifBlank { "Community member" }, Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                fontWeight = if (champion) FontWeight.Bold else FontWeight.Medium)
-                            Text("${user.points} pts", style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    if (error != null) Text("Showing saved rankings", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+            users.isEmpty() -> Text("No rankings yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> users.take(3).forEachIndexed { index, user ->
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .clickable(enabled = navigationAllowed && user.userId.isNotBlank()) { onParticipant(user.userId) }
+                    .padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${index + 1}", Modifier.width(16.dp), style = MaterialTheme.typography.labelMedium,
+                        color = if (index == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    UserProfileAvatar(user.displayName, user.profileImageUrl, size = 36.dp)
+                    Text(user.displayName.ifBlank { "Community member" }, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${user.points} pts", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-        TextButton(onClick = onViewAll, modifier = Modifier.fillMaxWidth()) {
-            Text(if (role == "FARMER") "View All Farmers" else "View All Suppliers")
-            Spacer(Modifier.width(8.dp))
-            Icon(Lucide.ArrowRight, null, Modifier.size(18.dp))
-        }
+        if (error != null && users.isNotEmpty()) Text("Showing saved rankings", style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -127,21 +103,21 @@ fun HomeLeaderboard(role: String, onViewAll: () -> Unit, viewModel: LeaderboardV
             }
             else -> AnimatedVisibility(visible = state.users.isNotEmpty(), enter = fadeIn()) {
                 AppCard {
-                    state.users.take(5).forEachIndexed { index, user ->
+                    state.users.take(3).forEachIndexed { index, user ->
                         val champion = index == 0
                         Row(
                             Modifier.fillMaxWidth().then(if (champion) Modifier.background(
                                 LocalAgroExtendedColors.current.goldSoft, MaterialTheme.shapes.medium) else Modifier)
-                                .padding(horizontal = 10.dp, vertical = if (champion) 14.dp else 10.dp),
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text("${index + 1}", style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold, color = if (champion) LocalAgroExtendedColors.current.goldText else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.width(14.dp))
                             UserProfileAvatar(user.displayName, user.profileImageUrl,
-                                size = if (champion) 50.dp else if (index < 3) 40.dp else 34.dp, selected = champion)
+                                size = 36.dp, selected = champion)
                             Text(user.displayName.ifBlank { "Community member" }, Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 fontWeight = if (champion) FontWeight.Bold else FontWeight.Medium)
                             Text("${user.points} pts", style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)

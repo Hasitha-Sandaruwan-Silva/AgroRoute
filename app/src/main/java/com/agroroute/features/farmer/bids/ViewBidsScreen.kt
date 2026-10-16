@@ -223,35 +223,10 @@ internal fun SuperbBidCard(
         else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), Arrangement.spacedBy(12.dp)) {
-            if (com.agroroute.core.runtime.LocalMutationAllowed.current) TextButton(onClick = onProfile) { Text("View Supplier profile") }
             if (bid.status == BidStatus.ACCEPTED) TextButton(onClick = onOpenOrder) { Text("View order") }
+            com.agroroute.features.participants.ParticipantIdentityRow(bid.supplierName, "Supplier", onProfile)
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f).clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile)) {
-                    Box(
-                        Modifier.size(46.dp).clip(CircleShape)
-                            .background(if (isBestOffer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer)
-                            .border(2.dp, if (isBestOffer) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(bid.supplierName.take(1).uppercase(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = if (isBestOffer) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(bid.supplierName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                            if (isBestOffer) {
-                                Spacer(Modifier.width(6.dp))
-                                Icon(Lucide.Star, null, tint = Color(0xFFFFA000), modifier = Modifier.size(14.dp))
-                            }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Lucide.Clock, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.width(4.dp))
-                            Text(formatDate(bid.createdAt), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
+                Text(formatDate(bid.createdAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 BidStatusChip(bid.status)
             }
 

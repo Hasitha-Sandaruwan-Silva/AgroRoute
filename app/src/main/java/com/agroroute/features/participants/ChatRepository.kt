@@ -8,10 +8,12 @@ import com.google.firebase.firestore.*
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.tasks.await
 
 interface ChatRepository {
     val currentUserId: String?
+    val authenticatedUserIds: Flow<String?> get() = flowOf(currentUserId)
     fun conversations(): Flow<List<Conversation>>
     suspend fun pair(otherId: String): Pair<String, ParticipantIdentity>
     fun messages(conversationId: String): Flow<List<ChatMessage>>
@@ -23,6 +25,11 @@ class ChatRepositoryImpl @Inject constructor(
     private val db: FirebaseFirestore, private val auth: FirebaseAuth, private val people: ParticipantRepository
 ) : ChatRepository {
     override val currentUserId get() = auth.currentUser?.uid
+    override val authenticatedUserIds: Flow<String?> = callbackFlow {
+        val listener = FirebaseAuth.AuthStateListener { trySend(it.currentUser?.uid) }
+        auth.addAuthStateListener(listener)
+        awaitClose { auth.removeAuthStateListener(listener) }
+    }.distinctUntilChanged()
     private fun uid() = checkNotNull(currentUserId)
     override suspend fun pair(otherId: String): Pair<String, ParticipantIdentity> {
         val me = people.identity(uid())
@@ -44,8 +51,9 @@ class ChatRepositoryImpl @Inject constructor(
     override fun messages(conversationId: String): Flow<List<ChatMessage>> {
         val userId = uid()
         // Only committed server timestamps are displayed; local pending writes never masquerade as sent.
-        return documentUpdates(db.collection("conversations").document(conversationId)).filter { !it.metadata.isFromCache }.flatMapLatest { parent ->
-            if (!parent.exists()) flowOf(emptyList()) else queryUpdates(parent.reference.collection("messages").orderBy("sentAt")).filter { !it.metadata.isFromCache }.map { s ->
+        return documentUpdates(db.collection("conversations").document(conversationId)).filter { !it.metadata.isFromCache }
+            .map { it.exists() }.distinctUntilChanged().flatMapLatest { exists ->
+            if (!exists) flowOf(emptyList()) else queryUpdates(db.collection("conversations").document(conversationId).collection("messages").orderBy("sentAt")).filter { !it.metadata.isFromCache }.map { s ->
             check(currentUserId == userId)
             s.documents.filterNot { it.metadata.hasPendingWrites() }.map { d ->
                 ChatMessage(d.id, d.getString("senderId").orEmpty(), d.getString("text").orEmpty(), d.getTimestamp("sentAt")?.toDate()?.time)

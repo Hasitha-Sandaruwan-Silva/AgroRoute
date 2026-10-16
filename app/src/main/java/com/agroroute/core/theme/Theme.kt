@@ -10,10 +10,27 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+
+private val LocalStatusBarDarkSurface = staticCompositionLocalOf<MutableState<Boolean?>?> { null }
+
+/** A photographic header can declare its actual surface without competing window writes. */
+@Composable
+fun DarkHeaderStatusBar() {
+    val override = LocalStatusBarDarkSurface.current
+    DisposableEffect(override) {
+        override?.value = true
+        onDispose { override?.value = null }
+    }
+}
 
 private val LightColorScheme = lightColorScheme(
     primary = GreenEmerald,
@@ -183,9 +200,11 @@ fun AgroRouteTheme(
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
-    UpdateStatusBarAppearance(darkTheme)
+    val statusBarDarkSurface = remember { mutableStateOf<Boolean?>(null) }
+    UpdateStatusBarAppearance(statusBarDarkSurface.value ?: darkTheme)
 
-    CompositionLocalProvider(LocalAgroExtendedColors provides extendedColors) {
+    CompositionLocalProvider(LocalAgroExtendedColors provides extendedColors,
+        LocalStatusBarDarkSurface provides statusBarDarkSurface) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AgroTypography,

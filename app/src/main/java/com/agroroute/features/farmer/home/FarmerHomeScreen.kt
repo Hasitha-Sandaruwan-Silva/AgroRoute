@@ -96,14 +96,6 @@ fun FarmerHomeScreen(
             com.agroroute.features.farmer.components.FarmerPromo {
                 navController.navigate(FarmerHomeDestination.CREATE_LISTING.route)
             }
-            if (com.agroroute.core.runtime.LocalMutationAllowed.current) com.agroroute.features.leaderboard.CommunityLeaderboards(
-                onViewAll = { role ->
-                        navController.navigate(Screen.FarmerLeaderboard.route)
-                        navController.currentBackStackEntry?.savedStateHandle?.set("leaderboardRole", role)
-                    },
-                onParticipant = { id -> navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(id)) }
-            )
-            else com.agroroute.features.leaderboard.HomeLeaderboard("FARMER", onViewAll = { navController.navigate(Screen.FarmerLeaderboard.route) })
             Text("Farm essentials", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FarmAction("New listing", "Share your harvest", Lucide.Plus, Modifier.weight(1f)) {
@@ -133,6 +125,14 @@ fun FarmerHomeScreen(
                     Icon(Lucide.ChevronRight, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }
+            if (com.agroroute.core.runtime.LocalMutationAllowed.current) com.agroroute.features.leaderboard.CommunityLeaderboards(
+                onViewAll = { role ->
+                        navController.navigate(Screen.FarmerLeaderboard.route)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("leaderboardRole", role)
+                    },
+                onParticipant = { id -> navController.navigate(com.agroroute.features.participants.ParticipantRoutes.profile(id)) }
+            )
+            else com.agroroute.features.leaderboard.HomeLeaderboard("FARMER", onViewAll = { navController.navigate(Screen.FarmerLeaderboard.route) })
             Spacer(Modifier.height(8.dp))
         }
         AgroSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))

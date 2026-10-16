@@ -84,11 +84,16 @@ class FarmerExperiencePresentationTest {
     }
     @Test fun farmerRootsStayReachableInBothThemes() {
         enter(UserRole.FARMER)
-        for (night in listOf(false, true)) {
+        for (night in listOf(false, true, false)) {
             compose.runOnIdle { dark = night }
             val mode = if (night) "dark" else "light"
             compose.onAllNodesWithText("Home", substring=false).onLast().performClick()
             awaitText("Good day, Nimal Perera")
+            compose.runOnIdle {
+                val activity = androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
+                    .getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED).single()
+                assertEquals(!night, androidx.core.view.WindowCompat.getInsetsController(activity.window, activity.window.decorView).isAppearanceLightStatusBars)
+            }
             capture("farmer-$mode-home.png")
             compose.onAllNodesWithText("Listings", substring=false).onLast().performClick()
             awaitText("My Harvests")
@@ -132,7 +137,7 @@ class FarmerExperiencePresentationTest {
             menu("Orders and history")
             awaitText("View details")
             compose.onAllNodesWithText("View details", substring=false).onFirst().performScrollTo().performClick()
-            awaitText("Order ID:")
+            awaitText("Order #")
             capture("farmer-$mode-order-details.png")
             menu("Profile summary")
             awaitText("Nimal Perera")

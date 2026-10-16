@@ -207,20 +207,13 @@ private fun FarmerBidCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = "Supplier: ${bid.supplierName.ifBlank { "Name unavailable" }}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp).clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile)
-                )
+
             }
             Spacer(Modifier.width(8.dp))
             BidStatusChip(bid.status)
         }
         Spacer(Modifier.height(8.dp))
-        if (com.agroroute.core.runtime.LocalMutationAllowed.current) TextButton(onClick = onProfile) { Text("View Supplier profile") }
+        com.agroroute.features.participants.ParticipantIdentityRow(bid.supplierName, "Supplier", onProfile)
         ProfilePhoneContact(userId = bid.supplierId, personLabel = "Supplier")
         Spacer(Modifier.height(12.dp))
         Row(

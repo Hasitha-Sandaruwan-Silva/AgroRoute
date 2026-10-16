@@ -60,17 +60,10 @@ internal fun ParticipantIdentityCard(state: ParticipantCardState, roleLabel: Str
     onProfile: () -> Unit, onMessage: () -> Unit, onRetry: () -> Unit = {},
     contact: @Composable () -> Unit = {}) {
     AppCard {
-        Text(roleLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth().testTag("order-participant-identity").clickable(onClick = onProfile).padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            UserProfileAvatar(state.identity?.name ?: roleLabel, state.identity?.imageUrl, size = 52.dp, onClick = onProfile)
-            Column(Modifier.weight(1f)) {
-                Text(if (state.loading) "Loading participant..." else state.identity?.name ?: "Participant unavailable",
-                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                state.identity?.points?.let { Text("$it AgroRoute Points", style = MaterialTheme.typography.bodySmall) }
-                Text("View Profile", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            }
-        }
+        ParticipantIdentityRow(
+            displayName = if (state.loading) "Loading participant..." else state.identity?.name ?: "Participant unavailable",
+            roleLabel = roleLabel, imageUrl = state.identity?.imageUrl, points = state.identity?.points,
+            onProfile = onProfile, nameMaxLines = 2, modifier = Modifier.testTag("order-participant-identity"))
         if (!state.loading && state.identity == null) TextButton(onClick = onRetry) { Text("Retry participant") }
         OutlinedButton(onClick = onMessage, enabled = state.identity != null) { Text("Message") }
         contact()

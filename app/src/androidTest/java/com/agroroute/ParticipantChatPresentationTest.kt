@@ -110,4 +110,16 @@ class ParticipantChatPresentationTest(private val dark: Boolean, private val tar
         compose.onNodeWithText("Nimal Perera").performClick()
         compose.onNodeWithText("Yes, it is available.").assertIsDisplayed()
     }
+    @Test fun emptyChatHasNormalComposerAndNoReconnect() {
+        val repository = FakeChat().apply { rows.value = emptyList() }
+        val chat = ChatViewModel(repository)
+        compose.setContent { ParticipantTestTheme { ChatScreen("other", rememberNavController(), chat) } }
+        compose.onNodeWithText("Start the conversation").assertIsDisplayed()
+        compose.onNodeWithText("Reconnect").assertDoesNotExist()
+        compose.onNode(hasSetTextAction()).performTextInput("First message")
+        compose.onNodeWithContentDescription("Send").performClick()
+        compose.onNodeWithText("First message").assertIsDisplayed()
+        compose.onNodeWithText("Reconnect").assertDoesNotExist()
+    }
+
 }

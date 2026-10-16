@@ -20,21 +20,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * [ListingPhotoStorage] implementation that uploads listing photos to Cloudinary
- * using an **unsigned upload preset** — no API secret is ever embedded in the app.
- *
- * Upload flow:
- *  1. Resolve the Android `content://` URI and read its bytes via [ContentResolver].
- *  2. Validate MIME type and file size against [CloudinaryConfig] limits.
- *  3. POST a multipart form-data request to the Cloudinary unsigned upload endpoint.
- *  4. Parse the JSON response and return the `secure_url` string.
- *
- * On any failure a [ListingPhotoStorageException] is thrown so the caller can
- * present a useful error and abort saving the listing with a local URI.
- *
- * Firebase Storage is not touched by this class.
- */
+
 @Singleton
 class CloudinaryPhotoStorage @Inject constructor(
     @ApplicationContext private val context: Context

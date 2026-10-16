@@ -194,7 +194,6 @@ internal fun FarmerOrderRequestCard(
     val isPreHarvest = request.isPreHarvest || harvestStatus == HarvestStatus.EXPECTED
 
     AppCard {
-        if (com.agroroute.core.runtime.LocalMutationAllowed.current) TextButton(onClick = onProfile) { Text("View Supplier profile") }
         listing?.let {
             com.agroroute.core.components.ListingImage(it.imageUrls.firstOrNull(), height = 112.dp)
             Spacer(Modifier.height(12.dp))
@@ -213,18 +212,12 @@ internal fun FarmerOrderRequestCard(
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Text(
-                    text = "Supplier: ${request.supplierName.ifBlank { "Name unavailable" }}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp).clickable(enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onProfile)
-                )
+
             }
             Spacer(Modifier.width(8.dp))
             OrderRequestStatusChip(request.status)
         }
+        com.agroroute.features.participants.ParticipantIdentityRow(request.supplierName, "Supplier", onProfile)
         if (isPreHarvest) {
             Spacer(Modifier.height(8.dp))
             StatusChip(label = "Pre-harvest", tone = ChipTone.Tertiary)

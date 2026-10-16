@@ -165,26 +165,26 @@ fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewMode
             state.other?.let { other ->
                 Row(Modifier.clickable { navController.navigate(ParticipantRoutes.profile(id)) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     UserProfileAvatar(other.name, other.imageUrl, size = 40.dp)
-                    Column { Text(other.name, maxLines = 1, overflow = TextOverflow.Ellipsis); Text(roleLabel(other), style = MaterialTheme.typography.labelSmall) }
+                    Column(Modifier.weight(1f)) { Text(other.name, maxLines = 1, overflow = TextOverflow.Ellipsis); Text(roleLabel(other), style = MaterialTheme.typography.labelSmall) }
                 }
             } ?: Text("Chat")
         }, navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Lucide.ArrowLeft, "Back") } })
     }, bottomBar = {
         Surface(tonalElevation = 2.dp) {
             Column(Modifier.navigationBarsPadding().padding(12.dp)) {
-                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error); TextButton(onClick = { viewModel.load(id) }) { Text("Reconnect") } }
+                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error); if (state.connectionError) TextButton(onClick = { viewModel.load(id) }) { Text("Reconnect") } }
                 if (state.sending) Text("Sending...", style = MaterialTheme.typography.labelSmall)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = state.draft, onValueChange = viewModel::draft, modifier = Modifier.weight(1f),
-                        enabled = !state.sending && state.other != null, placeholder = { Text("Type a message...") }, maxLines = 5, shape = RoundedCornerShape(20.dp))
-                    IconButton(onClick = viewModel::send, enabled = !state.sending && state.draft.isNotBlank() && state.other != null) { Icon(Lucide.Send, "Send") }
+                        enabled = !state.loading && !state.connectionError && !state.sending && state.other != null, placeholder = { Text("Type a message...") }, maxLines = 5, shape = RoundedCornerShape(20.dp))
+                    IconButton(onClick = viewModel::send, enabled = !state.loading && !state.connectionError && !state.sending && state.draft.isNotBlank() && state.other != null) { Icon(Lucide.Send, "Send") }
                 }
             }
         }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (state.loading) CircularProgressIndicator(Modifier.padding(16.dp))
-            if (!state.loading && state.messages.isEmpty()) Text("Start the conversation", Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!state.loading && !state.connectionError && state.messages.isEmpty()) Text("Start the conversation", Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
             LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(state.messages, key = { it.id }) { message ->
                     val mine = message.senderId == viewModel.currentUserId
