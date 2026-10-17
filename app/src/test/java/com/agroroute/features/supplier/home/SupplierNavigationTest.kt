@@ -41,6 +41,7 @@ class SupplierNavigationTest {
             setOf(
                 Screen.SupplierHome.route,
                 Screen.SupplierMarketplace.route,
+                Screen.SupplierMap.route,
                 Screen.SupplierOrders.route,
                 Screen.SupplierProfile.route
             ),

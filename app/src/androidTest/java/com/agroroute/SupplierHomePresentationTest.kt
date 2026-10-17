@@ -119,7 +119,8 @@ class SupplierHomePresentationTest {
         compose.runOnIdle { assertEquals("supplier_orders", action) }
         compose.onNodeWithText("Profile", substring = false).performClick()
         compose.runOnIdle { assertEquals("supplier_profile", action) }
-        compose.onNodeWithText("Map", substring = false).assertDoesNotExist()
+        compose.onNodeWithText("Map", substring = false).performClick()
+        compose.runOnIdle { assertEquals("supplier_map", action) }
     }
     @Test fun notificationAndProfileActionsRemainInteractive() {
         content(); compose.onNodeWithContentDescription("Notifications").performClick()

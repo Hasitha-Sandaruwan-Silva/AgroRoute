@@ -60,6 +60,7 @@ sealed class Screen(val route: String) {
     }
 
     // ── Supplier Orders ───────────────────────────────────────────────────────
+    data object SupplierMap : Screen("supplier_map")
     data object SupplierOrders : Screen("supplier_orders")
 
     /** Requires [orderId] argument. */

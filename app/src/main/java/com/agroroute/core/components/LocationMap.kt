@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -54,6 +55,8 @@ import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 import org.maplibre.geojson.LineString
 
+data class OrderMapPin(val id: String, val location: SelectedLocation, val delivery: Boolean, val nearby: Boolean = false)
+
 /** Shared map renderer for the editable picker and order-specific destination previews. */
 @Composable
 fun LocationMap(
@@ -62,8 +65,13 @@ fun LocationMap(
     focusRequest: Int = 0,
     onSelect: ((SelectedLocation) -> Unit)? = null,
     modifier: Modifier = Modifier,
-    orderViewport: OrderMapViewport? = null
+    orderViewport: OrderMapViewport? = null,
+    orderPins: List<OrderMapPin>? = null,
+    onOrderSelected: (String) -> Unit = {},
+    ordersCameraPending: Boolean = false
 ) {
+    val darkOrdersMap = orderPins != null && MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val mapStyle = if (darkOrdersMap) "streets-v2-dark" else "streets-v2"
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val configured = BuildConfig.MAPTILER_API_KEY.isNotBlank()
@@ -85,7 +93,7 @@ fun LocationMap(
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var styleReady by remember { mutableStateOf(false) }
     var mapFailed by remember { mutableStateOf(false) }
-    val mapView = remember(context, configured) {
+    val mapView = remember(context, configured, mapStyle) {
         if (!configured) null else {
             // Map request URLs contain the client key; never log native SDK messages/URLs.
             Logger.setVerbosity(Logger.NONE)
@@ -97,8 +105,14 @@ fun LocationMap(
                     .zoom(if (hasSelection) 16.0 else 7.0).build())).apply { onCreate(null) }
         }
     }
+    val latestPins by rememberUpdatedState(orderPins)
+    val latestOrderSelected by rememberUpdatedState(onOrderSelected)
+    var ordersPositioned by remember { mutableStateOf(false) }
+    var lastOrdersFocus by remember { mutableIntStateOf(0) }
     val latestSelect by rememberUpdatedState(onSelect)
     DisposableEffect(mapView, lifecycle) {
+        styleReady = false
+        if (orderPins != null) ordersPositioned = false
         var alive = true
         var started = false
         var resumed = false
@@ -146,14 +160,24 @@ fun LocationMap(
                 readyMap.addOnCameraMoveStartedListener { reason ->
                     if (alive && reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) {
                         latestOrderCamera.onUserGesture()
+                        ordersPositioned = true
                     }
                 }
                 readyMap.addOnMapClickListener { point ->
+                    if (alive && latestPins != null) {
+                        val tap = readyMap.projection.toScreenLocation(point)
+                        val hit = latestPins.orEmpty().map { pin ->
+                            val pixel = readyMap.projection.toScreenLocation(LatLng(pin.location.latitude, pin.location.longitude))
+                            pin to kotlin.math.hypot((tap.x - pixel.x).toDouble(), (tap.y - pixel.y).toDouble())
+                        }.minByOrNull { it.second }?.takeIf { it.second < 40 * context.resources.displayMetrics.density }
+                        hit?.let { latestOrderSelected(it.first.id) }
+                        return@addOnMapClickListener hit != null
+                    }
                     if (alive) latestSelect?.invoke(SelectedLocation("", point.latitude, point.wrap().longitude))
                     latestSelect != null
                 }
                 readyMap.setStyle(Style.Builder().fromUri(
-                    "https://api.maptiler.com/maps/streets-v2/style.json?key=${android.net.Uri.encode(BuildConfig.MAPTILER_API_KEY)}"
+                    "https://api.maptiler.com/maps/$mapStyle/style.json?key=${android.net.Uri.encode(BuildConfig.MAPTILER_API_KEY)}"
                 )) { style ->
                     if (alive) {
                         style.addSource(GeoJsonSource("agroroute-selected", FeatureCollection.fromFeatures(emptyArray())))
@@ -174,6 +198,17 @@ fun LocationMap(
                         style.addLayer(SymbolLayer("agroroute-selected-pin", "agroroute-selected").withProperties(
                             iconImage("agroroute-pin"), iconAnchor(Property.ICON_ANCHOR_BOTTOM),
                             iconAllowOverlap(true), iconIgnorePlacement(true)))
+                        if (orderPins != null) {
+                            style.addSource(GeoJsonSource("supplier-orders", FeatureCollection.fromFeatures(emptyArray())))
+                            style.addImage("supplier-pickup", locationPinBitmap(GreenEmerald.toArgb()))
+                            style.addImage("supplier-delivery", locationPinBitmap(0xFFB96F27.toInt(), delivery = true))
+                            style.addLayer(CircleLayer("supplier-nearby", "supplier-orders").withFilter(
+                                org.maplibre.android.style.expressions.Expression.eq(org.maplibre.android.style.expressions.Expression.get("nearby"), true)
+                            ).withProperties(circleRadius(24f), circleColor("#246B55"), circleOpacity(0.22f)))
+                            style.addLayer(SymbolLayer("supplier-pins", "supplier-orders").withProperties(
+                                iconImage(org.maplibre.android.style.expressions.Expression.get("icon")),
+                                iconAnchor(Property.ICON_ANCHOR_BOTTOM), iconAllowOverlap(true), iconIgnorePlacement(true)))
+                        }
                         mapFailed = false
                         styleReady = true
                     }
@@ -257,6 +292,28 @@ fun LocationMap(
         if (viewport.recenterRequest > 0) readyMap.animateCamera(update) else readyMap.moveCamera(update)
     }
 
+    LaunchedEffect(map, styleReady, orderPins, visibleFix, measuredSize, focusRequest, ordersCameraPending) {
+        val pins = orderPins ?: return@LaunchedEffect
+        val ready = map ?: return@LaunchedEffect
+        if (!styleReady) return@LaunchedEffect
+        ready.style?.getSourceAs<GeoJsonSource>("supplier-orders")?.setGeoJson(FeatureCollection.fromFeatures(pins.map { pin ->
+            org.maplibre.geojson.Feature.fromGeometry(Point.fromLngLat(pin.location.longitude, pin.location.latitude)).apply {
+                addStringProperty("icon", if (pin.delivery) "supplier-delivery" else "supplier-pickup")
+                addBooleanProperty("nearby", pin.nearby)
+            }
+        }))
+        if (ordersCameraPending || measuredSize.width == 0 || measuredSize.height == 0) return@LaunchedEffect
+        if (ordersPositioned && focusRequest == lastOrdersFocus) return@LaunchedEffect
+        val current = visibleFix?.let { LatLng(it.latitude, it.longitude) }
+        val points = pins.map { LatLng(it.location.latitude, it.location.longitude) }.distinct()
+        val update = when {
+            current != null -> CameraUpdateFactory.newLatLngZoom(current, 12.0)
+            points.size == 1 -> CameraUpdateFactory.newLatLngZoom(points.first(), 14.0)
+            points.size > 1 -> CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().includes(points).build(), 72)
+            else -> null
+        }
+        if (update != null) { ready.animateCamera(update); ordersPositioned = true; lastOrdersFocus = focusRequest }
+    }
     val mapShape = RoundedCornerShape(22.dp)
     Box(modifier.shadow(2.dp, mapShape).clip(mapShape)
         .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -266,7 +323,8 @@ fun LocationMap(
         if (!configured || mapFailed) {
             MapStatusMessage(title = "Unable to load map",
                 modifier = Modifier.align(Alignment.Center).padding(16.dp),
-                detail = if (orderViewport != null) "Map unavailable. The saved destination is shown below."
+                detail = if (orderPins != null) "Map unavailable. Your active orders are still available below."
+                        else if (orderViewport != null) "Map unavailable. The saved destination is shown below."
                         else if (!configured) "Map unavailable. Search for a place to select its coordinates."
                         else "Map could not load. Check your connection or search for a place.")
         } else if (!styleReady) {
@@ -275,14 +333,14 @@ fun LocationMap(
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text("Loading map…", style = MaterialTheme.typography.labelMedium)
+                    Text("Loading mapâ€¦", style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
     }
 }
 /** Code-drawn marker: its bottom tip is anchored to the selected coordinate. */
-internal fun locationPinBitmap(color: Int): Bitmap {
+internal fun locationPinBitmap(color: Int, delivery: Boolean = false): Bitmap {
     val bitmap = Bitmap.createBitmap(48, 64, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -310,6 +368,11 @@ internal fun locationPinBitmap(color: Int): Bitmap {
         cubicTo(22f, 22f, 19f, 26f, 16f, 30f)
         close()
     }
-    canvas.drawPath(leaf, paint)
+    if (delivery) {
+        canvas.drawRoundRect(12f, 17f, 29f, 29f, 2f, 2f, paint)
+        canvas.drawRect(29f, 22f, 36f, 29f, paint)
+        canvas.drawCircle(18f, 32f, 3f, paint)
+        canvas.drawCircle(31f, 32f, 3f, paint)
+    } else canvas.drawPath(leaf, paint)
     return bitmap
 }

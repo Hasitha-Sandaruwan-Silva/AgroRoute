@@ -345,13 +345,14 @@ private fun LocalFarmersPromo(onExplore: () -> Unit, modifier: Modifier) {
     }
 }
 
-/** Keep the four real destinations; AgroRoute has no standalone marketplace map route. */
+/** Supplier root destinations share the same navigation surface. */
 @Composable
 fun SupplierHomeBottomNavigation(onNavigate: (String) -> Unit, modifier: Modifier = Modifier,
     selectedRoute: String = com.agroroute.core.navigation.Screen.SupplierHome.route) {
     val tabs = listOf(
         Triple(com.agroroute.core.navigation.Screen.SupplierHome.route, "Home", Lucide.Home),
         Triple(com.agroroute.core.navigation.Screen.SupplierMarketplace.route, "Marketplace", Lucide.Store),
+        Triple(com.agroroute.core.navigation.Screen.SupplierMap.route, "Map", Lucide.MapPin),
         Triple(com.agroroute.core.navigation.Screen.SupplierOrders.route, "Orders", Lucide.Receipt),
         Triple(com.agroroute.core.navigation.Screen.SupplierProfile.route, "Profile", Lucide.User)
     )

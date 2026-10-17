@@ -249,6 +249,7 @@ fun SupplierTopBar(
 internal val supplierTabRoutes = setOf(
     Screen.SupplierHome.route,
     Screen.SupplierMarketplace.route,
+    Screen.SupplierMap.route,
     Screen.SupplierOrders.route,
     Screen.SupplierProfile.route
 )
@@ -271,6 +272,7 @@ internal val supplierRoutes = setOf(
 internal fun supplierTitle(route: String): String = when {
     route == Screen.SupplierHome.route -> "Home"
     route == Screen.SupplierMarketplace.route -> "Marketplace"
+    route == Screen.SupplierMap.route -> "Map"
     route == Screen.SupplierOrders.route -> "Orders"
     route == Screen.SupplierBids.route -> "My Bids"
     route == Screen.SupplierProfile.route -> "Profile"

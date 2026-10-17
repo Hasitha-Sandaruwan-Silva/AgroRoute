@@ -355,6 +355,10 @@ fun NavGraph(
                     PlaceOrderRequestScreen(listingId = listingId, navController = navController)
                 }
 
+                composable(Screen.SupplierMap.route) {
+                    com.agroroute.features.supplier.map.SupplierMapScreen(navController)
+                }
+
                 composable(Screen.SupplierOrders.route) {
                     SupplierOrdersScreen(navController = navController)
                 }
