@@ -65,7 +65,7 @@ fun AnimatedBottomBar(
     val labelHeight = with(LocalDensity.current) {
         MaterialTheme.typography.labelSmall.lineHeight.toDp()
     }
-    val barHeight = maxOf(62.dp, 46.dp + labelHeight)
+    val barHeight = maxOf(64.dp, 49.dp + labelHeight)
 
     val selectedIndex = items
         .indexOfFirst {
@@ -80,7 +80,7 @@ fun AnimatedBottomBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(
-                horizontal = 14.dp,
+                horizontal = 16.dp,
                 vertical = 6.dp
             ),
         contentAlignment = Alignment.Center
@@ -91,14 +91,14 @@ fun AnimatedBottomBar(
                 .widthIn(max = 500.dp)
                 .fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            color = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            tonalElevation = 4.dp,
-            shadowElevation = 7.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 4.dp,
             border = BorderStroke(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(
-                    alpha = 0.45f
+                    alpha = 0.65f
                 )
             )
         ) {
@@ -108,7 +108,7 @@ fun AnimatedBottomBar(
                     .fillMaxWidth()
                     .height(barHeight)
                     .padding(
-                        horizontal = 5.dp,
+                        horizontal = 4.dp,
                         vertical = 4.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically,
@@ -169,9 +169,7 @@ private fun BottomNavigationItem(
 
     val capsuleColor by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(
-                alpha = 0.72f
-            )
+            MaterialTheme.colorScheme.primaryContainer
         } else {
             Color.Transparent
         },
@@ -183,7 +181,7 @@ private fun BottomNavigationItem(
         modifier = modifier
             .fillMaxHeight()
             .padding(horizontal = 2.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(capsuleColor)
             .semantics {
                 this.selected = selected
@@ -196,7 +194,7 @@ private fun BottomNavigationItem(
                 onClick()
             }
             .padding(
-                horizontal = 4.dp,
+                horizontal = 2.dp,
                 vertical = 4.dp
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -206,8 +204,8 @@ private fun BottomNavigationItem(
         // Small premium indicator.
         Box(
             modifier = Modifier
-                .width(if (selected) 20.dp else 0.dp)
-                .height(3.dp)
+                .width(16.dp)
+                .height(2.dp)
                 .clip(RoundedCornerShape(50))
                 .background(
                     if (selected) {
@@ -220,7 +218,7 @@ private fun BottomNavigationItem(
 
         Spacer(
             modifier = Modifier.height(
-                if (selected) 3.dp else 6.dp
+                3.dp
             )
         )
 

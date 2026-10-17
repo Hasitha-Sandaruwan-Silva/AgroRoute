@@ -1,25 +1,19 @@
 package com.agroroute.features.farmer.shell
 
-import android.app.Activity
-import android.os.Build
-import android.view.WindowManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import com.agroroute.core.runtime.appViewModel as hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -42,7 +36,7 @@ fun FarmerTopBar(
     val title = farmerTitle(currentRoute)
     val subtitle = farmerSubtitle(currentRoute)
 
-    val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     var showAvatarMenu by remember { mutableStateOf(false) }
 
@@ -50,7 +44,8 @@ fun FarmerTopBar(
         Column(modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars).background(surfaceColor))
             Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 12.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -61,15 +56,15 @@ fun FarmerTopBar(
                         }
                         Spacer(Modifier.width(4.dp))
                     } else {
-                        Image(painter = painterResource(id = R.drawable.logo), contentDescription = "Logo", modifier = Modifier.size(32.dp))
+                        Image(painter = painterResource(id = R.drawable.logo), contentDescription = "Logo", modifier = Modifier.size(30.dp))
                         Spacer(Modifier.width(10.dp))
                     }
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         if (isTab) {
-                            Text("AgroRoute", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, letterSpacing = (-0.3).sp, color = MaterialTheme.colorScheme.primary)
-                            Text("FARMER", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("AgroRoute", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 19.sp, letterSpacing = (-0.3).sp, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("FARMER", style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         } else {
-                            Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (subtitle != null) {
                                 Text(subtitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
@@ -77,13 +72,14 @@ fun FarmerTopBar(
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(modifier = Modifier.padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     NotificationBell(navController = navController, tint = MaterialTheme.colorScheme.onSurface)
 
                     Box {
-                        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        IconButton(onClick = { showAvatarMenu = true }, modifier = Modifier.size(48.dp)
+                            .semantics { contentDescription = "Profile menu" }) {
                             UserProfileAvatar(authState.user?.displayName ?: "Farmer", authState.user?.profileImageUrl,
-                                size = 36.dp, onClick = { showAvatarMenu = true })
+                                size = 34.dp)
                         }
                         DropdownMenu(expanded = showAvatarMenu, onDismissRequest = { showAvatarMenu = false }) {
                             DropdownMenuItem(
@@ -114,7 +110,7 @@ fun FarmerTopBar(
                     }
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f), thickness = 0.5.dp)
         }
     }
 

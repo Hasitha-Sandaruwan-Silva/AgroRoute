@@ -21,6 +21,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 private val LocalStatusBarDarkSurface = staticCompositionLocalOf<MutableState<Boolean?>?> { null }
+private val LocalStartupBarSurface = staticCompositionLocalOf<MutableState<Boolean?>?> { null }
+
+/** A transient startup surface takes priority over headers already rendering beneath it. */
+@Composable
+fun StartupStatusBar(darkSurface: Boolean) {
+    val override = LocalStartupBarSurface.current
+    DisposableEffect(override, darkSurface) {
+        override?.value = darkSurface
+        onDispose { override?.value = null }
+    }
+}
 
 /** A photographic header can declare its actual surface without competing window writes. */
 @Composable
@@ -201,9 +212,11 @@ fun AgroRouteTheme(
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
     val statusBarDarkSurface = remember { mutableStateOf<Boolean?>(null) }
-    UpdateStatusBarAppearance(statusBarDarkSurface.value ?: darkTheme)
+    val startupBarSurface = remember { mutableStateOf<Boolean?>(null) }
+    UpdateStatusBarAppearance(startupBarSurface.value ?: statusBarDarkSurface.value ?: darkTheme)
 
     CompositionLocalProvider(LocalAgroExtendedColors provides extendedColors,
+        LocalStartupBarSurface provides startupBarSurface,
         LocalStatusBarDarkSurface provides statusBarDarkSurface) {
         MaterialTheme(
             colorScheme = colorScheme,

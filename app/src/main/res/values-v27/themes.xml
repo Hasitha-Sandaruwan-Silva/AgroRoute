@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AgroRoute.Splash" parent="Theme.AgroRoute.Splash.Base">
+        <item name="android:navigationBarColor">@color/startup_background</item>
+        <item name="android:windowLightNavigationBar">@bool/startup_light_system_bars</item>
+    </style>
+</resources>
