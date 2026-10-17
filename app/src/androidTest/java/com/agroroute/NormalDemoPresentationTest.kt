@@ -209,7 +209,8 @@ class NormalDemoPresentationTest {
             awaitText("FreshMart Traders")
             capture("supplier-profile-$scheme.png")
             compose.onNodeWithText("Notifications", substring = false).performScrollTo().performClick()
-            awaitText("No notifications yet")
+            awaitText("You’re all caught up")
+            compose.onNodeWithText("New order, request and message updates will appear here.").performScrollTo().assertIsDisplayed()
             capture("supplier-notifications-$scheme.png")
             assertFalse(BackgroundNetworkAccess.allowed.value)
         }

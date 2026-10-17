@@ -60,12 +60,12 @@ fun AnimatedBottomBar(
     modifier: Modifier = Modifier
 ) {
 
-    val fontScale = LocalDensity.current.fontScale
-
-    // Compact height, but still gives a little extra room for larger text.
-    val barHeight = (
-            62f + ((fontScale - 1f).coerceIn(0f, 0.6f) * 10f)
-            ).dp
+    // Reserve the icon, indicator and padding plus the actual scaled text line.
+    // Using the density conversion also respects Android's nonlinear font scaling.
+    val labelHeight = with(LocalDensity.current) {
+        MaterialTheme.typography.labelSmall.lineHeight.toDp()
+    }
+    val barHeight = maxOf(62.dp, 46.dp + labelHeight)
 
     val selectedIndex = items
         .indexOfFirst {

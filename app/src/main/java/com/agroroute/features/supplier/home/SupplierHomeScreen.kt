@@ -47,6 +47,8 @@ fun SupplierHomeScreen(
         SupplierHomeContent(
             user = auth.user, listings = market.listings, bids = bids.bids, heroStatusBar = true,
             orders = orders.orders, loading = market.isLoading && market.listings.isEmpty(), now = now,
+            requests = orders.requests,
+            onOrder = { order -> navController.navigate(Screen.SupplierOrderDetail.createRoute(order.orderId)) },
             onMarketplace = { navController.navigate(Screen.SupplierMarketplace.route) },
             onOrders = { navController.navigate(Screen.SupplierOrders.route) },
             onBids = { navController.navigate(Screen.SupplierBids.route) },

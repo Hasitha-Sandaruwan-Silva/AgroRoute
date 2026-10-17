@@ -80,12 +80,15 @@ internal fun SupplierHomeContent(
     onCommunity: () -> Unit, onListing: (HarvestListing) -> Unit, notification: @Composable () -> Unit,
     onSearch: () -> Unit = onMarketplace,
     heroStatusBar: Boolean = false,
-    communityLeaders: (@Composable () -> Unit)? = null
+    communityLeaders: (@Composable () -> Unit)? = null,
+    requests: List<OrderRequest> = emptyList(),
+    onOrder: (Order) -> Unit = {}
 ) {
     val profileDiscoveryAllowed = com.agroroute.core.runtime.LocalMutationAllowed.current
     var category by rememberSaveable { mutableStateOf("All") }
     val active = remember(listings, now) { homeActiveListings(listings, now) }
     val selected = remember(active, category) { active.filter { category == "All" || supplierProduceGroup(it.cropName) == category } }
+    val accepted = remember(orders, user?.userId) { homeAcceptedOrders(orders, user?.userId.orEmpty()) }
     LazyColumn(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).testTag("supplier-home"),
         contentPadding = PaddingValues(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -111,6 +114,9 @@ internal fun SupplierHomeContent(
                     items(selected.take(8), key = { it.listingId }) { FeaturedProduceCard(it) { onListing(it) } }
                 }
             }
+        }
+        if (accepted.isNotEmpty()) item(key = "accepted-orders") {
+            SupplierAcceptedOrders(accepted, listings, requests, now, onOrders, onOrder)
         }
         item(key = "latest-heading") { HomeSectionHeading("Latest Listings", onMarketplace) }
         item(key = "latest-and-promo") {

@@ -29,6 +29,8 @@ class ChatInboxWatchTest {
         val service: NotificationService
         val profile = UserProfile(userId = "receiver", role = UserRole.SUPPLIER)
         init {
+            mockkStatic(android.util.Log::class)
+            every { android.util.Log.d(any(), any()) } returns 0
             mockkStatic(FirebaseAuth::class, FirebaseFirestore::class)
             every { FirebaseAuth.getInstance() } returns auth
             every { FirebaseFirestore.getInstance() } returns db
@@ -110,9 +112,27 @@ class ChatInboxWatchTest {
         verify(exactly = 2) { f.service.post(any(), any(), any(), any(), any(), any()) }
         job.cancel(); runCurrent()
     }
+    @Test fun nonChatEventsRetryAfterPermissionGrantAndDeduplicateAcrossRestart() = runTest {
+        val f = Fixture()
+        every { f.row.getString("eventType") } returns "ORDER_COMPLETED"
+        // An open chat must never consume an order notification.
+        ChatNotificationVisibility.visible.value = "receiver" to "sender"
+        every { NotificationHelper.areNotificationsEnabled(f.context, any()) } returns false
+        var job = launch { f.service.watchInbox(f.profile) }; runCurrent()
+        f.callback.onEvent(f.snapshot, null); runCurrent()
+        verify(exactly = 0) { f.service.post(any(), any(), any(), any(), any(), any()) }
+        every { NotificationHelper.areNotificationsEnabled(f.context, any()) } returns true
+        NotificationDeliveryRefresh.refresh(); runCurrent()
+        job.cancel(); runCurrent()
+        job = launch { f.service.watchInbox(f.profile) }; runCurrent()
+        f.callback.onEvent(f.snapshot, null); runCurrent()
+        verify(exactly = 1) { f.service.post(NotificationEvent.ORDER_COMPLETED, any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { f.service.markInboxItemRead(any()) }
+        job.cancel(); runCurrent()
+    }
+
     @Test fun terminalListenerFailureRetriesWithoutDuplicatingAnAlreadyPostedMessage() = runTest {
         val f = Fixture()
-        mockkStatic(android.util.Log::class)
         every { android.util.Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
         val job = launch { f.service.watchInbox(f.profile) }; runCurrent()
         f.callback.onEvent(f.snapshot, null); runCurrent()

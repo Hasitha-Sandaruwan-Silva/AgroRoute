@@ -31,11 +31,13 @@ internal object SparkNotificationInbox {
                 row.getTimestamp("readAt")?.toDate()?.time, message.getString("orderId").orEmpty())
         }
         val collection = when {
+            event == NotificationEvent.BID_ACCEPTED -> "orders"
             event.name.startsWith("BID_") -> "bids"
             event.name.startsWith("ORDER_REQUEST_") || event.name.startsWith("HARVEST_") -> "order_requests"
             else -> "orders"
         }
         val source = db.collection(collection).document(id).get(Source.SERVER).await()
+        if (!source.exists()) return null
         val p = NotificationEvent.Payload(orderId = if (event in listOf(NotificationEvent.BID_ACCEPTED,
                 NotificationEvent.ORDER_REQUEST_ACCEPTED) || collection == "orders") id else "",
             bidId = if (collection == "bids") id else "", requestId = if (collection == "order_requests") id else "",

@@ -29,6 +29,8 @@ import com.agroroute.core.components.ErrorSnackbarEffect
 import com.agroroute.core.components.LoadingButton
 import com.github.thelacspace.icons.Lucide
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun LoginScreen(
@@ -150,17 +152,16 @@ fun LoginScreen(
     if (showPasswordResetDialog) {
         Dialog(onDismissRequest = { showPasswordResetDialog = false }, properties = DialogProperties(dismissOnClickOutside = true)) {
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                Column(Modifier.padding(24.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp)) {
                     Text("Reset Password", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                     Spacer(Modifier.height(8.dp))
                     Text("Enter your email address and we'll send you a link to reset your password.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(20.dp))
                     OutlinedTextField(value = resetEmail, onValueChange = { resetEmail = it }, label = { Text("Email address") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
                     Spacer(Modifier.height(20.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                        LoadingButton(text = "Send Reset Link", isLoading = uiState.isLoading, onClick = { viewModel.sendPasswordResetEmail(resetEmail) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp))
                         TextButton(onClick = { showPasswordResetDialog = false }, enabled = !uiState.isLoading) { Text("Cancel") }
-                        Spacer(Modifier.width(8.dp))
-                        LoadingButton(text = "Send Reset Link", isLoading = uiState.isLoading, onClick = { viewModel.sendPasswordResetEmail(resetEmail) }, modifier = Modifier.height(48.dp))
                     }
                 }
             }

@@ -1,7 +1,6 @@
 package com.agroroute.features.participants
 
 import android.net.Uri
-import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -83,8 +82,7 @@ fun ParticipantProfileScreen(id: String, navController: NavController, viewModel
                         Text("Mobile number", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(phone)
                         OutlinedButton(onClick = {
-                            val intent = Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", phone, null))
-                            if (intent.resolveActivity(context.packageManager) != null) context.startActivity(intent)
+                            com.agroroute.core.components.openPhoneDialer(context, phone)
                         }) { Icon(Lucide.Phone, null); Spacer(Modifier.width(8.dp)); Text("Call") }
                     }
                 } }

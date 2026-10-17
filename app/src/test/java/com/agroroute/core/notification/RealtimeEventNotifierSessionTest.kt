@@ -2,35 +2,31 @@ package com.agroroute.core.notification
 
 import com.agroroute.core.model.UserProfile
 import com.agroroute.core.model.UserRole
-import com.agroroute.core.remote.FirestoreService
-import com.google.firebase.firestore.*
 import io.mockk.*
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.test.*
 import org.junit.Assert.*
 import org.junit.Test
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class RealtimeEventNotifierSessionTest {
-    private suspend fun kotlinx.coroutines.test.TestScope.verifyStop(role: UserRole) {
-        val firestore=mockk<FirebaseFirestore>()
-        val collection=mockk<CollectionReference>()
-        val query=mockk<Query>()
-        val registrations=mutableListOf<ListenerRegistration>()
-        every { firestore.collection(any()) } returns collection
-        every { collection.whereEqualTo(any<String>(),any()) } returns query
-        every { query.addSnapshotListener(any<EventListener<QuerySnapshot>>()) } answers {
-            mockk<ListenerRegistration>(relaxed=true).also { registrations += it }
+    @Test fun restartingAndStoppingRemoveThePreviousAccountWatch() = runTest {
+        val service = mockk<NotificationService>()
+        val active = mutableSetOf<String>()
+        coEvery { service.watchInbox(any()) } coAnswers {
+            val uid = firstArg<UserProfile>().userId
+            assertTrue(active.add(uid))
+            try { awaitCancellation() } finally { active.remove(uid) }
         }
-        val notifier=RealtimeEventNotifier(FirestoreService(firestore),mockk(relaxed=true),mockk(relaxed=true))
-        notifier.start(this,UserProfile(userId="real-session-test",role=role))
-        runCurrent()
-        assertTrue("Expected actual callback-flow listeners",registrations.isNotEmpty())
-        notifier.stop()
-        runCurrent()
-        registrations.forEach { verify(exactly=1) { it.remove() } }
+        val notifier = RealtimeEventNotifier(service)
+        val farmer = UserProfile(userId = "farmer", role = UserRole.FARMER)
+        notifier.start(this, farmer); runCurrent()
+        notifier.start(this, farmer); runCurrent()
+        assertEquals(setOf("farmer"), active)
+        notifier.start(this, UserProfile(userId = "supplier", role = UserRole.SUPPLIER)); runCurrent()
+        assertEquals(setOf("supplier"), active)
+        notifier.stop(); runCurrent()
+        assertTrue(active.isEmpty())
         assertTrue(coroutineContext[kotlinx.coroutines.Job]!!.isActive)
     }
-    @Test fun farmerStopCancelsEverySessionChildListener() = runTest { verifyStop(UserRole.FARMER) }
-    @Test fun supplierStopCancelsEverySessionChildListener() = runTest { verifyStop(UserRole.SUPPLIER) }
 }

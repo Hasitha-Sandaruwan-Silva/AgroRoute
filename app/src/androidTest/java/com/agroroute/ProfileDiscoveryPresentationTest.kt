@@ -91,20 +91,12 @@ class ProfileDiscoveryPresentationTest(private val dark: Boolean, private val vi
         compose.onNodeWithText("Call").assertIsDisplayed()
         compose.runOnIdle { assertEquals(user.userId, identityId); assertEquals(user.userId, phoneId) }
         capture("order-card")
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val probe = android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.fromParts("tel", "071 234 5678", null))
-        val available = probe.resolveActivity(instrumentation.targetContext.packageManager) != null
         compose.onNodeWithText("Call").performClick()
         compose.runOnIdle {
-            if (available) {
-                assertEquals(android.content.Intent.ACTION_DIAL, dialed?.action)
-                assertEquals("tel", dialed?.data?.scheme)
-                assertEquals("071 234 5678", dialed?.data?.schemeSpecificPart)
-            } else assertNull(dialed)
+            assertEquals(android.content.Intent.ACTION_DIAL, dialed?.action)
+            assertEquals("tel", dialed?.data?.scheme)
+            assertEquals("071 234 5678", dialed?.data?.schemeSpecificPart)
         }
-        instrumentation.sendStatus(0, android.os.Bundle().apply {
-            putString("stream", "\nExisting dialer handler visible to app: $available\n")
-        })
         // Capture startActivity only inside this test; no external app or call is launched.
     }
     @Test fun marketplaceFarmerIdentityOpensProfileWithoutChangingListingAction() {

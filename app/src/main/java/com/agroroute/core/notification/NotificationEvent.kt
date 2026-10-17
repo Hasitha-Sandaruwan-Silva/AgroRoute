@@ -26,7 +26,7 @@ enum class NotificationEvent(
         title = "Harvest ready",
         content = { _, p ->
             val crop = p.cropName.takeIf { it.isNotBlank() } ?: "your harvest"
-            "$crop is ready. A supplier with an order request has been notified."
+            "$crop is ready. Check your order request for details."
         },
         importance = android.app.NotificationManager.IMPORTANCE_DEFAULT,
         category = "listing"
@@ -146,8 +146,7 @@ enum class NotificationEvent(
     ORDER_IN_TRANSIT(
         title = "Order in transit",
         content = { _, p ->
-            val id = p.orderId.takeIf { it.isNotBlank() } ?: "this order"
-            "$id is now in transit."
+            "${p.cropName.ifBlank { "Your produce" }} order is now in transit."
         },
         importance = android.app.NotificationManager.IMPORTANCE_DEFAULT,
         category = "order"
@@ -157,8 +156,7 @@ enum class NotificationEvent(
     ORDER_CANCELLED(
         title = "Order cancelled",
         content = { _, p ->
-            val id = p.orderId.takeIf { it.isNotBlank() } ?: "this order"
-            "$id was cancelled."
+            "${p.cropName.ifBlank { "Your produce" }} order was cancelled."
         },
         importance = android.app.NotificationManager.IMPORTANCE_DEFAULT,
         category = "order"
@@ -168,8 +166,7 @@ enum class NotificationEvent(
     ORDER_COMPLETED(
         title = "Order completed",
         content = { _, p ->
-            val id = p.orderId.takeIf { it.isNotBlank() } ?: "this order"
-            "$id has been completed."
+            "${p.cropName.ifBlank { "Your produce" }} order has been completed."
         },
         importance = android.app.NotificationManager.IMPORTANCE_DEFAULT,
         category = "order"

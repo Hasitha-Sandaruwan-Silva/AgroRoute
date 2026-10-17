@@ -28,6 +28,18 @@ import androidx.compose.material3.Icon
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
+/** Launch directly: package visibility can hide a dialer from resolveActivity. */
+internal fun openPhoneDialer(context: android.content.Context, phone: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", phone, null))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (_: android.content.ActivityNotFoundException) {
+        android.widget.Toast.makeText(context, "No phone app is available on this device.", android.widget.Toast.LENGTH_LONG).show()
+    } catch (_: SecurityException) {
+        android.widget.Toast.makeText(context, "Couldn't open the phone app. Please dial the number manually.", android.widget.Toast.LENGTH_LONG).show()
+    }
+}
+
 /** Loads a saved phone number from the user's Firestore profile and opens the system dialer. */
 @Composable
 fun ProfilePhoneContact(
@@ -107,13 +119,7 @@ fun ProfilePhoneContact(
             Spacer(Modifier.width(8.dp))
             OutlinedButton(
                 onClick = {
-                    val dialIntent = Intent(
-                        Intent.ACTION_DIAL,
-                        Uri.fromParts("tel", phone, null)
-                    )
-                    if (dialIntent.resolveActivity(context.packageManager) != null) {
-                        context.startActivity(dialIntent)
-                    }
+                    phone?.let { openPhoneDialer(context, it) }
                 }
             ) {
                 Icon(Lucide.Phone, contentDescription = null)

@@ -46,7 +46,7 @@ class AuthPresentationTest(private val dark: Boolean) {
     private var completedRole: UserRole? = null
     private val role get() = if (dark) UserRole.SUPPLIER else UserRole.FARMER
 
-    private fun content(compact: Boolean = false, startWelcome: Boolean = false) {
+    private fun content(compact: Boolean = false, startWelcome: Boolean = false, fontScale: Float? = null) {
         // Keep the fixture activity visible during physical-device runs; no device settings change.
         compose.runOnUiThread {
             compose.activity.setShowWhenLocked(true)
@@ -64,7 +64,7 @@ class AuthPresentationTest(private val dark: Boolean) {
                 }
                 val nav = rememberNavController()
                 val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, if (compact) 1.3f else density.fontScale)) {
+                CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale ?: if (compact) 1.3f else density.fontScale)) {
                 Box(if (compact) Modifier.size(320.dp, 480.dp) else Modifier.fillMaxSize()) {
                 NavHost(nav, startDestination = if (compact && !startWelcome) Screen.Register.route else Screen.Welcome.route) {
                     composable(Screen.Welcome.route) { WelcomeScreen(nav) }
@@ -281,6 +281,24 @@ class AuthPresentationTest(private val dark: Boolean) {
         compose.onNodeWithText("Create Account").performScrollTo().assertIsDisplayed()
         roleNode("Supplier").performScrollTo().performClick().assertIsSelected()
         compose.onNodeWithText("Create Account").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun passwordResetActionsRemainReachableWithLargeTextAndKeyboard() {
+        content(compact = true, startWelcome = true, fontScale = 2f)
+        compose.onNodeWithText("I already have an account").performScrollTo().performClick()
+        compose.onNodeWithText("Forgot password?").performScrollTo().performClick()
+        field("Email address").performScrollTo().performClick().performTextInput("test@example.com")
+        val action = compose.onNodeWithText("Send Reset Link").performScrollTo().assertIsDisplayed()
+        val button = action.fetchSemanticsNode().boundsInRoot
+        val dialog = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
+        assertTrue("Reset action must fit horizontally", button.left >= dialog.left && button.right <= dialog.right)
+        File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
+            "auth-reset-large-font-$dark.png").outputStream().use {
+            compose.onNode(isDialog()).captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        compose.onNodeWithText("Cancel").performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithText("Reset Password").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(0, repository.resetCalls) }
     }
 }
 

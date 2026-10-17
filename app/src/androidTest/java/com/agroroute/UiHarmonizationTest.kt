@@ -99,4 +99,22 @@ class UiHarmonizationTest(private val dark: Boolean) {
         compose.onNode(isSelected()).assertTextContains("Orders")
         capture("navigation")
     }
+
+    @Test fun compactNavigationKeepsLargeFontLabelsInsideTheirTabs() {
+        val items = listOf(BottomNavItem("home", "Home", Lucide.Leaf), BottomNavItem("orders", "Orders", Lucide.Receipt))
+        compose.setContent {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides
+                androidx.compose.ui.unit.Density(density.density, 2f)) {
+                AgroRouteTheme(darkTheme = dark) {
+                    Box(Modifier.width(320.dp)) { AnimatedBottomBar(items, "home", {}) }
+                }
+            }
+        }
+        val tab = compose.onNode(isSelected()).fetchSemanticsNode().boundsInRoot
+        val label = compose.onNodeWithText("Home", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        assertTrue("Large label must fit vertically inside the tab", label.top >= tab.top && label.bottom <= tab.bottom)
+        compose.onNodeWithText("Orders").assertIsDisplayed().performClick()
+        capture("navigation-large-font")
+    }
 }

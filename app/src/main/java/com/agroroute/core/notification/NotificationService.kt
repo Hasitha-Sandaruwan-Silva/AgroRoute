@@ -53,7 +53,10 @@ class NotificationService @Inject constructor(
             val registration = db.collection("user_notifications").document(profile.userId).collection("items")
                 .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING).limit(100)
                 .addSnapshotListener(com.google.firebase.firestore.MetadataChanges.INCLUDE) { snapshot, error ->
-                    if (error != null) close(error) else if (snapshot != null) trySend(snapshot)
+                    if (error != null) close(error) else if (snapshot != null) {
+                        Log.d("AgroRouteInbox", "Inbox snapshot: count=${snapshot.size()} cache=${snapshot.metadata.isFromCache}")
+                        trySend(snapshot)
+                    }
                 }
             awaitClose { registration.remove() }
         }.filter { !it.metadata.isFromCache }.retryWhen { cause, attempt ->
@@ -70,25 +73,26 @@ class NotificationService @Inject constructor(
                 if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != profile.userId) return@collect
                 changes.emit(Unit)
                 for (row in snapshot.documents) {
-                    if (row.getString("eventType") != NotificationEvent.CHAT_MESSAGE.name || row.get("readAt") != null) continue
+                    if (row.get("readAt") != null) continue
+                    val event = runCatching { NotificationEvent.valueOf(row.getString("eventType").orEmpty()) }.getOrNull() ?: continue
                     val senderId = row.getString("actorId") ?: continue
                     if (senderId == profile.userId || row.getString("recipientId") != profile.userId) continue
-                    if (visible == (profile.userId to senderId)) {
+                    if (event == NotificationEvent.CHAT_MESSAGE && visible == (profile.userId to senderId)) {
                         try { markInboxItemRead(row.id) }
                         catch (e: CancellationException) { throw e }
                         catch (e: Exception) { Log.w("AgroRouteInbox", "Could not mark visible chat notification read", e) }
                         continue
                     }
                     if (delivered.getBoolean(row.id, false)) continue
-                    if (!NotificationHelper.areNotificationsEnabled(context, NotificationHelper.MESSAGES_CHANNEL_ID)) continue
+                    if (!NotificationHelper.areNotificationsEnabled(context, channelFor(event))) continue
                     try {
                         val item = SparkNotificationInbox.render(context, db, row, profile.role) ?: continue
                         if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid != profile.userId) return@collect
-                        val posted = post(NotificationEvent.CHAT_MESSAGE, NotificationEvent.Payload(orderId = item.orderId),
+                        val posted = post(event, NotificationEvent.Payload(orderId = item.orderId),
                             route = item.route, title = item.title, body = item.body, eventId = item.id)
                         if (posted) delivered.edit().putBoolean(row.id, true).apply()
                     } catch (e: CancellationException) { throw e }
-                    catch (e: Exception) { Log.w("AgroRouteInbox", "Could not render chat notification", e) }
+                    catch (e: Exception) { Log.w("AgroRouteInbox", "Could not render inbox notification", e) }
                 }
             }
     }
@@ -167,9 +171,13 @@ class NotificationService @Inject constructor(
         body: String = event.content(context, payload),
         eventId: String = ""
     ): Boolean {
-        val channelId = if (event == NotificationEvent.CHAT_MESSAGE) NotificationHelper.MESSAGES_CHANNEL_ID else NotificationHelper.CHANNEL_ID
+        val channelId = channelFor(event)
+        NotificationChannels.ensureCreated(context)
         NotificationHelper.createOrGetChannel(context)
-        if (!NotificationHelper.areNotificationsEnabled(context, channelId)) return false
+        if (!NotificationHelper.areNotificationsEnabled(context, channelId)) {
+            Log.d("AgroRouteInbox", "Notification blocked by permission/app/channel settings: $channelId")
+            return false
+        }
 
         val launchIntent = Intent(context, com.agroroute.MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -203,7 +211,13 @@ class NotificationService @Inject constructor(
             .build()
 
         val manager = notificationManager ?: return false
-        manager.notify((eventId.ifBlank { payload.key + event.name }).hashCode(), notification)
+        try {
+            manager.notify((eventId.ifBlank { payload.key + event.name }).hashCode(), notification)
+        } catch (error: RuntimeException) {
+            Log.w("AgroRouteInbox", "Android notification post failed: $channelId", error)
+            return false
+        }
+        Log.d("AgroRouteInbox", "Android notification posted: ${event.name} channel=$channelId")
         return true
     }
 
@@ -242,6 +256,15 @@ class NotificationService @Inject constructor(
 
 
     companion object {
+        internal fun channelFor(event: NotificationEvent): String = when {
+            event == NotificationEvent.CHAT_MESSAGE -> NotificationHelper.MESSAGES_CHANNEL_ID
+            event == NotificationEvent.HARVEST_REMINDER -> NotificationHelper.CHANNEL_ID
+            event.name.startsWith("HARVEST_") -> NotificationChannels.LISTINGS
+            event.name.startsWith("BID_") -> NotificationChannels.BIDS
+            event.name.startsWith("ORDER_REQUEST_") -> NotificationChannels.ORDER_REQUESTS
+            else -> NotificationChannels.ORDERS
+        }
+
         const val LOCAL_HARVEST_PREFIX = "local-harvest:"
     }
 }
