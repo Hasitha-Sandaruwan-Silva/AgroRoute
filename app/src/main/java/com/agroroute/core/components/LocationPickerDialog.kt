@@ -32,6 +32,9 @@ import com.agroroute.core.location.SelectedLocation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.animation.Crossfade
 
 @Composable
 fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
@@ -142,14 +145,19 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
             LocationPickerLayout(
                 search = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (!keyboardVisible) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        if (!keyboardVisible) Surface(shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            shadowElevation = 4.dp) {
+                            Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             FilledTonalIconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) { Icon(Lucide.ArrowLeft, "Back") }
                             Column(Modifier.weight(1f)) {
-                                Text("Choose location", style = MaterialTheme.typography.titleLarge)
-                                Text("Find a place or position the pin", style = MaterialTheme.typography.bodySmall,
+                                Text("Choose location", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text("Tap the map or use your location", style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                        }
                         }
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -158,7 +166,10 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                             }
                             OutlinedTextField(query, { query = it }, placeholder = {
                                 Text("Search a place or address", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }, singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f),
+                            }, singleLine = true, shape = RoundedCornerShape(24.dp), modifier = Modifier.weight(1f),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface),
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                                 keyboardActions = KeyboardActions(onSearch = {
                                     search()
@@ -189,25 +200,31 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                             focusRequest = focusRequest, onSelect = { select(it, focus = false) },
                             modifier = Modifier.fillMaxSize())
                         if (maxHeight >= 140.dp) {
-                            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface,
+                            Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface,
+                                shadowElevation = 2.dp,
                                 modifier = Modifier.align(Alignment.TopStart).padding(top = 12.dp, start = 12.dp, end = 72.dp)) {
-                                Text("Tap to place a pin", style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                                Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Icon(Lucide.MapPin, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Text("Tap to place a pin", style = MaterialTheme.typography.labelSmall)
+                                }
                             }
                         }
                         MapLocationControl(locating = locating, description = "Go to my current location", onClick = {
                             if (services.hasPermission()) locate() else permissionLauncher.launch(arrayOf(
                                 Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
-                        }, modifier = Modifier.align(Alignment.TopEnd)
+                        }, modifier = Modifier.align(Alignment.BottomEnd)
                             .padding(if (maxHeight < 100.dp) 4.dp else 12.dp))
                     }
                 },
                 address = {
-                    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        shadowElevation = 2.dp) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Icon(Lucide.MapPin, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                Text("Your selected location", style = MaterialTheme.typography.labelLarge,
+                                Text("Your selected location", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                             // The editable address is shown once; saved coordinates remain unchanged.
@@ -218,9 +235,11 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                                 shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
                             if (!hasSelection) Text("Tap the map or search for your pickup / delivery location.",
                                 style = MaterialTheme.typography.bodySmall)
-                            else Text(selected.coordinates(), style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                            else Crossfade(targetState = selected.coordinates(), label = "selected-coordinates") { coordinates ->
+                                Text(coordinates, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            message?.let { MapStatusMessage("Location update", it, error = true) }
                             if (permissionDenied) TextButton(onClick = {
                                 context.startActivity(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                     android.net.Uri.parse("package:${context.packageName}")))
@@ -232,7 +251,9 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                     Button(onClick = { focusManager.clearFocus(); keyboard?.hide(); onConfirm(selected.toStoredText()) },
                         enabled = hasSelection, shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                        Text("Use this location")
+                        Icon(Lucide.Check, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Use this location", fontWeight = FontWeight.SemiBold)
                     }
                 }
             )

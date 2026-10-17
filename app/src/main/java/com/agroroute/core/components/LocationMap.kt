@@ -73,7 +73,7 @@ fun LocationMap(
     val pinColor = when (orderViewport?.kind) {
         OrderDestinationKind.PICKUP -> GreenEmerald.toArgb()
         OrderDestinationKind.DELIVERY -> 0xFFB96F27.toInt()
-        null -> MaterialTheme.colorScheme.primary.toArgb()
+        null -> GreenEmerald.toArgb()
     }
     val density = LocalDensity.current
     var measuredSize by remember { mutableStateOf(IntSize.Zero) }
@@ -264,18 +264,14 @@ fun LocationMap(
         .testTag("location-map")) {
         if (mapView != null) AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
         if (!configured || mapFailed) {
-            Surface(modifier = Modifier.align(Alignment.Center).padding(16.dp),
-                shape = RoundedCornerShape(16.dp), tonalElevation = 4.dp) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Unable to load map", style = MaterialTheme.typography.titleSmall)
-                    Text(if (orderViewport != null) "Map unavailable. The saved destination is shown below."
+            MapStatusMessage(title = "Unable to load map",
+                modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                detail = if (orderViewport != null) "Map unavailable. The saved destination is shown below."
                         else if (!configured) "Map unavailable. Search for a place to select its coordinates."
-                        else "Map could not load. Check your connection or search for a place.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+                        else "Map could not load. Check your connection or search for a place.")
         } else if (!styleReady) {
-            Surface(Modifier.align(Alignment.Center), shape = RoundedCornerShape(16.dp), tonalElevation = 4.dp) {
+            Surface(Modifier.align(Alignment.Center), shape = RoundedCornerShape(24.dp), shadowElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -305,6 +301,15 @@ internal fun locationPinBitmap(color: Int): Bitmap {
     paint.color = color
     canvas.drawPath(path, paint)
     paint.color = android.graphics.Color.WHITE
-    canvas.drawCircle(24f, 23f, 8f, paint)
+    // Leaf / route silhouette; bitmap dimensions and the bottom coordinate anchor stay fixed.
+    val leaf = Path().apply {
+        moveTo(16f, 30f)
+        cubicTo(12f, 20f, 20f, 14f, 33f, 13f)
+        cubicTo(33f, 25f, 28f, 33f, 19f, 32f)
+        cubicTo(22f, 26f, 24f, 23f, 29f, 19f)
+        cubicTo(22f, 22f, 19f, 26f, 16f, 30f)
+        close()
+    }
+    canvas.drawPath(leaf, paint)
     return bitmap
 }

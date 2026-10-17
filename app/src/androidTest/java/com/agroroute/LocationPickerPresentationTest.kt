@@ -58,6 +58,12 @@ class LocationPickerPresentationTest(private val dark: Boolean) {
         compose.runOnIdle { assertEquals("Edited farm\n[7.290600, 80.633700]", confirmed) }
     }
     private fun capture(stage: String) {
+        // Wait for the native style and dialog/IME transitions before judging the UI.
+        compose.waitUntil(25_000) {
+            compose.onAllNodesWithText("Loading map\u2026").fetchSemanticsNodes().isEmpty()
+        }
+        val settledAt = android.os.SystemClock.uptimeMillis()
+        compose.waitUntil(5_000) { android.os.SystemClock.uptimeMillis() - settledAt >= 1_500 }
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         File(instrumentation.targetContext.cacheDir, "location-${if (dark) "dark" else "light"}-$stage.png").outputStream().use {
             instrumentation.uiAutomation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it)

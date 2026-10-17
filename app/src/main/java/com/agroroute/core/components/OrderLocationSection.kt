@@ -28,6 +28,8 @@ import com.agroroute.core.location.openOrderDirections
 import com.agroroute.core.model.Order
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun DeliveryLocationField(value: String, onSelected: (String) -> Unit, enabled: Boolean = true) {
@@ -58,6 +60,7 @@ fun DeliveryLocationField(value: String, onSelected: (String) -> Unit, enabled: 
 
 /** Read-only stage-aware navigation; no snapshot/profile writes or lifecycle actions. */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: RouteRepository? = null) {
     val presentation = orderMapPresentation(order, forSupplier)
     val destination = presentation.destination
@@ -117,7 +120,17 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
     val roadRoute = (routeResult as? RouteResult.Available)?.route?.takeIf { active }
     val pinColor = if (presentation.kind == OrderDestinationKind.PICKUP) GreenEmerald else Color(0xFFB96F27)
     AppCard {
-        Text(presentation.heading, style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                Icon(if (presentation.kind == OrderDestinationKind.PICKUP) Lucide.MapPin else Lucide.Truck,
+                    null, Modifier.padding(10.dp).size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(presentation.heading, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Saved order location", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Spacer(Modifier.height(10.dp))
         if (destination != null) {
             Box(Modifier.fillMaxWidth().height(mapHeight).clip(RoundedCornerShape(22.dp))) {
@@ -139,12 +152,16 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
             }
         }
         Spacer(Modifier.height(10.dp))
-        Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Lucide.MapPin, null, tint = pinColor, modifier = Modifier.size(20.dp))
+            Icon(Lucide.MapPin, null,
+                tint = if (presentation.kind == OrderDestinationKind.PICKUP) MaterialTheme.colorScheme.primary else pinColor,
+                modifier = Modifier.size(20.dp))
             Column(Modifier.weight(1f)) {
-                Text(presentation.destinationLabel, style = MaterialTheme.typography.labelLarge)
+                Text(presentation.destinationLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
                 Text(presentation.address, style = MaterialTheme.typography.bodySmall,
                     maxLines = if (active) 2 else 1, overflow = TextOverflow.Ellipsis)
                 if (active) Text(roadRoute?.summary() ?: when {
@@ -158,13 +175,16 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
         }
         }
         if (active) {
-            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(8.dp).background(Color(0xFF4285F4), CircleShape))
-                Text(if (fix != null) "You" else "Your position unavailable", style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.width(8.dp))
-                Box(Modifier.size(8.dp).background(pinColor, CircleShape))
-                Text(if (presentation.kind == OrderDestinationKind.PICKUP) "Pickup" else "Delivery", style = MaterialTheme.typography.labelSmall)
+            FlowRow(Modifier.padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.size(8.dp).background(Color(0xFF4285F4), CircleShape))
+                    Text(if (fix != null) "You" else "Your position unavailable", style = MaterialTheme.typography.labelSmall)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.size(8.dp).background(pinColor, CircleShape))
+                    Text(if (presentation.kind == OrderDestinationKind.PICKUP) "Pickup" else "Delivery", style = MaterialTheme.typography.labelSmall)
+                }
             }
             Button(onClick = {
                 if (destination != null && !openOrderDirections(context, destination)) message = "No maps app or browser is available."
@@ -175,6 +195,6 @@ fun OrderLocationSection(order: Order, forSupplier: Boolean, routeRepository: Ro
                 Text(presentation.navigationLabel.orEmpty())
             }
         }
-        if (active) message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        if (active) message?.let { MapStatusMessage("Location update", it, error = true, modifier = Modifier.padding(top = 8.dp)) }
     }
 }

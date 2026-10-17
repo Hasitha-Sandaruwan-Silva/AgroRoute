@@ -57,7 +57,8 @@ internal fun LocationPickerLayout(
                 }
             }
         }
-        Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 6.dp,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)) {
             Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) { confirm() }
         }
     }
