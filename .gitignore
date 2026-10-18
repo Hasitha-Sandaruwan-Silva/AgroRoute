@@ -1,11 +1,38 @@
+# Android / Gradle
 .gradle/
-.idea/
-build/
-local.properties
-*.hprof
-*.iml
-*.log
-firestore-debug.log
-node_modules/
-delivery/
 .kotlin/
+/build/
+/app/build/
+**/build/
+*.apk
+*.aab
+*.hprof
+# Local configuration / credentials
+local.properties
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+service-account*.json
+*-service-account*.json
+# IDE / desktop / temporary state
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.bak
+*.old
+# Logs / generated backend output
+*.log
+node_modules/
+/functions/lib/
+# Temporary previews / reports
+/delivery/
+/startup-branding-preview.png
+/*_IMPLEMENTATION.md
+/*_REDESIGN.md
+/*_AUDIT.md
+/*_VERIFICATION.md

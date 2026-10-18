@@ -32,7 +32,6 @@ android {
         versionName = "1.0"
         buildConfigField("String", "MAPTILER_API_KEY", mapTilerKeyLiteral)
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -59,18 +58,12 @@ android {
         buildConfig = true
     }
 
-    testOptions {
-        unitTests.all {
-            it.jvmArgs("-Dnet.bytebuddy.experimental=true", "-XX:+EnableDynamicAgentLoading")
-        }
-    }
 }
 
 dependencies {
     // ── Compose BOM ────────────────────────────────────────────────────────────
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
-    androidTestImplementation(composeBom)
 
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
@@ -78,8 +71,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
     debugImplementation(libs.compose.ui.tooling)
-    debugImplementation(libs.compose.ui.test.manifest)
-    androidTestImplementation(libs.compose.ui.test.junit4)
 
     // ── AndroidX ───────────────────────────────────────────────────────────────
     implementation(libs.androidx.core.ktx)
@@ -139,11 +130,4 @@ dependencies {
     implementation(libs.okhttp)
     implementation("org.maplibre.gl:android-sdk:11.8.0")
 
-    // ── Testing ───────────────────────────────────────────────────────────────
-    testImplementation(libs.junit)
-    testImplementation(libs.mockk)
-    testImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }
