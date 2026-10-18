@@ -12,7 +12,7 @@
         <!-- Background පාට -->
         <item name="windowSplashScreenBackground">@color/startup_background</item>
         <item name="android:statusBarColor">@color/startup_background</item>
-        <item name="android:navigationBarColor">@color/ic_launcher_background</item>
+        <item name="android:navigationBarColor">@color/startup_background</item>
         <item name="android:windowLightStatusBar">@bool/startup_light_system_bars</item>
 
         <!-- අපි හදපු PNG Logo එක -->

@@ -1,6 +1,7 @@
 package com.agroroute.core.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +27,9 @@ internal fun LocationPickerLayout(
     address: @Composable () -> Unit,
     confirm: @Composable () -> Unit
 ) {
+    val farmer = com.agroroute.features.farmer.components.LocalFarmerPresentation.current
+    val mapFrame = if (farmer) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant,
+        RoundedCornerShape(22.dp)) else Modifier
     val currentMap by rememberUpdatedState(map)
     // Moving between stacked and side-by-side layouts must keep the native map/camera alive.
     val mapContent = remember { movableContentOf { currentMap() } }
@@ -43,13 +47,13 @@ internal fun LocationPickerLayout(
                 BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
                     if (maxHeight < 180.dp || (maxWidth >= 480.dp && maxHeight < 360.dp)) {
                         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(22.dp))) { mapContent() }
+                            Box(Modifier.weight(1f).fillMaxHeight().then(mapFrame).clip(RoundedCornerShape(22.dp))) { mapContent() }
                             Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) { address() }
                         }
                     } else {
                         val editorHeight = (maxHeight * 0.42f).coerceAtMost(200.dp)
                         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(22.dp))) { mapContent() }
+                            Box(Modifier.fillMaxWidth().weight(1f).then(mapFrame).clip(RoundedCornerShape(22.dp))) { mapContent() }
                             Column(Modifier.fillMaxWidth().heightIn(max = editorHeight)
                                 .verticalScroll(rememberScrollState())) { address() }
                         }

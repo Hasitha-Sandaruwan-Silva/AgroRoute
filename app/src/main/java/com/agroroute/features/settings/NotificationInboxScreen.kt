@@ -59,7 +59,7 @@ fun NotificationInboxScreen(navController: NavController) {
                             else -> "$unreadCount unread"
                         },
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        NotificationFilterLayout {
                             FilterChip(selected = !unreadOnly, onClick = { unreadOnly = false },
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
                                 label = { Text("All (${state.items.size})") })
@@ -92,4 +92,13 @@ fun NotificationInboxScreen(navController: NavController) {
             }
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun NotificationFilterLayout(content: @Composable () -> Unit) {
+    if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current) {
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)) { content() }
+    } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { content() }
 }

@@ -194,7 +194,6 @@ fun FarmerOrdersScreen(
                     OrdersHeader(rangedOrders.size, selectedRange)
                     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         RangeSelector(selectedRange) { selectedRange = it }
-                        OrderStatsStrip(deliveredOrders.size, deliveredQuantity.toString(), "Rs. $deliveredValue")
                         OrderSearchField(searchQuery, { searchQuery = it }, { searchQuery = "" })
                         StatusSelector(selectedStatus) { selectedStatus = it }
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -223,6 +222,11 @@ fun FarmerOrdersScreen(
                     }
                 }
             }
+            item(key = "order-summary") {
+                Box(Modifier.padding(horizontal = 16.dp)) {
+                    OrderStatsStrip(deliveredOrders.size, deliveredQuantity.toString(), "Rs. $deliveredValue")
+                }
+            }
         }
         AgroSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
@@ -239,11 +243,12 @@ private fun OrdersHeader(
     selectedRange: OrderRange
 ) {
 
-    com.agroroute.core.components.PremiumHero(Modifier.padding(16.dp)) {
-        Icon(Lucide.Receipt, null, Modifier.size(28.dp))
-        Text("Orders", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Manage pickups, deliveries and completed harvest orders.", style = MaterialTheme.typography.bodyMedium)
-        Text("$totalOrders orders | ${selectedRange.label}", style = MaterialTheme.typography.labelLarge)
+    Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Manage pickups and deliveries.", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("$totalOrders orders | ${selectedRange.label}", style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -576,7 +581,7 @@ private fun StatusFilterChip(
     val containerColor by animateColorAsState(
         targetValue =
             if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.primary
             } else {
                 MaterialTheme.colorScheme.surface
             },
@@ -587,7 +592,7 @@ private fun StatusFilterChip(
     val contentColor by animateColorAsState(
         targetValue =
             if (selected) {
-                MaterialTheme.colorScheme.onPrimaryContainer
+                MaterialTheme.colorScheme.onPrimary
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
@@ -625,7 +630,7 @@ private fun StatusFilterChip(
                         .size(6.dp)
                         .clip(CircleShape)
                         .background(
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.onPrimary
                         )
                 )
 
@@ -653,6 +658,7 @@ private fun StatusFilterChip(
 // ORDER CARD
 // =============================================================
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ModernOrderCard(
     order: Order,
@@ -663,43 +669,45 @@ internal fun ModernOrderCard(
         shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OrderStatusChip(order.status)
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OrderStatusChip(order.status)
+                Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer) {
                     Box(Modifier.size(52.dp), contentAlignment = Alignment.Center) {
-                        Icon(Lucide.Sprout, null, Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Icon(Lucide.Sprout, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(order.cropName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(order.cropName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                         maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text("${order.quantity} ${order.quantityUnit.name}", style = MaterialTheme.typography.bodyMedium,
+                    Text("${order.quantity} ${order.quantityUnit.name}", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                Icon(Lucide.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
             }
-            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f)) {
                     Text("Total agreed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("Rs. ${order.quantity * order.agreedPrice}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Rs. ${order.agreedPrice}/${order.quantityUnit.name}", style = MaterialTheme.typography.bodySmall)
                 }
+                Text("Rs. ${order.agreedPrice}/${order.quantityUnit.name}", Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End)
             }
             if (!supplierName.isNullOrBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    com.agroroute.core.components.UserProfileAvatar(supplierName, null, size = 36.dp)
-                    Column(Modifier.weight(1f)) {
-                        Text("Supplier", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(supplierName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                            maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.agroroute.core.components.UserProfileAvatar(supplierName, null, size = 28.dp)
+                    Text("Supplier · $supplierName", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (order.pickupLocation.isNotBlank()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Lucide.MapPin, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Lucide.MapPin, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(com.agroroute.core.components.profileLocationLabel(order.pickupLocation),
                         style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f))
@@ -708,13 +716,12 @@ internal fun ModernOrderCard(
             OrderProgressStrip(order.status)
             Text(com.agroroute.core.components.orderNextStep(order.status, false),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(formatDate(order.createdAt), Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("View order", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary)
-                Icon(Lucide.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
             }
         }
     }

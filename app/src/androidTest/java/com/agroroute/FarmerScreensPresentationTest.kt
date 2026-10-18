@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -86,5 +88,26 @@ class FarmerScreensPresentationTest {
         compose.onNode(hasSetTextAction() and hasText("Full name")).performTextInput("Farmer")
         compose.onNodeWithText("Save").performClick()
         compose.runOnIdle { assertEquals(listOf("Farmer", "123", "Farm address"), saved) }
+    }
+
+    @Test fun largeNotificationCountsWrapInLightTheme() = notificationFilters(false)
+    @Test fun largeNotificationCountsWrapInDarkTheme() = notificationFilters(true)
+
+    private fun notificationFilters(dark: Boolean) {
+        var unread by mutableStateOf(false)
+        content(dark = dark) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                com.agroroute.features.settings.NotificationFilterLayout {
+                    FilterChip(selected = !unread, onClick = { unread = false }, label = { Text("All (999999)") })
+                    FilterChip(selected = unread, onClick = { unread = true }, label = { Text("Unread (999999)") })
+                }
+            }
+        }
+        val all = compose.onNodeWithText("All (999999)").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val selected = compose.onNodeWithText("Unread (999999)").assertIsDisplayed()
+        val bounds = selected.fetchSemanticsNode().boundsInRoot
+        assertFalse("Filter chips must not overlap", all.overlaps(bounds))
+        selected.performClick()
+        compose.runOnIdle { assertTrue(unread) }
     }
 }

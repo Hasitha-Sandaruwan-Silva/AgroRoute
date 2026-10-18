@@ -892,25 +892,13 @@ fun CreateListingScreen(
 
 @Composable
 private fun CreateListingHeroHeader(isEditing: Boolean) {
-    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer) {
-        Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(
-            MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.surfaceContainerHigh)))
-            .padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Lucide.Sprout, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                Text(if (isEditing) "REFINE YOUR HARVEST" else "FROM YOUR FARM TO MARKET",
-                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary)
-            }
-            Text(if (isEditing) "Edit your listing" else "Create a listing",
-                style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface)
-            Text("Photos, harvest details and a clear pickup location help buyers trade with confidence.",
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("One harvest. Five simple sections.", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary)
-        }
+    com.agroroute.features.farmer.components.FarmerArtworkHero(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(if (isEditing) "REFINE YOUR HARVEST" else "FROM YOUR FARM TO MARKET",
+            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Text(if (isEditing) "Edit your listing" else "Create a listing",
+            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Photos, harvest details and a clear pickup location help buyers trade with confidence.",
+            style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -1091,7 +1079,7 @@ private fun CreateListingBottomBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 8.dp
+        shadowElevation = 2.dp
     ) {
         Column(
             modifier = Modifier
@@ -1114,7 +1102,7 @@ private fun CreateListingBottomBar(
                 onClick = onPublish,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .heightIn(min = 52.dp),
                 enabled = canSubmit
             )
             if (!isEditing) {

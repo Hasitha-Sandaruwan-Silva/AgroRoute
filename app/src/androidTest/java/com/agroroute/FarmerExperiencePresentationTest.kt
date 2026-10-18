@@ -62,6 +62,10 @@ class FarmerExperiencePresentationTest {
         compose.waitUntil(20_000) { compose.onAllNodesWithText(text,substring=true).fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty() }
     }
     private fun enter(role: UserRole) {
+        compose.waitUntil(20_000) {
+            compose.onAllNodesWithText("Try Demo Mode")
+                .fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
+        }
         compose.onNodeWithText("Try Demo Mode").performClick()
         val label="Continue as ${role.name.lowercase().replaceFirstChar { it.uppercase() }}"
         compose.waitUntil(20_000) {
@@ -82,6 +86,15 @@ class FarmerExperiencePresentationTest {
             compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)
         }
     }
+    private fun assertListingActionSeparation() {
+        val edit = compose.onAllNodesWithText("Edit listing", substring = false).onFirst()
+        edit.performScrollTo().assertIsDisplayed()
+        val editBounds = edit.fetchSemanticsNode().boundsInRoot
+        val create = compose.onNodeWithTag("farmer_new_listing")
+        assertTrue(create.printToString(), create.isDisplayed())
+        val createBounds = create.fetchSemanticsNode().boundsInRoot
+        assertTrue("New Listing must not cover existing listing actions", editBounds.bottom <= createBounds.top + 1f)
+    }
     @Test fun farmerRootsStayReachableInBothThemes() {
         enter(UserRole.FARMER)
         for (night in listOf(false, true, false)) {
@@ -99,6 +112,7 @@ class FarmerExperiencePresentationTest {
             awaitText("My Harvests")
             awaitText("Tomato")
             capture("farmer-$mode-listings.png")
+            assertListingActionSeparation()
             compose.onAllNodesWithText("Orders", substring=false).onLast().performClick()
             awaitText("Manage pickups")
             compose.onAllNodesWithText("Awaiting pickup", substring=false).onFirst().performScrollTo().assertIsDisplayed()
@@ -118,12 +132,12 @@ class FarmerExperiencePresentationTest {
             val mode = if (night) "dark" else "light"
             menu("Browse listings")
             awaitText("Tomato")
-            compose.onAllNodesWithText("Tomato", substring=false).onFirst().performClick()
+            compose.onAllNodesWithText("Tomato", substring=false, useUnmergedTree=true).onFirst().performScrollTo().performClick()
             awaitText("Bids for")
             capture("farmer-$mode-listing-details.png")
             compose.onNodeWithContentDescription("Back", substring=false).performClick()
             awaitText("My Harvests")
-            compose.onNodeWithText("New Listing", substring=false, useUnmergedTree=true).performClick()
+            compose.onNodeWithTag("farmer_new_listing").performClick()
             awaitText("Create a listing")
             capture("farmer-$mode-create-listing.png")
             menu("Browse bids")
@@ -153,19 +167,34 @@ class FarmerExperiencePresentationTest {
         awaitText("Demo menu")
         val menuBounds = compose.onNodeWithText("Demo menu").getUnclippedBoundsInRoot()
         assertTrue(menuBounds.bottom - menuBounds.top <= 64.dp)
+        capture("farmer-compact-home.png")
+        compose.onAllNodesWithText("Orders", substring=false).onLast().performClick()
+        awaitText("Manage pickups")
+        capture("farmer-compact-orders.png")
+        compose.onAllNodesWithText("Profile", substring=false).onLast().performClick()
+        awaitText("Nimal Perera")
+        compose.onNodeWithText("Leaderboard", substring = false).performScrollTo().assertIsDisplayed()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { action ->
+                val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+                action(layouts)
+                assertFalse("Leaderboard label must not clip", layouts.any { it.didOverflowHeight })
+            }
+        capture("farmer-compact-profile.png")
         compose.onAllNodesWithText("Listings", substring=false).onLast().performClick()
         awaitText("My Harvests")
-        compose.onNode(hasSetTextAction()).performTextInput("Tomato")
+        compose.onNode(hasSetTextAction()).performClick().performTextInput("Tomato")
         compose.onNode(hasSetTextAction()).assertIsDisplayed()
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("New Listing", useUnmergedTree=true).fetchSemanticsNodes().isEmpty()
         }
         capture("farmer-compact-keyboard.png")
-        androidx.test.espresso.Espresso.pressBack()
+        androidx.test.uiautomator.UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("New Listing", useUnmergedTree=true)
                 .fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
         }
+        capture("farmer-compact-listing-actions.png")
+        assertListingActionSeparation()
     }
 
 }

@@ -29,22 +29,17 @@ internal fun IncomingOrderRequests(requests: List<OrderRequest>, listings: Map<S
     if (requests.isEmpty()) return
     val mutationAllowed = com.agroroute.core.runtime.LocalMutationAllowed.current
     AppCard(containerColor = MaterialTheme.colorScheme.surface) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Lucide.Inbox, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text("Incoming Order Requests", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("${requests.size} pending", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            TextButton(onClick = onView) { Text("View All") }
-        }
+        com.agroroute.features.farmer.components.FarmerSectionHeader("Incoming Order Requests",
+            "${requests.size} pending", "View All", onView)
         requests.take(3).forEachIndexed { index, request ->
             if (index > 0) HorizontalDivider(Modifier.padding(vertical = 8.dp))
             val listing = listings[request.listingId]
             val blocked = listingAcceptanceBlockedReason(listing, false, request.requestedQuantity, request.deliveryLocation)
             Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                UserProfileAvatar(request.supplierName.ifBlank { "Supplier" }, null, size = 40.dp)
+                if (!listing?.imageUrls.isNullOrEmpty()) {
+                    com.agroroute.features.farmer.components.FarmerProduceThumbnail(listing?.imageUrls?.firstOrNull())
+                } else UserProfileAvatar(request.supplierName.ifBlank { "Supplier" }, null, size = 48.dp)
                 Column(Modifier.weight(1f)) {
                     Text(request.supplierName.ifBlank { "Supplier" }, style = MaterialTheme.typography.titleSmall,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -52,8 +47,12 @@ internal fun IncomingOrderRequests(requests: List<OrderRequest>, listings: Map<S
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("${request.requestedQuantity} ${request.quantityUnit.name} | Rs. ${String.format(Locale.getDefault(), "%,.2f", request.requestedQuantity * request.listedPrice)}",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT)
+                        .format(java.util.Date(request.createdAt)), style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            OrderRequestStatusChip(request.status)
             if (blocked != null) Text(blocked, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

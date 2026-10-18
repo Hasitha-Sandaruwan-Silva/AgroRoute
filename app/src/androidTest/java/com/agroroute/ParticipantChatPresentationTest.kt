@@ -1,6 +1,9 @@
 package com.agroroute
 
 import androidx.compose.ui.test.*
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.test.platform.app.InstrumentationRegistry
+import java.io.File
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -26,6 +29,13 @@ class ParticipantChatPresentationTest(private val dark: Boolean, private val tar
         AgroRouteTheme(darkTheme = dark) {
             if (targetRole == UserRole.SUPPLIER) com.agroroute.features.farmer.components.FarmerPresentation(content)
             else CompositionLocalProvider(com.agroroute.features.supplier.components.LocalSupplierPresentation provides true, content = content)
+        }
+    }
+    private fun capture(screen: String) {
+        val receiver = if (targetRole == UserRole.SUPPLIER) "farmer" else "supplier"
+        File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
+            "$receiver-${if (dark) "dark" else "light"}-$screen.png").outputStream().use {
+            compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
         }
     }
     private val person get() = ParticipantIdentity("other", "Nimal Perera", targetRole, memberSince = 1704067200000, points = 24)
@@ -66,6 +76,7 @@ class ParticipantChatPresentationTest(private val dark: Boolean, private val tar
         compose.onNode(hasSetTextAction()).performTextInput("Hi, is this harvest available?")
         compose.onNodeWithContentDescription("Send").performClick()
         compose.onNodeWithText("Hi, is this harvest available?").assertIsDisplayed()
+        capture("chat")
         compose.onNodeWithContentDescription("Send").assertIsNotEnabled()
     }
     @Test fun realReviewMetricsAndRoleSpecificActivityAreReadOnly() {
@@ -107,6 +118,7 @@ class ParticipantChatPresentationTest(private val dark: Boolean, private val tar
                 }
             }
         }
+        capture("messages")
         compose.onNodeWithText("Nimal Perera").performClick()
         compose.onNodeWithText("Yes, it is available.").assertIsDisplayed()
     }

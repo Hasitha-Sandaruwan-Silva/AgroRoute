@@ -55,14 +55,19 @@ fun FarmerTopBar(
                             Icon(imageVector = Lucide.ArrowLeft, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
                         }
                         Spacer(Modifier.width(4.dp))
-                    } else {
+                    } else if (currentRoute != Screen.FarmerHome.route) {
                         Image(painter = painterResource(id = R.drawable.logo), contentDescription = "Logo", modifier = Modifier.size(30.dp))
                         Spacer(Modifier.width(10.dp))
                     }
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         if (isTab) {
-                            Text("AgroRoute", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 19.sp, letterSpacing = (-0.3).sp, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("FARMER", style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(if (currentRoute == Screen.FarmerHome.route) "Good day, ${authState.user?.displayName?.takeIf(String::isNotBlank) ?: "Farmer"}" else title,
+                                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.3).sp, color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) "Farmer" else "AgroRoute · Farmer",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         } else {
                             Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (subtitle != null) {

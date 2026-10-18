@@ -200,6 +200,7 @@ internal fun NotificationRow(
     markRead: (() -> Unit)? = null
 ) {
     val dateFormat = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
+    val farmer = com.agroroute.features.farmer.components.LocalFarmerPresentation.current
     val rowColor by animateColorAsState(
         if (item.isRead) MaterialTheme.colorScheme.surface else lerp(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.primaryContainer, 0.28f),
         animationSpec = tween(200), label = "notificationRead")
@@ -208,9 +209,10 @@ internal fun NotificationRow(
     val iconColor = if (request) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
     Column(
         Modifier.fillMaxWidth()
+            .then(if (farmer) Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) else Modifier)
             .background(rowColor)
             .clickable(onClick = onClick)
-            .padding(16.dp)
+            .padding(if (farmer) 14.dp else 16.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
             Surface(shape = MaterialTheme.shapes.small, color = iconContainer) {

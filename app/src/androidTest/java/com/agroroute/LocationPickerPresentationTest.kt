@@ -27,7 +27,7 @@ class LocationPickerPresentationTest(private val dark: Boolean) {
         var visible by mutableStateOf(true)
         var dismissed = false
         compose.setContent {
-            AgroRouteTheme(darkTheme = dark) {
+            FarmerLocationTheme {
                 if (visible) LocationPickerDialog("Kandy\n[7.290600, 80.633700]",
                     onDismiss = { visible = false; dismissed = true }, onConfirm = {})
             }
@@ -48,7 +48,7 @@ class LocationPickerPresentationTest(private val dark: Boolean) {
     @Test fun manualAddressAndConfirmationPreserveSavedCoordinates() {
         var confirmed: String? = null
         compose.setContent {
-            AgroRouteTheme(darkTheme = dark) {
+            FarmerLocationTheme {
                 LocationPickerDialog("Kandy\n[7.290600, 80.633700]",
                     onDismiss = {}, onConfirm = { confirmed = it })
             }
@@ -56,6 +56,11 @@ class LocationPickerPresentationTest(private val dark: Boolean) {
         compose.onNodeWithText("Selected address / place name").performTextReplacement("Edited farm")
         compose.onNodeWithText("Use this location").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("Edited farm\n[7.290600, 80.633700]", confirmed) }
+    }
+    @Composable private fun FarmerLocationTheme(content: @Composable () -> Unit) {
+        AgroRouteTheme(darkTheme = dark) {
+            com.agroroute.features.farmer.components.FarmerPresentation(content)
+        }
     }
     private fun capture(stage: String) {
         // Wait for the native style and dialog/IME transitions before judging the UI.

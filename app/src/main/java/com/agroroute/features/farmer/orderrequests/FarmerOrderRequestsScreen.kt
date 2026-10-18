@@ -196,7 +196,7 @@ internal fun FarmerOrderRequestCard(
 
     AppCard {
         listing?.let {
-            com.agroroute.core.components.ListingImage(it.imageUrls.firstOrNull(), height = 112.dp)
+            com.agroroute.core.components.ListingImage(it.imageUrls.firstOrNull(), height = 96.dp)
             Spacer(Modifier.height(12.dp))
         }
         Row(
@@ -229,7 +229,7 @@ internal fun FarmerOrderRequestCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom
         ) {
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = "Quantity",
                     style = MaterialTheme.typography.labelSmall,
@@ -243,7 +243,7 @@ internal fun FarmerOrderRequestCard(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                 Text(
                     text = "Listed price",
                     style = MaterialTheme.typography.labelSmall,

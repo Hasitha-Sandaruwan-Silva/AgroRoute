@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -100,16 +101,21 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
     // SYSTEM THEME AWARE - uses MaterialTheme.colorScheme which auto switches Light/Dark via AgroRouteTheme
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Scaffold(
-            floatingActionButton = {
-                if (!keyboardVisible) ExtendedFloatingActionButton(
-                    onClick = { navController.navigate(Screen.CreateListing.route) },
-                    icon = { Icon(Lucide.Plus, contentDescription = null) },
-                    text = { Text("New Listing", fontWeight = FontWeight.Bold) },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.shadow(2.dp, RoundedCornerShape(16.dp))
-                )
+            bottomBar = {
+                if (!keyboardVisible) Box(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    ExtendedFloatingActionButton(
+                        onClick = { navController.navigate(Screen.CreateListing.route) },
+                        icon = { Icon(Lucide.Plus, contentDescription = null) },
+                        text = { Text("New Listing", fontWeight = FontWeight.Bold) },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.testTag("farmer_new_listing").shadow(2.dp, RoundedCornerShape(16.dp))
+                    )
+                }
             },
             snackbarHost = { AgroSnackbarHost(snackbarHostState) },
             containerColor = Color.Transparent
@@ -129,7 +135,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("My Harvests", fontWeight = FontWeight.Black, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("My Harvests", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurface)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF4CAF50)))
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -142,7 +148,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Box(
-                                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                                        modifier = Modifier.size(48.dp).clip(CircleShape)
                                             .background(MaterialTheme.colorScheme.primaryContainer)
                                             .clickable { sortMenuExpanded = true },
                                         contentAlignment = Alignment.Center
@@ -150,7 +156,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                         Icon(Lucide.Settings, contentDescription = "Sort listings", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
                                     }
                                     Box(
-                                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                                        modifier = Modifier.size(48.dp).clip(CircleShape)
                                             .background(MaterialTheme.colorScheme.primary)
                                             .clickable { navController.navigate(Screen.FarmerBids.route) },
                                         contentAlignment = Alignment.Center
@@ -181,7 +187,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
                                     }
                                 },
                                 singleLine = true,
-                                shape = RoundedCornerShape(28.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
@@ -293,6 +299,7 @@ fun MyListingsScreen(navController: NavController, viewModel: ListingViewModel =
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun SuperbListingCard(
     listing: HarvestListing,
     onEditClick: () -> Unit,
@@ -304,29 +311,33 @@ private fun SuperbListingCard(
     onMarkFailedClick: () -> Unit
 ) {
     val isFailed = listing.harvestStatus == HarvestStatus.FAILED
+    val photoHeight = if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) 220.dp else 180.dp
     Surface(
-        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(22.dp)),
+        modifier = Modifier.fillMaxWidth(),
+        shadowElevation = 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
         onClick = onCardClick
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
-                ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = 150.dp)
+            Box(modifier = Modifier.fillMaxWidth().height(photoHeight).clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))) {
+                ListingImage(imageUrl = listing.imageUrls.firstOrNull(), height = photoHeight)
                 Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.45f)))))
-                Row(modifier = Modifier.align(Alignment.TopStart).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (listing.isExpired( com.agroroute.core.components.listingPresentationTime())) {
                         com.agroroute.core.components.StatusChip(label = "Expired", tone = com.agroroute.core.components.ChipTone.Neutral)
                     } else if (listing.status == ListingStatus.FULFILLED) {
                         com.agroroute.core.components.StatusChip(label = "Sold Out", tone = com.agroroute.core.components.ChipTone.Neutral)
                     } else ListingStatusChip(listing.status)
                     if (listing.status == ListingStatus.OPEN) BiddingChip(listing.biddingEnabled)
+                    HarvestStatusBadge(listing.harvestStatus)
                 }
-                Box(modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)) { HarvestStatusBadge(listing.harvestStatus) }
                 Surface(
                     modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.Black.copy(alpha = 0.6f)
+                    color = com.agroroute.features.farmer.components.FarmerForest
                 ) {
                     Text(
                         text = "Rs. ${listing.reservePrice} / ${listing.quantityUnit.name}",
@@ -351,12 +362,12 @@ private fun SuperbListingCard(
                     Text(text = com.agroroute.core.components.profileLocationLabel(listing.location), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.weight(1f)) {
                         Text("Available", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("${listing.availableStock()} ${listing.quantityUnit.name}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                         Text("Category", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(listing.category?.displayName ?: "-", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
@@ -392,7 +403,7 @@ private fun SuperbListingCard(
                                 enabled = com.agroroute.core.runtime.LocalMutationAllowed.current, onClick = onMarkReadyClick,
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                modifier = Modifier.height(36.dp)
+                                modifier = Modifier.heightIn(min = 48.dp)
                             ) { Text("Ready", fontSize = 13.sp) }
                         }
                     }

@@ -30,6 +30,13 @@ class ChatNotificationPresentationTest(private val dark: Boolean, private val se
         fun themes() = listOf(arrayOf(false, UserRole.FARMER), arrayOf(true, UserRole.FARMER),
             arrayOf(false, UserRole.SUPPLIER), arrayOf(true, UserRole.SUPPLIER))
     }
+    @Composable private fun ReceiverTheme(content: @Composable () -> Unit) {
+        AgroRouteTheme(darkTheme = dark) {
+            if (senderRole == UserRole.SUPPLIER)
+                com.agroroute.features.farmer.components.FarmerPresentation(content)
+            else content()
+        }
+    }
     private val senderId get() = if (senderRole == UserRole.FARMER) "farmer-1" else "supplier-1"
     private val receiverId get() = if (senderRole == UserRole.FARMER) "supplier-1" else "farmer-1"
     private val senderName get() = if (senderRole == UserRole.FARMER) "Nimal" else "Kasun"
@@ -57,7 +64,7 @@ class ChatNotificationPresentationTest(private val dark: Boolean, private val se
             override suspend fun sendWithContext(otherId: String, input: String, orderId: String) { sentOrder = orderId }
         }
         val vm = ChatViewModel(repo)
-        compose.setContent { AgroRouteTheme(darkTheme = dark) {
+        compose.setContent { ReceiverTheme {
             val nav = rememberNavController()
             NavHost(nav, startDestination = "inbox") {
                 composable("inbox") {

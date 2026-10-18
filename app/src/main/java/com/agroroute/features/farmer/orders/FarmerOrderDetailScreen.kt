@@ -52,8 +52,10 @@ fun FarmerOrderDetailScreen(orderId: String, navController: NavController,
                     OrderLocationSection(order, forSupplier = false)
                     if (!com.agroroute.core.runtime.LocalMutationAllowed.current) AppCard { ProfilePhoneContact(userId = order.supplierId, personLabel = "Supplier", onNameLoaded = { counterpartName = it }) }
                     AppCard {
-                        Text("Order details", style = MaterialTheme.typography.titleMedium)
-                        Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.bodySmall)
+                        Text("Order details", style = MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        Text("Order #${order.orderId.takeLast(12)}", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                         if (order.notes.isNotBlank()) Text(order.notes)
                         Text("Created: ${DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(order.createdAt))}",
                             style = MaterialTheme.typography.bodySmall)

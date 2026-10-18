@@ -3,12 +3,15 @@ package com.agroroute.features.farmer.profile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -63,6 +66,7 @@ import com.github.thelacspace.icons.Lucide
 import kotlinx.coroutines.launch
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun FarmerProfileScreen(
     navController: NavController,
     userRole: UserRole? = UserRole.FARMER,
@@ -96,47 +100,28 @@ fun FarmerProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ── Forest hero account card ─────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-            ) {
-                androidx.compose.foundation.Image(
-                    androidx.compose.ui.res.painterResource(com.agroroute.R.drawable.farmer_home_hero), null,
-                    Modifier.fillMaxWidth().height(150.dp), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 96.dp, bottom = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UserProfileAvatar(
                         displayName = displayName,
                         imageUrl = uiState.photoPreviewUri?.toString() ?: user?.profileImageUrl,
                         uploading = uiState.photoUploading,
-                        size = 96.dp,
+                        size = 76.dp,
                         selected = true,
                         editable = mutationAllowed && !uiState.isLoading && !uiState.photoUploading,
                         onPhotoSelected = viewModel::uploadProfilePhoto
                     )
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = displayName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = email,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    RoleBadge(role = role)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(email, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        RoleBadge(role = role)
+                    }
                 }
             }
             if (uiState.photoUploading) {
@@ -213,10 +198,10 @@ fun FarmerProfileScreen(
                     thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Column {
                         Text(
@@ -235,7 +220,7 @@ fun FarmerProfileScreen(
                     }
                     OutlinedButton(
                         onClick = { navController.navigate(Screen.FarmerLeaderboard.route) },
-                        modifier = Modifier.height(40.dp)
+                        modifier = Modifier.heightIn(min = 48.dp)
                     ) {
                         Icon(
                             imageVector = Lucide.Trophy,
@@ -255,8 +240,6 @@ fun FarmerProfileScreen(
             }) { Text("Messages") }
 
             ProfileLocationCard(user?.location, onClick = { if (mutationAllowed) showProfileEditor = true })
-            Spacer(Modifier.height(12.dp))
-            com.agroroute.features.farmer.components.FarmerPromo()
             Spacer(Modifier.height(12.dp))
             com.agroroute.core.runtime.AppEntryAction(tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
@@ -299,6 +282,8 @@ fun FarmerProfileScreen(
             }
 
             Spacer(Modifier.height(24.dp))
+            com.agroroute.features.farmer.components.FarmerPromo()
+            Spacer(Modifier.height(16.dp))
 
             OutlinedButton(
                 enabled = mutationAllowed,
@@ -311,12 +296,13 @@ fun FarmerProfileScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .heightIn(min = 52.dp),
                 shape = MaterialTheme.shapes.large,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.55f))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
             ) {
                 Text("Log out", fontWeight = FontWeight.SemiBold)
             }

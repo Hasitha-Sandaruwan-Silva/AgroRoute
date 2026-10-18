@@ -81,7 +81,7 @@ class ListingPhotoInputTest(private val dark: Boolean) {
         CompositionLocalProvider(LocalActivityResultRegistryOwner provides object : ActivityResultRegistryOwner {
             override val activityResultRegistry = registry
         }) {
-            AgroRouteTheme(darkTheme = dark) {
+            FarmerPhotoTheme {
                 var photo by rememberSaveable(stateSaver = ListingPhotoUriSaver) { mutableStateOf<Uri?>(null) }
                 var description by rememberSaveable { mutableStateOf("Keep harvest details") }
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -93,6 +93,11 @@ class ListingPhotoInputTest(private val dark: Boolean) {
                 }
                 }
             }
+        }
+    }
+    @Composable private fun FarmerPhotoTheme(content: @Composable () -> Unit) {
+        AgroRouteTheme(darkTheme = dark) {
+            com.agroroute.features.farmer.components.FarmerPresentation(content)
         }
     }
     private fun content(enabled: Boolean = true) = compose.setContent { form(enabled) }
@@ -222,7 +227,7 @@ class ListingPhotoInputTest(private val dark: Boolean) {
             CompositionLocalProvider(LocalActivityResultRegistryOwner provides object : ActivityResultRegistryOwner {
                 override val activityResultRegistry = registry
             }) {
-                AgroRouteTheme(darkTheme = dark) {
+                FarmerPhotoTheme {
                     var photos by remember { mutableStateOf(emptyList<String>()) }
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         ListingPhotosInput(photos, false, false, true, {

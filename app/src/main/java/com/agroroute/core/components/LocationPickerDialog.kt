@@ -219,7 +219,8 @@ fun LocationPickerDialog(initialValue: String, onDismiss: () -> Unit, onConfirm:
                 },
                 address = {
                     Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha =
+                            if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current) 1f else 0.5f)),
                         shadowElevation = 2.dp) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

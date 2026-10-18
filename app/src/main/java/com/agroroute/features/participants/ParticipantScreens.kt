@@ -3,6 +3,9 @@ package com.agroroute.features.participants
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -149,8 +152,14 @@ fun MessagesScreen(navController: NavController, viewModel: MessagesViewModel = 
                         Column(Modifier.weight(1f)) {
                             Text(conversation.other.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text(roleLabel(conversation.other), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(conversation.lastMessage, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            conversation.updatedAt?.let { Text(dateLabel(it), style = MaterialTheme.typography.labelSmall) }
+                            Text(conversation.lastMessage, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                                style = if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current)
+                                    MaterialTheme.typography.bodyMedium else LocalTextStyle.current,
+                                color = if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current)
+                                    MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current)
+                            conversation.updatedAt?.let { Text(dateLabel(it), style = MaterialTheme.typography.labelSmall,
+                                color = if (com.agroroute.features.farmer.components.LocalFarmerPresentation.current)
+                                    MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current) }
                         }
                     }
                 }
@@ -162,6 +171,10 @@ fun MessagesScreen(navController: NavController, viewModel: MessagesViewModel = 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewModel = appViewModel(), orderId: String = "") {
+    val farmer = com.agroroute.features.farmer.components.LocalFarmerPresentation.current
+    val dark = MaterialTheme.colorScheme.background.luminance() < .5f
+    val sentContainer = if (dark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary
+    val sentContent = if (dark) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     LaunchedEffect(id, orderId) { viewModel.load(id, orderId) }
@@ -184,14 +197,20 @@ fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewMode
             } ?: Text("Chat")
         }, navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Lucide.ArrowLeft, "Back") } })
     }, bottomBar = {
-        Surface(tonalElevation = 2.dp) {
+        Surface(tonalElevation = if (farmer) 0.dp else 2.dp,
+            shadowElevation = if (farmer) 1.dp else 0.dp,
+            shape = if (farmer) RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp) else androidx.compose.ui.graphics.RectangleShape) {
             Column(Modifier.navigationBarsPadding().padding(12.dp)) {
                 state.error?.let { Text(it, color = MaterialTheme.colorScheme.error); if (state.connectionError) TextButton(onClick = { viewModel.load(id, orderId) }) { Text("Reconnect") } }
                 if (state.sending) Text("Sending...", style = MaterialTheme.typography.labelSmall)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = state.draft, onValueChange = viewModel::draft, modifier = Modifier.weight(1f),
                         enabled = !state.loading && !state.connectionError && !state.sending && state.other != null, placeholder = { Text("Type a message...") }, maxLines = 5, shape = RoundedCornerShape(20.dp))
-                    IconButton(onClick = viewModel::send, enabled = !state.loading && !state.connectionError && !state.sending && state.draft.isNotBlank() && state.other != null) { Icon(Lucide.Send, "Send") }
+                    IconButton(onClick = viewModel::send, enabled = !state.loading && !state.connectionError && !state.sending && state.draft.isNotBlank() && state.other != null,
+                        modifier = if (farmer) Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer) else Modifier) {
+                        Icon(Lucide.Send, "Send", tint = if (farmer) MaterialTheme.colorScheme.onPrimaryContainer else LocalContentColor.current)
+                    }
                 }
             }
         }
@@ -204,9 +223,11 @@ fun ChatScreen(id: String, navController: NavController, viewModel: ChatViewMode
                 items(state.messages, key = { it.id }) { message ->
                     val mine = message.senderId == viewModel.currentUserId
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-                        Surface(modifier = Modifier.widthIn(max = 300.dp), shape = RoundedCornerShape(18.dp),
-                            color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (mine) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant) {
+                        Surface(modifier = Modifier.widthIn(max = 300.dp),
+                            shape = if (farmer) RoundedCornerShape(topStart = if (mine) 22.dp else 6.dp,
+                                topEnd = if (mine) 6.dp else 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp) else RoundedCornerShape(18.dp),
+                            color = if (mine && farmer) sentContainer else if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (mine && farmer) sentContent else if (mine) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant) {
                             Column(Modifier.padding(12.dp)) {
                                 Text(message.text)
                                 message.sentAt?.let { Text(dateLabel(it), style = MaterialTheme.typography.labelSmall) }

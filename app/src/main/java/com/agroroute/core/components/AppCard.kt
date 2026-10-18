@@ -47,8 +47,8 @@ fun AppCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val extended = LocalAgroExtendedColors.current
-    val supplier = com.agroroute.features.supplier.components.LocalSupplierPresentation.current ||
-        com.agroroute.features.farmer.components.LocalFarmerPresentation.current
+    val farmer = com.agroroute.features.farmer.components.LocalFarmerPresentation.current
+    val supplier = com.agroroute.features.supplier.components.LocalSupplierPresentation.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -71,7 +71,7 @@ fun AppCard(
 
     Card(
         modifier = cardModifier,
-        shape = if (supplier) androidx.compose.foundation.shape.RoundedCornerShape(22.dp) else MaterialTheme.shapes.large,
+        shape = if (supplier || farmer) androidx.compose.foundation.shape.RoundedCornerShape(22.dp) else MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = containerColor,
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -82,7 +82,7 @@ fun AppCard(
         ),
         border = if (supplier) null else BorderStroke(width = 1.dp, color = extended.cardBorder)
     ) {
-        Column(modifier = Modifier.padding(AgroSpacing.cardPadding), content = content)
+        Column(modifier = Modifier.padding(if (farmer) 14.dp else AgroSpacing.cardPadding), content = content)
     }
 }
 

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -19,16 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathFillType
-import androidx.compose.ui.graphics.PathMeasure
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import com.agroroute.R
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -75,20 +76,6 @@ fun BrandedStartup(
 private fun phase(time: Float, start: Float, end: Float): Float =
     FastOutSlowInEasing.transform(((time - start) / (end - start)).coerceIn(0f, 1f))
 
-/** Geometry shared with tools/branding/Generate-StartupBranding.ps1. */
-private fun leafOutline() = Path().apply {
-    moveTo(27f, 55f); cubicTo(27f, 39f, 40f, 29f, 57f, 29f)
-    lineTo(75f, 30f); lineTo(77f, 48f)
-    cubicTo(77f, 66f, 63f, 79f, 47f, 79f)
-    cubicTo(35f, 79f, 27f, 69f, 27f, 55f); close()
-}
-private fun routeCutout() = Path().apply {
-    moveTo(40f, 69f); cubicTo(40f, 56f, 60f, 57f, 60f, 46f)
-    lineTo(60f, 41f); cubicTo(60f, 36f, 67f, 36f, 67f, 41f)
-    lineTo(67f, 46f); cubicTo(67f, 62f, 47f, 62f, 47f, 69f)
-    cubicTo(47f, 74f, 40f, 74f, 40f, 69f); close()
-}
-
 @Composable
 internal fun StartupArtwork(time: Float, exit: Float, dark: Boolean, waiting: Boolean, initialDark: Boolean = dark) {
     val initialBackground = if (initialDark) Color(0xFF0E211B) else Color(0xFFF5F1E9)
@@ -99,15 +86,11 @@ internal fun StartupArtwork(time: Float, exit: Float, dark: Boolean, waiting: Bo
     val ink = lerp(initialInk, targetInk, phase(time, 0f, 400f))
     val textInk = if (dark) Color(0xFFF5F1E9) else ink
     val accent = if (dark) Color(0xFFB8DE85) else Color(0xFF246B55)
-    val mark = remember { leafOutline().apply { fillType = PathFillType.EvenOdd; addPath(routeCutout()) } }
-    val route = remember { Path().apply {
-        moveTo(43.5f, 69f); cubicTo(43.5f, 58f, 63.5f, 60f, 63.5f, 46f); lineTo(63.5f, 41f)
-    } }
-    val measure = remember { PathMeasure().apply { setPath(route, false) } }
-    val reveal = phase(time, 400f, 1000f)
-    val wordmark = phase(time, 800f, 1400f)
-    val tagline = phase(time, 1300f, 1900f)
-    val journey = phase(time, 1800f, 2380f)
+    val road = phase(time, 400f, 1100f)
+    val arrow = phase(time, 900f, 1500f)
+    val wordmark = phase(time, 1200f, 1650f)
+    val tagline = phase(time, 1450f, 1900f)
+    val journey = phase(time, 1800f, 2400f)
     BoxWithConstraints(Modifier.fillMaxSize().testTag("startup-intro")
         .graphicsLayer { alpha = 1f - exit }.background(background)
         .pointerInput(Unit) { awaitEachGesture {
@@ -124,37 +107,58 @@ internal fun StartupArtwork(time: Float, exit: Float, dark: Boolean, waiting: Bo
             drawOval(accent.copy(alpha = alpha), Offset(size.width * .7f, size.height * .6f),
                 Size(size.width * .7f, size.height * .55f))
         }
+        // Same 288dp canvas and exact source-pixel registration as the native splash.
+        // Its position is unchanged at handoff; only then does it settle above the name.
         val iconSize = minOf(288.dp, maxHeight * .48f)
-        Canvas(Modifier.size(iconSize).align(Alignment.Center).graphicsLayer {
-            val settle = phase(time, 300f, 950f)
-            scaleX = 1f - .08f * settle + .02f * exit; scaleY = scaleX
-            translationY = -32.dp.toPx() * settle
+        Box(Modifier.size(iconSize).align(Alignment.Center).testTag("startup-official-logo").graphicsLayer {
+            val reveal = phase(time, 0f, 500f)
+            val settle = phase(time, 500f, 1100f)
+            alpha = .9f + .1f * reveal
+            scaleX = .985f + .015f * reveal + .015f * exit; scaleY = scaleX
+            translationY = -40.dp.toPx() * settle
         }) {
-            scale(size.width / 108f, pivot = Offset.Zero) {
-                // Begin with the native silhouette, then reveal the road inside it.
-                drawPath(mark, ink)
-                drawPath(route, accent.copy(alpha = reveal * .18f), style = Stroke(1.7f, cap = StrokeCap.Round))
-                if (journey > 0f) {
-                    val segment = Path()
-                    measure.getSegment(0f, measure.length * journey, segment)
-                    drawPath(segment, accent.copy(alpha = .7f), style = Stroke(1.7f, cap = StrokeCap.Round))
-                    drawCircle(accent, 2.6f, measure.getPosition(measure.length * journey))
-                }
-            }
+            Image(painterResource(R.drawable.official_startup_base), null,
+                Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            Image(painterResource(R.drawable.official_startup_road), null,
+                Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            Image(painterResource(R.drawable.official_startup_road), null,
+                Modifier.fillMaxSize().graphicsLayer { alpha = .18f }.drawWithContent {
+                    // A light sweep follows the existing road pixels, bottom to top.
+                    // No path or replacement silhouette is drawn; the final mark is unchanged.
+                    if (road > 0f && road < 1f) {
+                        val top = size.height * (1f - road)
+                        clipRect(top = top, bottom = top + size.height * .16f) { this@drawWithContent.drawContent() }
+                    }
+                }, colorFilter = ColorFilter.tint(Color.White), contentScale = ContentScale.Fit)
+            Image(painterResource(R.drawable.official_startup_arrow), null,
+                Modifier.fillMaxSize().graphicsLayer {
+                    val approach = phase(time, 500f, 900f) * (1f - arrow)
+                    translationX = -2.dp.toPx() * approach
+                    translationY = 1.dp.toPx() * approach
+                }, contentScale = ContentScale.Fit)
         }
-        Column(Modifier.align(Alignment.TopCenter).offset(y = maxHeight / 2 + iconSize * .14f)
+        Column(Modifier.align(Alignment.TopCenter).offset(y = maxHeight / 2 + 64.dp)
             .fillMaxWidth().padding(horizontal = 24.dp)
             .graphicsLayer { scaleX = 1f + .015f * exit; scaleY = scaleX },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("AgroRoute", color = textInk, style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold, letterSpacing = (1.1f - wordmark * 1.4f).sp,
-                textAlign = TextAlign.Center, modifier = Modifier.graphicsLayer {
+                textAlign = TextAlign.Center, modifier = Modifier.testTag("startup-name").graphicsLayer {
                     alpha = wordmark; translationY = (1f - wordmark) * 10.dp.toPx()
                 })
             Text("From Harvest to Destination", color = textInk.copy(alpha = .68f),
                 style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
-                modifier = Modifier.graphicsLayer { alpha = tagline; translationY = (1f - tagline) * 8.dp.toPx() })
+                modifier = Modifier.testTag("startup-tagline").graphicsLayer { alpha = tagline; translationY = (1f - tagline) * 8.dp.toPx() })
+            // Deliberate branding motion, not a claim of data-loading progress.
+            Canvas(Modifier.padding(top = 8.dp).width(72.dp).height(2.dp)
+                .graphicsLayer { alpha = journey * (1f - exit) }) {
+                drawRoundRect(accent.copy(alpha = .14f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height))
+                val width = size.width * .22f
+                val x = (size.width - width) * journey
+                drawRoundRect(accent.copy(alpha = .65f), topLeft = Offset(x, 0f),
+                    size = Size(width, size.height), cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height))
+            }
             if (waiting) {
                 LinearProgressIndicator(Modifier.padding(top = 14.dp).width(72.dp).height(2.dp)
                     .testTag("startup-session-loading"), color = accent, trackColor = accent.copy(alpha = .12f))

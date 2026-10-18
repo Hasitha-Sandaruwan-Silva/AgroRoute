@@ -36,6 +36,9 @@ import com.agroroute.features.farmer.listing.ListingViewModel
 import com.agroroute.features.farmer.orders.FarmerOrderViewModel
 import com.github.thelacspace.icons.Lucide
 import com.agroroute.core.components.*
+import com.agroroute.features.farmer.components.*
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import com.agroroute.core.theme.*
 
 internal enum class FarmerHomeDestination(val route: String) {
@@ -84,59 +87,81 @@ fun FarmerHomeScreen(
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            com.agroroute.features.farmer.components.FarmerArtworkHero {
-                Text("YOUR FARM, CONNECTED", style = MaterialTheme.typography.labelSmall, color = LeafAccent)
-                Text("Good day, ${authState.user?.displayName?.takeIf(String::isNotBlank) ?: "Farmer"}",
-                    style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("A clearer view of your harvest and trade.", style = MaterialTheme.typography.bodyMedium,
-                    color = CreamInk.copy(alpha = 0.85f))
-                TextButton(onClick = { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = CreamInk), contentPadding = PaddingValues(0.dp)) {
-                    Text("Explore your farm overview")
-                    Spacer(Modifier.width(8.dp)); Icon(Lucide.ArrowRight, null, Modifier.size(18.dp))
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            FarmerHeroReveal {
+                FarmerArtworkHero {
+                    Text("YOUR FARM, CONNECTED", style = MaterialTheme.typography.labelSmall, color = LeafAccent)
+                    Text("Your harvest.\nMore opportunity.", style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold)
+                    Text("A clearer view of your harvest and trade.", style = MaterialTheme.typography.bodySmall,
+                        color = CreamInk.copy(alpha = .88f))
+                    TextButton(onClick = { navController.navigate(FarmerHomeDestination.MY_LISTINGS.route) },
+                        colors = ButtonDefaults.textButtonColors(contentColor = CreamInk), contentPadding = PaddingValues(0.dp)) {
+                        Text("Explore your farm overview", style = MaterialTheme.typography.labelMedium)
+                        Spacer(Modifier.width(8.dp)); Icon(Lucide.ArrowRight, null, Modifier.size(16.dp))
+                    }
                 }
+            }
+            FarmerSectionHeader("Farm essentials")
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val compact = maxWidth < 350.dp || LocalDensity.current.fontScale > 1.3f
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FarmAction("New listing", "Share your harvest", Lucide.Plus, Modifier.weight(1f)) {
+                            navController.navigate(FarmerHomeDestination.CREATE_LISTING.route)
+                        }
+                        FarmAction("My listings", "Manage your produce", Lucide.Sprout, Modifier.weight(1f), earth = true) {
+                            navController.navigate(FarmerHomeDestination.MY_LISTINGS.route)
+                        }
+                        if (!compact) {
+                            FarmAction("Orders", "Pickups and deliveries", Lucide.Truck, Modifier.weight(1f)) {
+                                navController.navigate(FarmerHomeDestination.ORDERS.route)
+                            }
+                            FarmAction("Requests", "Supplier requests", Lucide.Inbox, Modifier.weight(1f), earth = true) {
+                                navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route)
+                            }
+                        }
+                    }
+                    if (compact) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FarmAction("Orders", "Pickups and deliveries", Lucide.Truck, Modifier.weight(1f)) {
+                            navController.navigate(FarmerHomeDestination.ORDERS.route)
+                        }
+                        FarmAction("Requests", "Supplier requests", Lucide.Inbox, Modifier.weight(1f), earth = true) {
+                            navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route)
+                        }
+                    }
+                }
+            }
+            if (isLoading) ShimmerBox(Modifier.fillMaxWidth().height(72.dp))
+            else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FarmMetric("Orders", "$totalOrders", Modifier.weight(1f))
+                FarmMetric("Active listings", "$activeListings", Modifier.weight(1f))
+                FarmMetric("Total listings", "$totalListings", Modifier.weight(1f))
             }
             IncomingOrderRequests(pendingRequests, requestState.listingsById,
                 busy = requestState.isLoading || requestState.isSubmitting,
                 onView = { navController.navigate(Screen.FarmerOrderRequests.route) },
                 onAccept = { requestToAccept = it })
-            if (isLoading) ShimmerBox(Modifier.fillMaxWidth().height(84.dp))
-            else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FarmMetric("Orders", "$totalOrders", Modifier.weight(1f))
-                FarmMetric("Active listings", "$activeListings", Modifier.weight(1f))
-                FarmMetric("Total listings", "$totalListings", Modifier.weight(1f))
-            }
-            com.agroroute.features.farmer.components.FarmerPromo {
-                navController.navigate(FarmerHomeDestination.CREATE_LISTING.route)
-            }
-            Text("Farm essentials", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FarmAction("New listing", "Share your harvest", Lucide.Plus, Modifier.weight(1f)) {
-                    navController.navigate(FarmerHomeDestination.CREATE_LISTING.route)
-                }
-                FarmAction("My listings", "Manage your produce", Lucide.Sprout, Modifier.weight(1f), earth = true) {
-                    navController.navigate(FarmerHomeDestination.MY_LISTINGS.route)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FarmAction("Orders", "Pickups and deliveries", Lucide.Truck, Modifier.weight(1f)) {
-                    navController.navigate(FarmerHomeDestination.ORDERS.route)
-                }
-                FarmAction("Requests", "Supplier requests", Lucide.Inbox, Modifier.weight(1f), earth = true) {
-                    navController.navigate(FarmerHomeDestination.ORDER_REQUESTS.route)
+            FarmerPromo { navController.navigate(FarmerHomeDestination.CREATE_LISTING.route) }
+            if (orderState.orders.isNotEmpty()) {
+                FarmerSectionHeader("Recent orders", action = "View all",
+                    onAction = { navController.navigate(FarmerHomeDestination.ORDERS.route) })
+                orderState.orders.sortedByDescending { it.createdAt }.take(3).forEach { order ->
+                    FarmerRecentOrderCard(order) {
+                        navController.navigate(Screen.FarmerOrderDetail.createRoute(order.orderId))
+                    }
                 }
             }
             DashboardAction("Harvest calendar", "Plan upcoming harvest dates", Lucide.Calendar) { navController.navigate(FarmerHomeDestination.HARVEST_CALENDAR.route) }
-            AppCard(onClick = { navController.navigate(Screen.FarmerLeaderboard.route) }, containerColor = MaterialTheme.colorScheme.secondaryContainer) {
+            AppCard(onClick = { navController.navigate(Screen.FarmerLeaderboard.route) }, containerColor = MaterialTheme.colorScheme.surface) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Icon(Lucide.Award, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Icon(Lucide.Award, null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f)) {
-                        Text("Your community points", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text("Your community points", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
                         Text("${authState.user?.points ?: 0} pts", style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
-                    Icon(Lucide.ChevronRight, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Icon(Lucide.ChevronRight, null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
             if (com.agroroute.core.runtime.LocalMutationAllowed.current) com.agroroute.features.leaderboard.CommunityLeaderboards(
@@ -162,21 +187,22 @@ fun FarmerHomeScreen(
 @Composable
 private fun FarmMetric(label: String, value: String, modifier: Modifier) {
     AppCard(modifier, containerColor = MaterialTheme.colorScheme.surface) {
-        Icon(Lucide.Sprout, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.height(8.dp))
-        Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun FarmAction(title: String, subtitle: String, icon: ImageVector, modifier: Modifier, earth: Boolean = false, onClick: () -> Unit) {
-    val colors = LocalAgroExtendedColors.current
-    AppCard(modifier, onClick = onClick) {
-        AgroIconBox(icon, containerColor = if (earth) colors.accentIconContainer else colors.iconContainer,
-            contentColor = if (earth) colors.accentIconOnContainer else colors.iconOnContainer)
-        Spacer(Modifier.height(14.dp))
-        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    AppCard(modifier.heightIn(min = 100.dp), onClick = onClick) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AgroIconBox(icon, boxSize = 34.dp, iconSize = 21.dp, corner = 12.dp,
+                containerColor = if (earth) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.primary)
+            Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
     }
 }

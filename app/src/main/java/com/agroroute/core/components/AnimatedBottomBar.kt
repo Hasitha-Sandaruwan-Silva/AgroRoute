@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 data class BottomNavItem(
     val route: String,
@@ -66,6 +67,7 @@ fun AnimatedBottomBar(
         MaterialTheme.typography.labelSmall.lineHeight.toDp()
     }
     val barHeight = maxOf(64.dp, 49.dp + labelHeight)
+    val largeText = LocalDensity.current.fontScale > 1.3f
 
     val selectedIndex = items
         .indexOfFirst {
@@ -80,7 +82,7 @@ fun AnimatedBottomBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(
-                horizontal = 16.dp,
+                horizontal = if (largeText) 12.dp else 16.dp,
                 vertical = 6.dp
             ),
         contentAlignment = Alignment.Center
@@ -159,7 +161,7 @@ private fun BottomNavigationItem(
 
     val contentColor by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.primary
+            MaterialTheme.colorScheme.onPrimary
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
@@ -169,7 +171,7 @@ private fun BottomNavigationItem(
 
     val capsuleColor by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
+            MaterialTheme.colorScheme.primary
         } else {
             Color.Transparent
         },
@@ -194,7 +196,7 @@ private fun BottomNavigationItem(
                 onClick()
             }
             .padding(
-                horizontal = 2.dp,
+                horizontal = if (LocalDensity.current.fontScale > 1.3f) 0.dp else 2.dp,
                 vertical = 4.dp
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -209,7 +211,7 @@ private fun BottomNavigationItem(
                 .clip(RoundedCornerShape(50))
                 .background(
                     if (selected) {
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                     } else {
                         Color.Transparent
                     }
@@ -242,7 +244,7 @@ private fun BottomNavigationItem(
         Text(
             text = item.label,
             color = contentColor,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.sp),
             fontWeight = if (selected) {
                 FontWeight.SemiBold
             } else {

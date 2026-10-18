@@ -29,6 +29,7 @@ fun PremiumHero(
     brush: Brush = AgroGradients.forest,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val farmer = com.agroroute.features.farmer.components.LocalFarmerPresentation.current
     Box(
         modifier
             .fillMaxWidth()
@@ -56,8 +57,8 @@ fun PremiumHero(
             } else CreamInk
         ) {
             Column(
-                Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                Modifier.padding(if (farmer) 16.dp else 24.dp),
+                verticalArrangement = Arrangement.spacedBy(if (farmer) 8.dp else 12.dp),
                 content = content
             )
         }

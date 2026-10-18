@@ -191,7 +191,7 @@ private fun FarmerBidCard(
     onProfile: () -> Unit = {}
 ) {
     AppCard(onClick = onOpen) {
-        com.agroroute.core.components.ListingImage(listing.imageUrls.firstOrNull(), height = 112.dp)
+        com.agroroute.core.components.ListingImage(listing.imageUrls.firstOrNull(), height = 96.dp)
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -221,7 +221,7 @@ private fun FarmerBidCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom
         ) {
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = "Offer",
                     style = MaterialTheme.typography.labelSmall,
@@ -235,7 +235,7 @@ private fun FarmerBidCard(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                 Text(
                     text = "Requested quantity",
                     style = MaterialTheme.typography.labelSmall,
