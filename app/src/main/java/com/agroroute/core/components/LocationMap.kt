@@ -84,6 +84,10 @@ fun LocationMap(
         null -> GreenEmerald.toArgb()
     }
     val density = LocalDensity.current
+    // Share identical marker pixels across style setup and updates for this map's lifetime.
+    val selectedPin = remember(pinColor) { lazy { locationPinBitmap(pinColor) } }
+    val pickupPin = remember { lazy { locationPinBitmap(GreenEmerald.toArgb()) } }
+    val deliveryPin = remember { lazy { locationPinBitmap(0xFFB96F27.toInt(), delivery = true) } }
     var measuredSize by remember { mutableStateOf(IntSize.Zero) }
     val orderCamera = remember(orderViewport?.sceneKey, location?.latitude, location?.longitude) { OrderMapCameraController() }
     val latestOrderCamera by rememberUpdatedState(orderCamera)
@@ -194,14 +198,14 @@ fun LocationMap(
                             circleRadius(17f), circleColor("#4285F4"), circleOpacity(0.18f)))
                         style.addLayer(CircleLayer("agroroute-current-dot", "agroroute-current").withProperties(
                             circleRadius(7f), circleColor("#4285F4"), circleStrokeColor("#FFFFFF"), circleStrokeWidth(2.5f)))
-                        style.addImage("agroroute-pin", locationPinBitmap(pinColor))
+                        style.addImage("agroroute-pin", selectedPin.value)
                         style.addLayer(SymbolLayer("agroroute-selected-pin", "agroroute-selected").withProperties(
                             iconImage("agroroute-pin"), iconAnchor(Property.ICON_ANCHOR_BOTTOM),
                             iconAllowOverlap(true), iconIgnorePlacement(true)))
                         if (orderPins != null) {
                             style.addSource(GeoJsonSource("supplier-orders", FeatureCollection.fromFeatures(emptyArray())))
-                            style.addImage("supplier-pickup", locationPinBitmap(GreenEmerald.toArgb()))
-                            style.addImage("supplier-delivery", locationPinBitmap(0xFFB96F27.toInt(), delivery = true))
+                            style.addImage("supplier-pickup", pickupPin.value)
+                            style.addImage("supplier-delivery", deliveryPin.value)
                             style.addLayer(CircleLayer("supplier-nearby", "supplier-orders").withFilter(
                                 org.maplibre.android.style.expressions.Expression.eq(org.maplibre.android.style.expressions.Expression.get("nearby"), true)
                             ).withProperties(circleRadius(24f), circleColor("#246B55"), circleOpacity(0.22f)))
@@ -238,7 +242,7 @@ fun LocationMap(
         }
     }
     LaunchedEffect(map, styleReady, pinColor) {
-        if (styleReady) map?.style?.addImage("agroroute-pin", locationPinBitmap(pinColor))
+        if (styleReady) map?.style?.addImage("agroroute-pin", selectedPin.value)
     }
     LaunchedEffect(map, styleReady, orderViewport?.route) {
         if (styleReady) map?.style?.getSourceAs<GeoJsonSource>("agroroute-road-route")?.let { source ->
@@ -292,7 +296,7 @@ fun LocationMap(
         if (viewport.recenterRequest > 0) readyMap.animateCamera(update) else readyMap.moveCamera(update)
     }
 
-    LaunchedEffect(map, styleReady, orderPins, visibleFix, measuredSize, focusRequest, ordersCameraPending) {
+    LaunchedEffect(map, styleReady, orderPins) {
         val pins = orderPins ?: return@LaunchedEffect
         val ready = map ?: return@LaunchedEffect
         if (!styleReady) return@LaunchedEffect
@@ -302,6 +306,11 @@ fun LocationMap(
                 addBooleanProperty("nearby", pin.nearby)
             }
         }))
+    }
+    LaunchedEffect(map, styleReady, orderPins, visibleFix, measuredSize, focusRequest, ordersCameraPending) {
+        val pins = orderPins ?: return@LaunchedEffect
+        val ready = map ?: return@LaunchedEffect
+        if (!styleReady) return@LaunchedEffect
         if (ordersCameraPending || measuredSize.width == 0 || measuredSize.height == 0) return@LaunchedEffect
         if (ordersPositioned && focusRequest == lastOrdersFocus) return@LaunchedEffect
         val current = visibleFix?.let { LatLng(it.latitude, it.longitude) }

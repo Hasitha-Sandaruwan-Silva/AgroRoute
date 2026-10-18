@@ -76,10 +76,10 @@ fun FarmerBidsScreen(
     }
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
-    val pendingCount = uiState.bids.count { it.status == BidStatus.PENDING }
-    val visibleBids = uiState.bids
-        .filter { it.status == selectedStatus }
-        .sortedByDescending { it.createdAt }
+    val pendingCount = remember(uiState.bids) { uiState.bids.count { it.status == BidStatus.PENDING } }
+    val visibleBids = remember(uiState.bids, selectedStatus) {
+        uiState.bids.filter { it.status == selectedStatus }.sortedByDescending { it.createdAt }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {

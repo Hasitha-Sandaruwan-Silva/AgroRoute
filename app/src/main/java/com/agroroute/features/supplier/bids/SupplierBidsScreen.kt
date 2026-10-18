@@ -70,7 +70,8 @@ fun SupplierBidsScreen(
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
-    val pendingBids = uiState.bids.filter { it.status == BidStatus.PENDING }
+    val pendingBids = remember(uiState.bids) { uiState.bids.filter { it.status == BidStatus.PENDING } }
+    val historyBids = remember(uiState.bids) { uiState.bids.filter { it.status != BidStatus.PENDING } }
     val isEmpty = uiState.bids.isEmpty()
 
     Column(
@@ -142,14 +143,14 @@ fun SupplierBidsScreen(
                                 modifier = Modifier.padding(top = if (pendingBids.isEmpty()) 0.dp else 8.dp)
                             )
                             Text(
-                                text = "${uiState.bids.count { it.status != BidStatus.PENDING }} completed responses",
+                                text = "${historyBids.size} completed responses",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 3.dp)
                             )
                         }
                     }
-                    items(uiState.bids.filter { it.status != BidStatus.PENDING }, key = { it.bidId }) { bid ->
+                    items(historyBids, key = { it.bidId }) { bid ->
                         BidCard(
                             bid = bid,
                             listing = listings[bid.listingId],

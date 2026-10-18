@@ -80,10 +80,10 @@ fun FarmerOrderRequestsScreen(
     }
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
-    val pendingCount = uiState.requests.count { it.status == OrderRequestStatus.PENDING }
-    val visibleRequests = uiState.requests
-        .filter { it.status == selectedStatus }
-        .sortedByDescending { it.createdAt }
+    val pendingCount = remember(uiState.requests) { uiState.requests.count { it.status == OrderRequestStatus.PENDING } }
+    val visibleRequests = remember(uiState.requests, selectedStatus) {
+        uiState.requests.filter { it.status == selectedStatus }.sortedByDescending { it.createdAt }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {

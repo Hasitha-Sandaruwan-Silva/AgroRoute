@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -44,8 +45,9 @@ fun ShimmerBox(
     )
     val base = MaterialTheme.colorScheme.surfaceVariant
     val highlight = MaterialTheme.colorScheme.surface
+    val colors = remember(base, highlight) { listOf(base, highlight, base) }
     val brush = Brush.linearGradient(
-        colors = listOf(base, highlight, base),
+        colors = colors,
         start = Offset(translate - 200f, 0f),
         end = Offset(translate, 0f)
     )

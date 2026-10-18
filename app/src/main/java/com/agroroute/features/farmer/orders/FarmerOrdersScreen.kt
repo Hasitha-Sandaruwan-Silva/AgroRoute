@@ -139,19 +139,9 @@ fun FarmerOrdersScreen(
     }
 
 
-    val deliveredOrders = rangedOrders.filter {
-        it.status == OrderStatus.DELIVERED
-    }
-
-    val deliveredQuantity =
-        deliveredOrders.sumOf {
-            it.quantity
-        }
-
-    val deliveredValue =
-        deliveredOrders.sumOf {
-            it.quantity * it.agreedPrice
-        }
+    val deliveredOrders = remember(rangedOrders) { rangedOrders.filter { it.status == OrderStatus.DELIVERED } }
+    val deliveredQuantity = remember(deliveredOrders) { deliveredOrders.sumOf { it.quantity } }
+    val deliveredValue = remember(deliveredOrders) { deliveredOrders.sumOf { it.quantity * it.agreedPrice } }
 
 
     LifecycleEventEffect(

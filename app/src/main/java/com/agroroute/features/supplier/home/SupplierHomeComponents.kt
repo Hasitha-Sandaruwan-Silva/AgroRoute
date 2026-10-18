@@ -89,6 +89,10 @@ internal fun SupplierHomeContent(
     val active = remember(listings, now) { homeActiveListings(listings, now) }
     val selected = remember(active, category) { active.filter { category == "All" || supplierProduceGroup(it.cropName) == category } }
     val accepted = remember(orders, user?.userId) { homeAcceptedOrders(orders, user?.userId.orEmpty()) }
+    val pendingBidCount = remember(bids) { bids.count { it.status == BidStatus.PENDING } }
+    val transitOrderCount = remember(orders) { orders.count { it.status == OrderStatus.IN_TRANSIT } }
+    val featured = remember(selected) { selected.take(8) }
+    val latest = remember(selected) { selected.take(4) }
     LazyColumn(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).testTag("supplier-home"),
         contentPadding = PaddingValues(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -98,8 +102,8 @@ internal fun SupplierHomeContent(
         }
         item(key = "feature") { SupplierFeatureBanner(onMarketplace, Modifier.padding(horizontal = 16.dp)) }
         item(key = "statistics") {
-            SupplierStatistics(active.size, bids.count { it.status == BidStatus.PENDING }, orders.size,
-                orders.count { it.status == OrderStatus.IN_TRANSIT }, onMarketplace, onBids, onOrders)
+            SupplierStatistics(active.size, pendingBidCount, orders.size,
+                transitOrderCount, onMarketplace, onBids, onOrders)
         }
         item(key = "featured-heading") { HomeSectionHeading("Featured Produce", onMarketplace) }
         item(key = "featured") {
@@ -111,7 +115,7 @@ internal fun SupplierHomeContent(
                     Column(Modifier.padding(24.dp)) { Text("No listings available", fontWeight = FontWeight.Bold); Text("Try another category or check Marketplace for new harvests.", style = MaterialTheme.typography.bodySmall) }
                 }
                 else -> LazyRow(Modifier.testTag("featured-row"), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(selected.take(8), key = { it.listingId }) { FeaturedProduceCard(it) { onListing(it) } }
+                    items(featured, key = { it.listingId }) { FeaturedProduceCard(it) { onListing(it) } }
                 }
             }
         }
@@ -123,11 +127,11 @@ internal fun SupplierHomeContent(
             BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                 if (maxWidth >= 600.dp && LocalDensity.current.fontScale <= 1.3f) {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(Modifier.weight(1.55f)) { LatestListings(selected.take(4), now, onListing) }
+                        Column(Modifier.weight(1.55f)) { LatestListings(latest, now, onListing) }
                         LocalFarmersPromo(onMarketplace, Modifier.weight(1f))
                     }
                 } else Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    LatestListings(selected.take(4), now, onListing)
+                    LatestListings(latest, now, onListing)
                     LocalFarmersPromo(onMarketplace, Modifier.fillMaxWidth())
                 }
             }

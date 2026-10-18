@@ -63,7 +63,9 @@ fun FarmerHomeScreen(
     val requestState by requestsViewModel.uiState.collectAsStateWithLifecycle()
     var requestToAccept by remember { mutableStateOf<com.agroroute.core.model.OrderRequest?>(null) }
     val now = com.agroroute.core.components.listingPresentationTime()
-    val pendingRequests = pendingHomeRequests(requestState, authState.user?.userId.orEmpty(), now)
+    val pendingRequests = remember(requestState.requests, requestState.listingsById, authState.user?.userId, now) {
+        pendingHomeRequests(requestState, authState.user?.userId.orEmpty(), now)
+    }
     androidx.lifecycle.compose.LifecycleResumeEffect(authState.user?.userId) {
         if (authState.user != null) requestsViewModel.loadRequests()
         onPauseOrDispose { requestsViewModel.stopObservingRequests() }
@@ -79,8 +81,9 @@ fun FarmerHomeScreen(
     ErrorSnackbarEffect(listingState.error, snackbarHostState) { listingViewModel.clearError() }
     ErrorSnackbarEffect(orderState.error, snackbarHostState) { orderViewModel.clearError() }
 
-    val publishedListings = listingState.listings.filterNot { it.isDraft }
-    val activeListings = publishedListings.count { it.status == ListingStatus.OPEN }
+    val publishedListings = remember(listingState.listings) { listingState.listings.filterNot { it.isDraft } }
+    val activeListings = remember(publishedListings) { publishedListings.count { it.status == ListingStatus.OPEN } }
+    val recentOrders = remember(orderState.orders) { orderState.orders.sortedByDescending { it.createdAt }.take(3) }
     val totalListings = publishedListings.size
     val totalOrders = orderState.orders.size
     val isLoading = listingState.isLoading && listingState.listings.isEmpty()
@@ -146,7 +149,7 @@ fun FarmerHomeScreen(
             if (orderState.orders.isNotEmpty()) {
                 FarmerSectionHeader("Recent orders", action = "View all",
                     onAction = { navController.navigate(FarmerHomeDestination.ORDERS.route) })
-                orderState.orders.sortedByDescending { it.createdAt }.take(3).forEach { order ->
+                recentOrders.forEach { order ->
                     FarmerRecentOrderCard(order) {
                         navController.navigate(Screen.FarmerOrderDetail.createRoute(order.orderId))
                     }

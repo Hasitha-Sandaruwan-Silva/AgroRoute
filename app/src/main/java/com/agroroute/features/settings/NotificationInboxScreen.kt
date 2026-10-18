@@ -18,8 +18,10 @@ import com.github.thelacspace.icons.Lucide
 fun NotificationInboxScreen(navController: NavController) {
     AccountNotificationInbox(navController) { state, refresh, open, markRead ->
         var unreadOnly by remember { mutableStateOf(false) }
-        val unreadCount = state.items.count { !it.isRead }
-        val visible = state.items.filter { !unreadOnly || !it.isRead }.sortedByDescending { it.createdAt }
+        val unreadCount = remember(state.items) { state.items.count { !it.isRead } }
+        val visible = remember(state.items, unreadOnly) {
+            state.items.filter { !unreadOnly || !it.isRead }.sortedByDescending { it.createdAt }
+        }
         Scaffold(
             topBar = {
                 TopAppBar(

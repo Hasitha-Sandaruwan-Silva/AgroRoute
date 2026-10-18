@@ -87,9 +87,9 @@ fun SupplierOrdersScreen(
 
     ErrorSnackbarEffect(uiState.error, snackbarHostState) { viewModel.clearError() }
 
-    val pendingRequests = uiState.requests.filter { it.status == OrderRequestStatus.PENDING }
-    val rejectedRequests = uiState.requests.filter { it.status == OrderRequestStatus.REJECTED }
-    val cancelledRequests = uiState.requests.filter { it.status == OrderRequestStatus.CANCELLED }
+    val pendingRequests = remember(uiState.requests) { uiState.requests.filter { it.status == OrderRequestStatus.PENDING } }
+    val rejectedRequests = remember(uiState.requests) { uiState.requests.filter { it.status == OrderRequestStatus.REJECTED } }
+    val cancelledRequests = remember(uiState.requests) { uiState.requests.filter { it.status == OrderRequestStatus.CANCELLED } }
     val isEmpty = uiState.requests.isEmpty() && uiState.orders.isEmpty()
 
     Column(

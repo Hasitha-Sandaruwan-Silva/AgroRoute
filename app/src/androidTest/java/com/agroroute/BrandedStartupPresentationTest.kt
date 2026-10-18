@@ -61,10 +61,10 @@ class BrandedStartupPresentationTest {
                 BrandedStartup(true, true, dark) { Text("Existing role destination") }
             }
         }
-        compose.mainClock.advanceTimeBy(1800)
+        compose.mainClock.advanceTimeBy(2500)
         compose.onNodeWithTag("startup-intro").assertExists()
         compose.onNodeWithTag("startup-session-loading").assertDoesNotExist()
-        compose.mainClock.advanceTimeBy(1100)
+        compose.mainClock.advanceTimeBy(500)
         compose.onNodeWithTag("startup-intro").assertDoesNotExist()
         compose.onNodeWithText("Existing role destination").assertIsDisplayed()
         compose.runOnIdle { dark = true }
@@ -81,7 +81,7 @@ class BrandedStartupPresentationTest {
             }
         }
         for (night in listOf(false, true)) {
-            for (frame in listOf(0, 700, 1450, 2150, 2400)) {
+            for (frame in listOf(0, 350, 700, 950, 1450, 2150, 2600)) {
                 compose.runOnIdle { dark = night; time = frame.toFloat() }
                 val name = "startup-${if (night) "dark" else "light"}-$frame.png"
                 File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, name).outputStream().use {

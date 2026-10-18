@@ -72,8 +72,10 @@ fun UserProfileAvatar(
             onPhotoSelected(uri)
         }
     }
-    val initials = displayName.trim().split(Regex("\\s+")).mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
-        .take(2).joinToString("").ifBlank { "A" }
+    val initials = remember(displayName) {
+        displayName.trim().split(Regex("\\s+")).mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
+            .take(2).joinToString("").ifBlank { "A" }
+    }
 
     Box(
         modifier = Modifier

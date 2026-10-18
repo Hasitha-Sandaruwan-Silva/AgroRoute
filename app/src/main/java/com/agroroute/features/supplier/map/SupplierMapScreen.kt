@@ -78,18 +78,26 @@ internal fun SupplierMapContent(orders: List<Order>, supplierId: String, loading
         else message = "Location access is off. Enable it in app settings to show your position. Saved orders are still available."
     }
     LaunchedEffect(Unit) { if (services.hasPermission()) locate(false) }
-    val active = supplierMapOrders(orders, supplierId)
-    val visible = supplierMapOrders(orders, supplierId, filter)
-    val selected = visible.firstOrNull { it.orderId == selectedId }
-    fun distance(order: Order): Float? {
-        val current = fix ?: return null
-        val destination = orderMapPresentation(order, true).destination ?: return null
-        return FloatArray(1).also { Location.distanceBetween(current.latitude, current.longitude,
-            destination.latitude, destination.longitude, it) }[0]
+    val active = remember(orders, supplierId) { supplierMapOrders(orders, supplierId) }
+    val visible = remember(orders, supplierId, filter) { supplierMapOrders(orders, supplierId, filter) }
+    val selected = remember(visible, selectedId) { visible.firstOrNull { it.orderId == selectedId } }
+    val presentations = remember(visible) { visible.associate { it.orderId to orderMapPresentation(it, true) } }
+    val distances = remember(presentations, fix?.latitude, fix?.longitude) {
+        val current = fix
+        val result = FloatArray(1)
+        presentations.mapValues { (_, presentation) ->
+            val destination = presentation.destination
+            if (current == null || destination == null) null else {
+                Location.distanceBetween(current.latitude, current.longitude, destination.latitude, destination.longitude, result)
+                result[0]
+            }
+        }
     }
-    val pins = visible.mapNotNull { order -> orderMapPresentation(order, true).destination?.let {
-        OrderMapPin(order.orderId, it, order.status == OrderStatus.IN_TRANSIT, distance(order)?.let { meters -> meters <= 10000 } == true)
-    } }
+    val pins = remember(visible, presentations, distances) {
+        visible.mapNotNull { order -> presentations[order.orderId]?.destination?.let {
+            OrderMapPin(order.orderId, it, order.status == OrderStatus.IN_TRANSIT, distances[order.orderId]?.let { meters -> meters <= 10000 } == true)
+        } }
+    }
     Column(Modifier.fillMaxSize().testTag("supplier-map-screen")) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween) {
@@ -116,7 +124,7 @@ internal fun SupplierMapContent(orders: List<Order>, supplierId: String, loading
             }
             androidx.compose.animation.AnimatedVisibility(visible = selected != null, Modifier.align(Alignment.BottomCenter).padding(8.dp)) {
                 selected?.let { order ->
-                    val presentation = orderMapPresentation(order, true)
+                    val presentation = presentations.getValue(order.orderId)
                     Surface(shape = RoundedCornerShape(22.dp), shadowElevation = 6.dp,
                         color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                         Column(Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()).padding(16.dp),
@@ -130,7 +138,7 @@ internal fun SupplierMapContent(orders: List<Order>, supplierId: String, loading
                                 style = MaterialTheme.typography.bodySmall)
                             OrderStatusChip(order.status)
                             Text(presentation.address, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
-                            distance(order)?.let { Text(String.format(Locale.getDefault(), "%.1f km away � straight-line distance", it / 1000), style = MaterialTheme.typography.labelSmall) }
+                            distances[order.orderId]?.let { Text(String.format(Locale.getDefault(), "%.1f km away � straight-line distance", it / 1000), style = MaterialTheme.typography.labelSmall) }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(onClick = { onDetails(order) }) { Text(if (order.status == OrderStatus.AWAITING_PICKUP) "View Pickup" else "View Delivery") }
                                 TextButton(enabled = presentation.destination != null, onClick = {
@@ -147,7 +155,7 @@ internal fun SupplierMapContent(orders: List<Order>, supplierId: String, loading
         LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(visible, key = { it.orderId }) { order ->
                 AssistChip(onClick = { selectedId = order.orderId }, label = {
-                    Text(order.cropName + if (orderMapPresentation(order, true).destination == null) " � Location unavailable" else "",
+                    Text(order.cropName + if (presentations[order.orderId]?.destination == null) " � Location unavailable" else "",
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
                 })
             }

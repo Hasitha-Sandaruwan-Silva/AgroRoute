@@ -122,6 +122,8 @@ private fun UpdateStatusBarAppearance(darkTheme: Boolean) {
         val activity = view.context as? Activity ?: return@SideEffect
         WindowCompat.getInsetsController(activity.window, view)
             .isAppearanceLightStatusBars = !darkTheme
+        WindowCompat.getInsetsController(activity.window, view)
+            .isAppearanceLightNavigationBars = !darkTheme
     }
 }
 
