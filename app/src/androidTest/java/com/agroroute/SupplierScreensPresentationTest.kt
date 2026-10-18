@@ -109,7 +109,8 @@ class SupplierScreensPresentationTest {
         compose.runOnIdle { assertEquals("supplier_marketplace", route) }
         compose.onNodeWithText("Profile").performClick()
         compose.runOnIdle { assertEquals("supplier_profile", route) }
-        compose.onNodeWithText("Map", substring = false).assertDoesNotExist()
+        compose.onNodeWithText("Map", substring = false).assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(com.agroroute.core.navigation.Screen.SupplierMap.route, route) }
     }
     @Test fun profileEditorRetainsValidationAndSaveFields() {
         var saved: List<String>? = null

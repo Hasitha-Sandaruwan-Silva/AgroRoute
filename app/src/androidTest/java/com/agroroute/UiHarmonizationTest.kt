@@ -49,7 +49,7 @@ class UiHarmonizationTest(private val dark: Boolean) {
         compose.onAllNodesWithText("View order").onFirst().performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, opened) }
         compose.onAllNodesWithText("View order").onLast().performScrollTo().assertIsDisplayed()
-        compose.onAllNodesWithText("Kasun Perera with a long supplier name").onLast().performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Supplier \u00B7 Kasun Perera with a long supplier name").onLast().performScrollTo().assertIsDisplayed()
     }
     @Test fun unreadMessageAndRequestPreserveTapAndMarkReadCallbacks() {
         var opened = false

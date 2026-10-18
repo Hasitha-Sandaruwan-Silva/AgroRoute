@@ -85,7 +85,10 @@ class AuthPresentationTest(private val dark: Boolean) {
     private fun roleNode(label: String) = compose.onNode(isSelectable() and
         (hasText(label) or hasAnyDescendant(hasText(label))))
     private fun await(text: String) {
-        compose.waitUntil(10_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+        // A dialog/navigation handoff may temporarily have no registered Compose root.
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText(text).fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
+        }
     }
     private fun capture(name: String) {
         val image = compose.onNode(isRoot() and hasAnyDescendant(hasText("AgroRoute")))
@@ -261,7 +264,8 @@ class AuthPresentationTest(private val dark: Boolean) {
     @Test fun passwordResetPreservesValidationAndSuccessMessage() {
         login()
         compose.onNodeWithText("Forgot password?").performScrollTo().performClick()
-        compose.onNodeWithText("Send Reset Link").performClick()
+        await("Send Reset Link")
+        compose.onNodeWithText("Send Reset Link").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(0, repository.resetCalls) }
         field("Email address").performTextReplacement("test@example.com")
         compose.onNodeWithText("Send Reset Link").performClick()
@@ -269,7 +273,8 @@ class AuthPresentationTest(private val dark: Boolean) {
         compose.runOnIdle { assertEquals(1, repository.resetCalls) }
         // Existing behavior dismisses the dialog after the success snackbar completes.
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("Reset Password").fetchSemanticsNodes().isEmpty()
+            compose.onAllNodesWithText("Reset Password").fetchSemanticsNodes(atLeastOneRootRequired = false).isEmpty() &&
+                compose.onAllNodesWithText("Forgot password?").fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
         }
         compose.onNodeWithText("Reset Password").assertDoesNotExist()
     }
